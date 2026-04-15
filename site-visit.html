@@ -1282,10 +1282,12 @@ function parseFreetextMessage(raw) {
       localStorage.setItem('pr_jobs_v1', JSON.stringify(jobs));
 
       const btn = document.getElementById('save-app-btn');
-      btn.textContent = '✓ Saved!';
+      btn.textContent = '✓ Saved! Going back…';
       btn.style.background = '#66FF33';
       btn.style.color = '#111';
-      setTimeout(() => { btn.textContent = '✓ Save to App'; btn.style.background = '#1a3a1a'; btn.style.color = '#66FF33'; }, 2500);
+      setTimeout(() => {
+        window.location.href = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/?openJob=' + jobId;
+      }, 1200);
     }
 
     function removePhoto(pc) {

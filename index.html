@@ -927,6 +927,11 @@ function showEnquiryModal(url) {
 // ── INIT ──
 loadJobs();
 renderJobs();
+// Auto-open a job when returning from site visit / quote template
+(function(){
+  var openId = new URLSearchParams(location.search).get('openJob');
+  if (openId) setTimeout(function(){ openJob(openId); }, 200);
+})();
 </script>
 </body>
 </html>

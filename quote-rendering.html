@@ -1125,6 +1125,15 @@
       const _jobId = _p.get('jobId');
       if (_jobId) {
         window._prJobId = _jobId;
+        const loadBtn = document.querySelector('[onclick="loadCurrentClient()"]');
+        if (loadBtn?.parentElement) loadBtn.parentElement.style.display = 'none';
+        const addrEl = document.getElementById('client-addr');
+        if (addrEl?.value) {
+          const raw = addrEl.value;
+          const clean = raw.replace(/\s+(?:postcode|property_type|work_type|description|timescale)\b.*/i, '').trim();
+          const pc = (raw.match(/\b([A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2})\b/i) || [])[1];
+          addrEl.value = (pc && !clean.toUpperCase().includes(pc.toUpperCase())) ? clean + ', ' + pc.toUpperCase() : clean;
+        }
         const _jobs = JSON.parse(localStorage.getItem('pr_jobs_v1') || '[]');
         const _job  = _jobs.find(j => j.id === _jobId);
         if (_job?.siteVisit) {
@@ -1174,8 +1183,25 @@
       div.id = 'row-' + id;
 
       if (type === 'labour') {
+        const opts = [
+          ['', '— Select item —'],
+          ['Silicone Render — No Hack Off|45',  'Silicone Render — No Hack Off  £45/m²'],
+          ['Silicone Render — Full Hack Off|55', 'Silicone Render — Full Hack Off  £55/m²'],
+          ['Monocouche — No Hack Off|42',        'Monocouche — No Hack Off  £42/m²'],
+          ['Monocouche — Full Hack Off|52',      'Monocouche — Full Hack Off  £52/m²'],
+          ['K-Rend K1 — No Hack Off|38',         'K-Rend K1 — No Hack Off  £38/m²'],
+          ['K-Rend K1 — Full Hack Off|48',       'K-Rend K1 — Full Hack Off  £48/m²'],
+          ['Sand & Cement Base Coat|25',          'Sand & Cement Base Coat  £25/m²'],
+          ['EWI System|85',                       'EWI System  £85/m²'],
+          ['Roughcast|35',                        'Roughcast  £35/m²'],
+          ['Tyrolean|32',                         'Tyrolean  £32/m²'],
+          ['custom',                              '✎ Custom…'],
+        ].map(([v,l]) => `<option value="${v}">${l}</option>`).join('');
         div.innerHTML = `
-          <input type="text" placeholder="e.g. Apply silicone render to front elevation" data-id="${id}" data-field="desc" oninput="update()">
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <select onchange="applyPreset(${id},this)" style="padding:7px 6px;font-size:13px;border:1px solid #ddd;border-radius:3px;background:#fafafa;color:#111;width:100%">${opts}</select>
+            <input type="text" data-id="${id}" data-field="desc" placeholder="Describe the work…" oninput="update()" style="display:none;padding:7px 6px;font-size:13px;border:1px solid var(--green);border-radius:3px;background:#fafafa;color:#111;width:100%">
+          </div>
           <input type="number" placeholder="0" data-id="${id}" data-field="qty" step="0.1" oninput="calcRow(${id})">
           <input type="number" placeholder="0.00" data-id="${id}" data-field="unit" step="0.01" oninput="calcRow(${id})">
           <input type="text" id="row-total-${id}" placeholder="£0.00" readonly style="background:#f8f8f8;color:#888">
@@ -1263,6 +1289,26 @@
         tbody.appendChild(tr);
       }
       return total;
+    }
+
+    function applyPreset(id, sel) {
+      const val = sel.value;
+      const descEl = document.querySelector(`[data-id="${id}"][data-field="desc"]`);
+      const unitEl = document.querySelector(`[data-id="${id}"][data-field="unit"]`);
+      if (val === 'custom') {
+        descEl.style.display = '';
+        descEl.value = '';
+        descEl.focus();
+      } else if (val) {
+        const [desc, price] = val.split('|');
+        descEl.style.display = 'none';
+        descEl.value = desc;
+        if (price && unitEl) { unitEl.value = price; calcRow(id); }
+      } else {
+        descEl.style.display = 'none';
+        descEl.value = '';
+      }
+      update();
     }
 
     function saveQuoteToApp() {

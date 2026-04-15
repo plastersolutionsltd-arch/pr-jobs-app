@@ -813,14 +813,23 @@
       const _jobId = _p.get('jobId');
       if (_jobId) {
         window._prJobId = _jobId;
+        // Hide the manual Load/Import buttons — data comes from app
+        const loadBtn = document.querySelector('[onclick="loadCurrentClient()"]');
+        if (loadBtn?.parentElement) loadBtn.parentElement.style.display = 'none';
+        // Clean messy address (Formspree dumps extra fields into it)
+        const addrEl = document.getElementById('client-addr');
+        if (addrEl?.value) {
+          const raw = addrEl.value;
+          const clean = raw.replace(/\s+(?:postcode|property_type|work_type|description|timescale)\b.*/i, '').trim();
+          const pc = (raw.match(/\b([A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2})\b/i) || [])[1];
+          addrEl.value = (pc && !clean.toUpperCase().includes(pc.toUpperCase())) ? clean + ', ' + pc.toUpperCase() : clean;
+        }
         const _jobs = JSON.parse(localStorage.getItem('pr_jobs_v1') || '[]');
         const _job  = _jobs.find(j => j.id === _jobId);
         if (_job?.siteVisit) {
           const sv = _job.siteVisit;
-          // Pre-fill scope notes with work types from site visit
           if (!document.getElementById('notes').value && sv.workTypes)
             document.getElementById('notes').value = sv.workTypes;
-          // Pre-fill first labour row with combined m² if available
           if (sv.combinedM2 && sv.combinedM2 !== '—') {
             const firstQty = document.querySelector('[data-field="qty"]');
             if (firstQty) { firstQty.value = sv.combinedM2; calcRow(1); }
@@ -864,8 +873,24 @@
       div.id = 'row-' + id;
 
       if (type === 'labour') {
+        const opts = [
+          ['', '— Select item —'],
+          ['Skim Coat — Walls & Ceiling|20', 'Skim Coat — Walls & Ceiling  £20/m²'],
+          ['Skim Coat — Walls Only|18',       'Skim Coat — Walls Only  £18/m²'],
+          ['Skim Coat — Ceiling Only|22',     'Skim Coat — Ceiling Only  £22/m²'],
+          ['Sand & Cement Base Coat|25',      'Sand & Cement Base Coat  £25/m²'],
+          ['Bonding Coat|20',                 'Bonding Coat  £20/m²'],
+          ['Dot & Dab Dry Lining|22',         'Dot & Dab Dry Lining  £22/m²'],
+          ['Patching & Repair|35',            'Patching & Repair  £35/m²'],
+          ['Coving — Supply & Fix|15',        'Coving — Supply & Fix  £15/lm'],
+          ['Artex Removal|20',                'Artex Removal  £20/m²'],
+          ['custom',                          '✎ Custom…'],
+        ].map(([v,l]) => `<option value="${v}">${l}</option>`).join('');
         div.innerHTML = `
-          <input type="text" placeholder="e.g. Plastering walls and ceiling" data-id="${id}" data-field="desc" oninput="update()">
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <select onchange="applyPreset(${id},this)" style="padding:7px 6px;font-size:13px;border:1px solid #ddd;border-radius:3px;background:#fafafa;color:#111;width:100%">${opts}</select>
+            <input type="text" data-id="${id}" data-field="desc" placeholder="Describe the work…" oninput="update()" style="display:none;padding:7px 6px;font-size:13px;border:1px solid var(--green);border-radius:3px;background:#fafafa;color:#111;width:100%">
+          </div>
           <input type="number" placeholder="0" data-id="${id}" data-field="qty" step="0.1" oninput="calcRow(${id})">
           <input type="number" placeholder="0.00" data-id="${id}" data-field="unit" step="0.01" oninput="calcRow(${id})">
           <input type="text" inputmode="decimal" id="row-total-${id}" placeholder="0.00" data-id="${id}" data-field="total" oninput="update()" style="color:#111">
@@ -1014,6 +1039,26 @@
         tbody.appendChild(tr);
       }
       return total;
+    }
+
+    function applyPreset(id, sel) {
+      const val = sel.value;
+      const descEl = document.querySelector(`[data-id="${id}"][data-field="desc"]`);
+      const unitEl = document.querySelector(`[data-id="${id}"][data-field="unit"]`);
+      if (val === 'custom') {
+        descEl.style.display = '';
+        descEl.value = '';
+        descEl.focus();
+      } else if (val) {
+        const [desc, price] = val.split('|');
+        descEl.style.display = 'none';
+        descEl.value = desc;
+        if (price && unitEl) { unitEl.value = price; calcRow(id); }
+      } else {
+        descEl.style.display = 'none';
+        descEl.value = '';
+      }
+      update();
     }
 
     function saveQuoteToApp() {
