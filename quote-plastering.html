@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P&R Solutions — Quotation Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fjalla+One&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #66FF33;
+      --dark: #111;
+      --border: #ddd;
+    }
+
+    body {
+      font-family: 'Lato', Arial, sans-serif;
+      background: #f0f0f0;
+      color: var(--dark);
+    }
+
+    /* ===== APP HEADER ===== */
+    .app-header {
+      background: #111;
+      color: white;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 200;
+    }
+
+    .app-title {
+      font-family: 'Fjalla One', Impact, sans-serif;
+      font-size: 17px;
+      letter-spacing: 2px;
+    }
+
+    .app-title span { color: var(--green); }
+
+    .btn-print {
+      background: var(--green);
+      color: #111;
+      border: none;
+      padding: 9px 18px;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 13px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+
+    .btn-print:active { opacity: 0.8; }
+
+    /* ===== MOBILE TABS ===== */
+    .tab-bar {
+      display: flex;
+      background: #1a1a1a;
+      border-bottom: 2px solid var(--green);
+      position: sticky;
+      top: 49px;
+      z-index: 100;
+    }
+
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 13px;
+      color: #666;
+      font-family: 'Fjalla One', sans-serif;
+      letter-spacing: 2px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      color: var(--green);
+      border-bottom: 3px solid var(--green);
+      margin-bottom: -2px;
+    }
+
+    /* ===== LAYOUT ===== */
+    .app-body { display: flex; height: calc(100vh - 97px); }
+    .panel { flex: 1; overflow-y: auto; }
+    .panel-form { background: white; max-width: 480px; border-right: 1px solid #ddd; }
+    .panel-preview { background: #ddd; padding: 24px; display: flex; flex-direction: column; align-items: center; }
+
+    @media (max-width: 900px) {
+      .app-body { height: auto; flex-direction: column; }
+      .panel { display: none; }
+      .panel.active { display: block; }
+      .panel-form { max-width: 100%; border-right: none; }
+      .panel-preview { padding: 12px; }
+    }
+
+    @media (min-width: 901px) {
+      .tab-bar { display: none; }
+      .panel { display: block !important; }
+    }
+
+    /* ===== FORM ===== */
+    .form-section { border-bottom: 1px solid #f0f0f0; padding: 20px 16px; }
+
+    .form-section-title {
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: #aaa;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .field { margin-bottom: 12px; }
+
+    .field label {
+      display: block;
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: #999;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .field input,
+    .field textarea,
+    .field select {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      font-family: 'Lato', sans-serif;
+      font-size: 15px;
+      color: var(--dark);
+      background: white;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .field input:focus,
+    .field textarea:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 2px rgba(102,255,51,0.15); }
+
+    .field textarea { resize: vertical; min-height: 72px; }
+    .field-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .col-labels { display: grid; gap: 8px; margin-bottom: 6px; }
+    .col-labels.labour { grid-template-columns: 1fr 70px 70px 70px 34px; }
+    .col-labels.simple { grid-template-columns: 1fr 90px 34px; }
+    .col-label { font-size: 9px; letter-spacing: 1px; color: #bbb; text-transform: uppercase; }
+
+    .line-item { display: grid; gap: 6px; margin-bottom: 6px; align-items: center; }
+    .line-item-labour { grid-template-columns: 1fr 70px 70px 70px 34px; }
+    .line-item-simple { grid-template-columns: 1fr 90px 34px; }
+
+    .line-item input {
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      font-size: 14px;
+      font-family: 'Lato', sans-serif;
+      color: #111;
+      -webkit-text-fill-color: #111;
+    }
+
+    .line-item input:focus { outline: none; border-color: var(--green); }
+
+    .btn-remove {
+      background: #f8f8f8;
+      border: 1px solid #e8e8e8;
+      border-radius: 2px;
+      width: 34px;
+      height: 36px;
+      cursor: pointer;
+      color: #bbb;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .btn-remove:hover { background: #fff0f0; border-color: #f99; color: #c33; }
+
+    .btn-add {
+      background: none;
+      border: 1px dashed #ddd;
+      border-radius: 2px;
+      width: 100%;
+      padding: 9px 12px;
+      color: #aaa;
+      font-family: 'Lato', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      margin-top: 6px;
+      text-align: left;
+    }
+
+    .btn-add:hover { border-color: var(--green); color: #5cc; }
+
+    /* ===== QUOTE PREVIEW ===== */
+    .invoice {
+      background: white;
+      width: 210mm;
+      min-height: 297mm;
+      padding: 14mm 15mm;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+      font-family: 'Lato', Arial, sans-serif;
+      font-size: 9pt;
+      color: #111;
+    }
+
+    .inv-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 7mm;
+      border-bottom: 3px solid var(--green);
+      margin-bottom: 7mm;
+    }
+
+    .inv-logo { width: 110px; }
+
+    .inv-company { text-align: right; }
+
+    .inv-company-name {
+      font-family: 'Fjalla One', Impact, sans-serif;
+      font-size: 15pt;
+      letter-spacing: 2px;
+    }
+
+    .inv-company-name .g { color: var(--green); }
+
+    .inv-company-tag {
+      font-size: 6.5pt;
+      letter-spacing: 3.5px;
+      color: #999;
+      margin: 3px 0 6px;
+    }
+
+    .inv-company-contact {
+      font-size: 8pt;
+      color: #666;
+      line-height: 1.65;
+    }
+
+    .inv-meta {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8mm;
+      gap: 10mm;
+    }
+
+    .inv-bill-to { flex: 1; }
+
+    .inv-bill-to h3 {
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 7.5pt;
+      letter-spacing: 2.5px;
+      color: #bbb;
+      margin-bottom: 5px;
+    }
+
+    .inv-client-name { font-size: 11pt; font-weight: 700; margin-bottom: 3px; }
+    .inv-client-addr { font-size: 8.5pt; color: #666; white-space: pre-line; line-height: 1.6; }
+    .inv-client-phone { font-size: 8pt; color: #888; margin-top: 3px; }
+
+    .inv-details { text-align: right; flex-shrink: 0; }
+
+    .inv-title {
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 26pt;
+      letter-spacing: 4px;
+      color: #111;
+      margin-bottom: 5mm;
+    }
+
+    .inv-detail-row {
+      display: flex;
+      justify-content: flex-end;
+      gap: 14px;
+      font-size: 8pt;
+      margin-bottom: 4px;
+    }
+
+    .inv-detail-label { color: #bbb; letter-spacing: 1px; text-transform: uppercase; }
+    .inv-detail-value { font-weight: 700; min-width: 110px; text-align: right; }
+
+    /* Valid notice */
+    .quote-valid-banner {
+      background: #111;
+      color: var(--green);
+      text-align: center;
+      padding: 5px 10px;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 8pt;
+      letter-spacing: 2px;
+      margin-bottom: 6mm;
+    }
+
+    .inv-section-label {
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 7.5pt;
+      letter-spacing: 2.5px;
+      color: #999;
+      margin: 5mm 0 2mm;
+      padding-bottom: 3px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .inv-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2mm;
+      font-size: 8.5pt;
+    }
+
+    .inv-table thead tr { background: #111; color: white; }
+
+    .inv-table th {
+      padding: 5px 8px;
+      text-align: left;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 7pt;
+      letter-spacing: 2px;
+      font-weight: normal;
+    }
+
+    .inv-table th.r { text-align: right; }
+
+    .inv-table td {
+      padding: 5px 8px;
+      border-bottom: 1px solid #f0f0f0;
+      vertical-align: top;
+    }
+
+    .inv-table td.r { text-align: right; }
+    .inv-table tbody tr:nth-child(even) td { background: #fafafa; }
+    .inv-empty td { color: #ccc; text-align: center; padding: 10px; }
+
+    .inv-totals { margin-top: 5mm; display: flex; justify-content: flex-end; }
+    .inv-totals-inner { width: 210px; }
+
+    .inv-total-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 8px;
+      font-size: 8.5pt;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .inv-total-row .tl { color: #888; }
+    .inv-total-row .tv { font-weight: 700; }
+
+    .inv-total-grand {
+      display: flex;
+      justify-content: space-between;
+      padding: 7px 8px;
+      background: #111;
+      color: white;
+      margin-top: 3px;
+    }
+
+    .inv-total-grand .tl {
+      font-family: 'Fjalla One', sans-serif;
+      letter-spacing: 1px;
+      font-size: 9pt;
+    }
+
+    .inv-total-grand .tv { font-weight: 700; font-size: 10pt; }
+
+    /* Why choose us / terms box */
+    .inv-terms {
+      margin-top: 7mm;
+      padding: 4mm 5mm;
+      background: #f9f9f9;
+      border: 1px solid #eee;
+      font-size: 7pt;
+      color: #888;
+      line-height: 1.6;
+    }
+
+    .inv-terms h4 {
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 7.5pt;
+      letter-spacing: 2.5px;
+      color: #aaa;
+      margin-bottom: 5px;
+    }
+
+    .inv-terms-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4mm 6mm;
+      margin-top: 4px;
+    }
+
+    .inv-terms-col strong { color: #666; font-size: 7pt; display: block; margin-bottom: 2px; }
+
+    /* Acceptance box */
+    .inv-acceptance {
+      margin-top: 6mm;
+      border: 1px solid #ddd;
+      padding: 4mm 5mm;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4mm;
+      font-size: 8pt;
+    }
+
+    .inv-acceptance h4 {
+      grid-column: 1 / -1;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 7.5pt;
+      letter-spacing: 2.5px;
+      color: #aaa;
+      margin-bottom: 2px;
+    }
+
+    .sig-line {
+      border-bottom: 1px solid #ccc;
+      margin-top: 8mm;
+      margin-bottom: 2px;
+    }
+
+    .sig-label { font-size: 7pt; color: #bbb; letter-spacing: 1px; }
+
+    /* Footer */
+    .inv-footer {
+      margin-top: 7mm;
+      padding-top: 5mm;
+      border-top: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .inv-signature { font-size: 10pt; font-weight: 700; margin-bottom: 2px; }
+    .inv-sig-company { font-size: 8pt; color: #888; }
+    .inv-notes { font-size: 7.5pt; color: #777; margin-top: 5px; max-width: 260px; line-height: 1.5; }
+
+    .inv-guarantee {
+      text-align: right;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 9pt;
+      letter-spacing: 1px;
+      color: var(--green);
+    }
+
+    .inv-guarantee-sub { font-size: 7pt; color: #aaa; letter-spacing: 1px; font-family: 'Lato', sans-serif; margin-top: 2px; }
+
+    /* ===== PRINT ===== */
+    @media print {
+      body { background: white; }
+      .app-header, .tab-bar, .panel-form { display: none !important; }
+      .app-body { height: auto; }
+      .panel-preview { background: white; padding: 0; display: block; }
+      .invoice { box-shadow: none; width: 100%; min-height: auto; padding: 10mm; }
+      @page { margin: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="app-header">
+    <span class="app-title"><span>P&R</span> QUOTATION GENERATOR</span>
+    <button class="btn-print" onclick="saveNum().then(()=>window.print())">⬇ PRINT / SAVE PDF</button>
+  </header>
+
+  <div class="tab-bar">
+    <div class="tab active" onclick="switchTab('form', this)">✏ FORM</div>
+    <div class="tab" onclick="switchTab('preview', this)">👁 PREVIEW</div>
+  </div>
+
+  <div class="app-body">
+
+    <!-- ===== FORM PANEL ===== -->
+    <div class="panel panel-form active" id="panel-form">
+
+      <div class="form-section">
+        <div class="form-section-title">Quote Details</div>
+        <div class="field-row-2">
+          <div class="field">
+            <label>Quote Number</label>
+            <input type="text" id="inv-number" placeholder="QT-001" oninput="update()">
+          </div>
+          <div class="field">
+            <label>Date</label>
+            <input type="date" id="inv-date" oninput="update()">
+          </div>
+        </div>
+        <div class="field-row-2">
+          <div class="field">
+            <label>Valid Until</label>
+            <input type="date" id="inv-due" oninput="update()">
+          </div>
+          <div class="field">
+            <label>Project Reference</label>
+            <input type="text" id="inv-ref" placeholder="e.g. Smith Render Job" oninput="update()">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title" style="display:flex;justify-content:space-between;align-items:center">
+          Client
+          <span style="display:flex;gap:6px">
+            <button type="button" onclick="loadCurrentClient()" style="font-size:10px;padding:2px 8px;background:var(--green);color:#111;border:none;border-radius:2px;cursor:pointer;font-family:inherit;font-weight:700;letter-spacing:0.5px">↓ Load Saved Client</button>
+            <button type="button" onclick="toggleClientImport()" style="font-size:10px;padding:2px 8px;background:#111;color:var(--green);border:1px solid #ddd;border-radius:2px;cursor:pointer;font-family:inherit;letter-spacing:0.5px">⬇ Import Email</button>
+          </span>
+        </div>
+        <div id="client-import-panel" style="display:none;background:#f8f8f8;border:1px solid #ddd;border-radius:3px;padding:10px;margin-bottom:10px">
+          <div style="font-size:10px;color:#888;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Paste Formspree email body</div>
+          <textarea id="client-import-text" style="width:100%;height:100px;font-family:monospace;font-size:11px;border:1px solid #ccc;border-radius:2px;padding:7px;resize:vertical" placeholder="Paste email here..."></textarea>
+          <div style="display:flex;gap:6px;margin-top:6px;align-items:center">
+            <button type="button" onclick="runClientImport()" style="background:#111;color:var(--green);border:none;padding:6px 14px;font-size:11px;letter-spacing:1px;cursor:pointer;border-radius:2px;font-family:inherit">IMPORT</button>
+            <button type="button" onclick="toggleClientImport()" style="background:none;border:1px solid #ccc;color:#888;padding:6px 10px;font-size:11px;cursor:pointer;border-radius:2px">Cancel</button>
+            <span id="client-import-status" style="font-size:11px;color:var(--green);display:none"></span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Client Name</label>
+          <input type="text" id="client-name" placeholder="Full name or company" oninput="update()">
+        </div>
+        <div class="field">
+          <label>Address</label>
+          <textarea id="client-addr" placeholder="Street&#10;City&#10;Postcode" oninput="update()"></textarea>
+        </div>
+        <div class="field">
+          <label>Phone</label>
+          <input type="tel" id="client-phone" placeholder="07xxx xxxxxx" oninput="update()">
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Labour & Work</div>
+        <div class="col-labels labour">
+          <span class="col-label">Description</span>
+          <span class="col-label">Qty / m²</span>
+          <span class="col-label">Unit £</span>
+          <span class="col-label">Total</span>
+          <span></span>
+        </div>
+        <div id="labour-rows"></div>
+        <button class="btn-add" onclick="addRow('labour')">+ Add labour item</button>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Materials</div>
+        <div class="col-labels simple">
+          <span class="col-label">Material</span>
+          <span class="col-label">Cost £</span>
+          <span></span>
+        </div>
+        <div id="materials-rows"></div>
+        <button class="btn-add" onclick="addRow('materials')">+ Add material</button>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Additional Fees</div>
+        <div class="col-labels simple">
+          <span class="col-label">Description</span>
+          <span class="col-label">Amount £</span>
+          <span></span>
+        </div>
+        <div id="fees-rows"></div>
+        <button class="btn-add" onclick="addRow('fees')">+ Add fee</button>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">VAT & Notes</div>
+        <div class="field-row-2">
+          <div class="field">
+            <label>VAT %</label>
+            <input type="number" id="vat-rate" placeholder="0" value="0" min="0" max="100" oninput="update()">
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <div style="padding:11px 0;font-size:13px;color:#aaa">Leave 0 if not VAT registered</div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Scope of Works / Notes</label>
+          <textarea id="notes" placeholder="Brief description of the works included in this quote..." oninput="update()"></textarea>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ===== PREVIEW PANEL ===== -->
+    <div class="panel panel-preview" id="panel-preview">
+      <div class="invoice" id="invoice">
+
+        <!-- Header -->
+        <div class="inv-header">
+          <div class="inv-logo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" style="width:110px;display:block">
+              <defs>
+                <style>@import url('https://fonts.googleapis.com/css2?family=Fjalla+One&family=Lato:wght@300;400&display=swap');</style>
+              </defs>
+              <rect width="600" height="360" fill="#FFFFFF"/>
+              <g transform="translate(167.5, 60)">
+                <path fill="#66FF33" d="M 0,0 L 0,160 L 35,160 L 35,95 L 80,95 C 115,95 140,70 140,40 C 140,10 115,-10 80,-10 L 0,-10 Z M 35,20 L 80,20 C 95,20 105,30 105,45 C 105,60 95,70 80,70 L 35,70 Z"/>
+                <path fill="#000000" d="M 120,0 L 120,160 L 155,160 L 155,100 L 185,100 L 225,160 L 265,160 L 220,95 C 245,90 265,70 265,40 C 265,10 240,-10 205,-10 L 120,-10 Z M 155,20 L 205,20 C 220,20 230,30 230,45 C 230,60 220,70 205,70 L 155,70 Z"/>
+              </g>
+              <line x1="190" y1="245" x2="410" y2="245" stroke="#66FF33" stroke-width="2"/>
+              <text x="300" y="280" font-family="'Fjalla One', Impact, Arial, sans-serif" font-size="36" letter-spacing="4" text-anchor="middle">
+                <tspan fill="#66FF33">P&amp;R</tspan><tspan fill="#000000"> SOLUTIONS</tspan>
+              </text>
+              <text x="300" y="311" font-family="'Lato', Arial, sans-serif" font-size="11" font-weight="300" fill="#666666" letter-spacing="6" text-anchor="middle">PLASTER · RENDER · SPECIALISTS</text>
+            </svg>
+          </div>
+          <div class="inv-company">
+            <div class="inv-company-name"><span class="g">P&R</span> SOLUTIONS</div>
+            <div class="inv-company-tag">PLASTER · RENDER · SPECIALISTS</div>
+            <div class="inv-company-contact">
+              3 Rocher Close, Grenoside<br>
+              Sheffield, S35 8QP<br>
+              07595 399525<br>
+              Plastersolutionsltd@gmail.com
+            </div>
+          </div>
+        </div>
+
+        <!-- Meta -->
+        <div class="inv-meta">
+          <div class="inv-bill-to">
+            <h3>Prepared For</h3>
+            <div class="inv-client-name" id="p-client-name">—</div>
+            <div class="inv-client-addr" id="p-client-addr"></div>
+            <div class="inv-client-phone" id="p-client-phone"></div>
+          </div>
+          <div class="inv-details">
+            <div class="inv-title">QUOTATION</div>
+            <div class="inv-detail-row">
+              <span class="inv-detail-label">Quote No.</span>
+              <span class="inv-detail-value" id="p-inv-number">—</span>
+            </div>
+            <div class="inv-detail-row">
+              <span class="inv-detail-label">Date</span>
+              <span class="inv-detail-value" id="p-inv-date">—</span>
+            </div>
+            <div class="inv-detail-row">
+              <span class="inv-detail-label">Valid Until</span>
+              <span class="inv-detail-value" id="p-inv-due">—</span>
+            </div>
+            <div class="inv-detail-row" id="p-ref-row" style="display:none">
+              <span class="inv-detail-label">Project Ref</span>
+              <span class="inv-detail-value" id="p-inv-ref">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Valid banner -->
+        <div class="quote-valid-banner">THIS QUOTATION IS VALID FOR 30 DAYS FROM DATE OF ISSUE · FREE SURVEY · NO DEPOSIT REQUIRED</div>
+
+        <!-- Scope of works -->
+        <div id="p-scope-wrap" style="display:none;margin-bottom:5mm">
+          <div class="inv-section-label">SCOPE OF WORKS</div>
+          <div id="p-notes" style="font-size:8.5pt;color:#555;line-height:1.7;padding:2mm 0;white-space:pre-line"></div>
+        </div>
+
+        <!-- Labour -->
+        <div class="inv-section-label">LABOUR &amp; WORK</div>
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Qty / Area</th>
+              <th class="r">Unit Price</th>
+              <th class="r">Total</th>
+            </tr>
+          </thead>
+          <tbody id="p-labour-rows">
+            <tr class="inv-empty"><td colspan="4">No labour items added</td></tr>
+          </tbody>
+        </table>
+
+        <!-- Materials -->
+        <div class="inv-section-label">MATERIALS</div>
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th colspan="3">Material / Description</th>
+              <th class="r">Cost</th>
+            </tr>
+          </thead>
+          <tbody id="p-materials-rows">
+            <tr class="inv-empty"><td colspan="4">No materials added</td></tr>
+          </tbody>
+        </table>
+
+        <!-- Fees -->
+        <div class="inv-section-label">ADDITIONAL FEES</div>
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th colspan="3">Description</th>
+              <th class="r">Amount</th>
+            </tr>
+          </thead>
+          <tbody id="p-fees-rows">
+            <tr class="inv-empty"><td colspan="4">No additional fees</td></tr>
+          </tbody>
+        </table>
+
+        <!-- Totals -->
+        <div class="inv-totals">
+          <div class="inv-totals-inner">
+            <div class="inv-total-row">
+              <span class="tl">Subtotal</span>
+              <span class="tv" id="p-subtotal">£0.00</span>
+            </div>
+            <div class="inv-total-row" id="p-vat-row" style="display:none">
+              <span class="tl" id="p-vat-label">VAT (0%)</span>
+              <span class="tv" id="p-vat-amount">£0.00</span>
+            </div>
+            <div class="inv-total-grand">
+              <span class="tl">QUOTE TOTAL</span>
+              <span class="tv" id="p-total">£0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Terms / Why us -->
+        <div class="inv-terms">
+          <h4>OUR COMMITMENT TO YOU</h4>
+          <div class="inv-terms-grid">
+            <div class="inv-terms-col">
+              <strong>25-Year Manufacturer Guarantee</strong>
+              All materials carry a 25-year guarantee (K-Rend, Ecorend, Baumit). Covers material defects. Transferable to future property owners.
+            </div>
+            <div class="inv-terms-col">
+              <strong>5-Year Workmanship Guarantee</strong>
+              All installations guaranteed for 5 years. Free repairs if issues arise from our work. Requires normal surface maintenance.
+            </div>
+            <div class="inv-terms-col">
+              <strong>No Deposit Required</strong>
+              We do not require payment upfront. Payment is only due upon completion and when you are fully satisfied with the work. No risk to you.
+            </div>
+            <div class="inv-terms-col">
+              <strong>Quote Terms</strong>
+              This quote is valid for 30 days. Quotes are based on the site survey. Significant changes to scope may require a revised quote. All prices include materials and labour unless stated.
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="inv-footer">
+          <div>
+            <div class="inv-signature">Chris Glover</div>
+            <div class="inv-sig-company">Plaster and Rendering Solutions</div>
+            <div style="font-size:7.5pt;color:#aaa;margin-top:3px">07595 399525 · Plastersolutionsltd@gmail.com</div>
+          </div>
+          <div style="text-align:right">
+            <div class="inv-guarantee">25-YEAR GUARANTEE</div>
+            <div class="inv-guarantee-sub">on materials · 5 years on workmanship</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let rows = { labour: [], materials: [], fees: [] };
+    let rowId = 0;
+
+    const API_NS = 'pr-solutions-sheff';
+    const API_KEY = 'qt26';
+    const API_BASE = `https://api.counterapi.dev/v1/${API_NS}/${API_KEY}`;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('inv-date').value = today;
+      const due = new Date();
+      due.setDate(due.getDate() + 30);
+      document.getElementById('inv-due').value = due.toISOString().split('T')[0];
+      document.getElementById('inv-number').value = '…';
+      addRow('labour');
+      addRow('materials');
+      addRow('fees');
+      update();
+      // Get current count (no increment) to show next number
+      let next = parseInt(localStorage.getItem('pr_qt_last') || '0', 10) + 1;
+      try {
+        const res = await fetch(API_BASE + '/', { signal: AbortSignal.timeout(4000) });
+        if (res.ok) {
+          const data = await res.json();
+          next = (data.count || 0) + 1;
+        }
+      } catch(e) {}
+      const year = new Date().getFullYear();
+      document.getElementById('inv-number').value = 'QT-' + year + '-' + String(next).padStart(3, '0');
+      update();
+
+      // ── Auto-fill from PR Jobs app URL params ──
+      const _p = new URLSearchParams(location.search);
+      if (_p.get('name'))    document.getElementById('client-name').value = _p.get('name');
+      if (_p.get('address')) document.getElementById('client-addr').value = _p.get('address');
+      if (_p.get('phone'))   document.getElementById('client-phone').value = _p.get('phone');
+      if (_p.get('job'))     document.getElementById('notes').value = _p.get('job');
+      if (_p.get('ref'))     document.getElementById('inv-ref').value = _p.get('ref');
+      if (_p.get('name') || _p.get('address') || _p.get('phone')) update();
+    });
+
+    async function saveNum() {
+      // Set document title → becomes the PDF filename in browser Save dialog
+      const quoteNum = document.getElementById('inv-number').value || 'Quote';
+      const client   = (document.getElementById('client-name').value || '').trim().replace(/[/\\?%*:|"<>]/g, '');
+      const date     = document.getElementById('inv-date').value || new Date().toISOString().split('T')[0];
+      const oldTitle = document.title;
+      document.title = 'Quote - ' + (client || quoteNum);
+      window.onafterprint = () => { document.title = oldTitle; };
+
+      // Increment the shared counter on print
+      try {
+        await fetch(API_BASE + '/up', { signal: AbortSignal.timeout(4000) });
+      } catch(e) {}
+      const val = document.getElementById('inv-number').value;
+      const match = val.match(/(\d+)$/);
+      if (match) localStorage.setItem('pr_qt_last', parseInt(match[1], 10));
+    }
+
+    function switchTab(tab, el) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('panel-form').classList.toggle('active', tab === 'form');
+      document.getElementById('panel-preview').classList.toggle('active', tab === 'preview');
+    }
+
+    function addRow(type) {
+      const id = ++rowId;
+      rows[type].push(id);
+      const container = document.getElementById(type + '-rows');
+      const div = document.createElement('div');
+      div.className = 'line-item ' + (type === 'labour' ? 'line-item-labour' : 'line-item-simple');
+      div.id = 'row-' + id;
+
+      if (type === 'labour') {
+        div.innerHTML = `
+          <input type="text" placeholder="e.g. Plastering walls and ceiling" data-id="${id}" data-field="desc" oninput="update()">
+          <input type="number" placeholder="0" data-id="${id}" data-field="qty" step="0.1" oninput="calcRow(${id})">
+          <input type="number" placeholder="0.00" data-id="${id}" data-field="unit" step="0.01" oninput="calcRow(${id})">
+          <input type="text" inputmode="decimal" id="row-total-${id}" placeholder="0.00" data-id="${id}" data-field="total" oninput="update()" style="color:#111">
+          <button class="btn-remove" onclick="removeRow('labour',${id})" title="Remove">×</button>
+        `;
+      } else {
+        const ph = type === 'fees' ? 'e.g. Scaffolding hire' : 'e.g. Thistle Plaster (2 bags)';
+        div.innerHTML = `
+          <input type="text" placeholder="${ph}" data-id="${id}" data-field="desc" oninput="update()">
+          <input type="number" placeholder="0.00" data-id="${id}" data-field="cost" step="0.01" oninput="update()">
+          <button class="btn-remove" onclick="removeRow('${type}',${id})" title="Remove">×</button>
+        `;
+      }
+      container.appendChild(div);
+    }
+
+    function removeRow(type, id) {
+      rows[type] = rows[type].filter(r => r !== id);
+      document.getElementById('row-' + id)?.remove();
+      update();
+    }
+
+    function calcRow(id) {
+      const qty = parseFloat(document.querySelector(`[data-id="${id}"][data-field="qty"]`)?.value) || 0;
+      const unit = parseFloat(document.querySelector(`[data-id="${id}"][data-field="unit"]`)?.value) || 0;
+      const el = document.getElementById('row-total-' + id);
+      if (el && qty > 0 && unit > 0) el.value = (qty * unit).toFixed(2);
+      update();
+    }
+
+    function v(id) { return document.getElementById(id)?.value || ''; }
+    function fmt(n) { return '£' + Number(n).toFixed(2); }
+    function fmtDate(d) {
+      if (!d) return '—';
+      const [y, m, day] = d.split('-');
+      return `${day}/${m}/${y}`;
+    }
+    /* ===== CLIENT IMPORT & LOAD ===== */
+    function toggleClientImport() {
+      const p = document.getElementById('client-import-panel');
+      p.style.display = p.style.display === 'none' ? 'block' : 'none';
+      if (p.style.display === 'block') document.getElementById('client-import-text').focus();
+    }
+
+    function parseEmailToClient(raw) {
+      const data = {};
+      const lines = raw.split('\n');
+      lines.forEach(line => {
+        const m = line.match(/^([a-zA-Z _\-]+?)\s*:\s*(.+)$/);
+        if (m) data[m[1].trim().toLowerCase()] = m[2].trim();
+      });
+      for (let i = 0; i < lines.length - 1; i++) {
+        const key = lines[i].replace(/\*+/g, '').trim().toLowerCase();
+        const val = lines[i + 1].trim();
+        if (key && val && !val.includes(':') && !data[key]) data[key] = val;
+      }
+      return {
+        name:    data['name'] || data['full name'] || data['your name'] || '',
+        phone:   data['phone'] || data['telephone'] || data['mobile'] || '',
+        email:   data['email'] || data['email address'] || '',
+        address: [data['address'], data['postcode']].filter(Boolean).join('\n'),
+      };
+    }
+
+    function applyClientToQuote(client) {
+      let filled = 0;
+      if (client.name)    { document.getElementById('client-name').value = client.name;    filled++; }
+      if (client.address) { document.getElementById('client-addr').value = client.address; filled++; }
+      if (client.phone)   { document.getElementById('client-phone').value = client.phone;  filled++; }
+      update();
+      return filled;
+    }
+
+    function runClientImport() {
+      const raw = document.getElementById('client-import-text').value;
+      const client = parseEmailToClient(raw);
+      localStorage.setItem('pr_current_client', JSON.stringify(client));
+      const filled = applyClientToQuote(client);
+      const status = document.getElementById('client-import-status');
+      status.textContent = filled > 0 ? `✓ ${filled} fields filled` : '⚠ No fields found';
+      status.style.color = filled > 0 ? 'green' : '#c33';
+      status.style.display = 'inline';
+      if (filled > 0) setTimeout(() => {
+        document.getElementById('client-import-panel').style.display = 'none';
+        document.getElementById('client-import-text').value = '';
+      }, 1200);
+    }
+
+    function loadCurrentClient() {
+      const client = JSON.parse(localStorage.getItem('pr_current_client') || '{}');
+      if (!client.name && !client.phone && !client.address) {
+        alert('No saved client found. Fill in the site visit form first, or use Import Email.');
+        return;
+      }
+      applyClientToQuote(client);
+    }
+
+    function setText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    }
+
+    function buildRows(type, tbodyId) {
+      const tbody = document.getElementById(tbodyId);
+      tbody.innerHTML = '';
+      let total = 0;
+      let hasRows = false;
+
+      rows[type].forEach(id => {
+        const desc = document.querySelector(`[data-id="${id}"][data-field="desc"]`)?.value?.trim();
+        let amount = 0;
+
+        if (type === 'labour') {
+          const qty = parseFloat(document.querySelector(`[data-id="${id}"][data-field="qty"]`)?.value) || 0;
+          const unit = parseFloat(document.querySelector(`[data-id="${id}"][data-field="unit"]`)?.value) || 0;
+          const manualTotal = parseFloat(document.getElementById('row-total-' + id)?.value) || 0;
+          amount = (qty > 0 && unit > 0) ? qty * unit : manualTotal;
+          if (desc || amount > 0) {
+            hasRows = true;
+            total += amount;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${esc(desc || '')}</td>
+              <td>${qty > 0 ? qty : ''}</td>
+              <td class="r">${unit > 0 ? fmt(unit) : ''}</td>
+              <td class="r">${fmt(amount)}</td>
+            `;
+            tbody.appendChild(tr);
+          }
+        } else {
+          amount = parseFloat(document.querySelector(`[data-id="${id}"][data-field="cost"]`)?.value) || 0;
+          if (desc || amount > 0) {
+            hasRows = true;
+            total += amount;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td colspan="3">${esc(desc || '')}</td><td class="r">${fmt(amount)}</td>`;
+            tbody.appendChild(tr);
+          }
+        }
+      });
+
+      if (!hasRows) {
+        const tr = document.createElement('tr');
+        tr.className = 'inv-empty';
+        tr.innerHTML = `<td colspan="4">${type === 'labour' ? 'No labour items added' : type === 'materials' ? 'No materials added' : 'No additional fees'}</td>`;
+        tbody.appendChild(tr);
+      }
+      return total;
+    }
+
+    function esc(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function update() {
+      setText('p-inv-number', v('inv-number') || '—');
+      setText('p-inv-date', fmtDate(v('inv-date')));
+      setText('p-inv-due', fmtDate(v('inv-due')));
+      setText('p-inv-ref', v('inv-ref') || '—');
+      document.getElementById('p-ref-row').style.display = v('inv-ref') ? 'flex' : 'none';
+
+      setText('p-client-name', v('client-name') || '—');
+      document.getElementById('p-client-addr').textContent = v('client-addr');
+      document.getElementById('p-client-phone').textContent = v('client-phone');
+
+      const notes = v('notes');
+      document.getElementById('p-notes').textContent = notes;
+      document.getElementById('p-scope-wrap').style.display = notes ? 'block' : 'none';
+
+      const labourTotal = buildRows('labour', 'p-labour-rows');
+      const matTotal = buildRows('materials', 'p-materials-rows');
+      const feesTotal = buildRows('fees', 'p-fees-rows');
+
+      const subtotal = labourTotal + matTotal + feesTotal;
+      const vatRate = parseFloat(v('vat-rate')) || 0;
+      const vatAmount = subtotal * (vatRate / 100);
+      const total = subtotal + vatAmount;
+
+      setText('p-subtotal', fmt(subtotal));
+      setText('p-vat-label', `VAT (${vatRate}%)`);
+      setText('p-vat-amount', fmt(vatAmount));
+      setText('p-total', fmt(total));
+      document.getElementById('p-vat-row').style.display = vatRate > 0 ? 'flex' : 'none';
+    }
+  </script>
+</body>
+</html>

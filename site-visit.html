@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P&R Solutions — Site Visit Form</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fjalla+One&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root { --green: #66FF33; --dark: #111; --border: #ccc; }
+
+    body {
+      font-family: 'Lato', Arial, sans-serif;
+      background: #e8e8e8;
+      color: var(--dark);
+      padding: 20px;
+    }
+
+    /* ===== TOP BAR ===== */
+    .top-bar {
+      background: #111;
+      color: white;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      border-radius: 3px;
+    }
+
+    .top-bar-title {
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 16px;
+      letter-spacing: 2px;
+    }
+
+    .top-bar-title span { color: var(--green); }
+
+    .btn-pdf {
+      background: var(--green);
+      color: #111;
+      border: none;
+      padding: 9px 20px;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 13px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+
+    /* ===== FORM SHEET ===== */
+    .sheet {
+      background: white;
+      width: 210mm;
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 14mm 15mm;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+    }
+
+    /* Header */
+    .doc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 6mm;
+      border-bottom: 3px solid var(--green);
+      margin-bottom: 6mm;
+    }
+
+    .doc-logo { width: 100px; }
+
+    .doc-title-block { text-align: right; }
+
+    .doc-company-name {
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 14pt;
+      letter-spacing: 2px;
+    }
+
+    .doc-company-name .g { color: var(--green); }
+
+    .doc-company-tag {
+      font-size: 6pt;
+      letter-spacing: 3px;
+      color: #999;
+      margin: 2px 0 5px;
+    }
+
+    .doc-company-contact {
+      font-size: 7.5pt;
+      color: #666;
+      line-height: 1.6;
+    }
+
+    .doc-type {
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 22pt;
+      letter-spacing: 3px;
+      margin-bottom: 3mm;
+    }
+
+    /* Section headings */
+    .sec {
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 7.5pt;
+      letter-spacing: 3px;
+      color: #999;
+      text-transform: uppercase;
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 3px;
+      margin: 6mm 0 4mm;
+    }
+
+    /* Grid layouts */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+
+    /* Field */
+    .f { margin-bottom: 8px; }
+
+    .f label {
+      display: block;
+      font-size: 8pt;
+      letter-spacing: 1px;
+      color: #333;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+
+    .f input[type="text"],
+    .f input[type="date"],
+    .f input[type="tel"],
+    .f input[type="email"],
+    .f input[type="number"],
+    .f textarea,
+    .f select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      font-family: 'Lato', sans-serif;
+      font-size: 14px;
+      color: #000;
+      background: white;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .f input:focus,
+    .f textarea:focus,
+    .f select:focus {
+      outline: none;
+      border-color: var(--green);
+      box-shadow: 0 0 0 2px rgba(102,255,51,0.15);
+    }
+
+    .f textarea { resize: vertical; min-height: 60px; line-height: 1.5; }
+
+    /* Checkboxes */
+    .checks { display: flex; flex-wrap: wrap; gap: 10px; padding: 6px 0; }
+    .checks label { display: flex; align-items: center; gap: 5px; font-size: 14px; color: #000; cursor: pointer; }
+    .checks input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--green); cursor: pointer; margin: 0; }
+
+    /* Radio */
+    .radios { display: flex; flex-wrap: wrap; gap: 12px; padding: 6px 0; }
+    .radios label { display: flex; align-items: center; gap: 5px; font-size: 14px; color: #000; cursor: pointer; }
+    .radios input[type="radio"] { width: 15px; height: 15px; accent-color: var(--green); cursor: pointer; margin: 0; }
+
+    /* Rooms table */
+    .rooms-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8.5pt;
+      margin-bottom: 4px;
+    }
+
+    .rooms-table thead tr { background: #111; color: white; }
+
+    .rooms-table th {
+      padding: 6px 8px;
+      text-align: left;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 7pt;
+      letter-spacing: 1.5px;
+      font-weight: normal;
+    }
+
+    .rooms-table th.c { text-align: center; }
+
+    .rooms-table td {
+      padding: 3px 4px;
+      border-bottom: 1px solid #eee;
+      vertical-align: middle;
+    }
+
+    .rooms-table td input[type="text"],
+    .rooms-table td input[type="number"] {
+      width: 100%;
+      padding: 6px 7px;
+      border: 1px solid #e0e0e0;
+      border-radius: 2px;
+      font-size: 13px;
+      font-family: 'Lato', sans-serif;
+      color: #000;
+      background: #fafafa;
+    }
+
+    .rooms-table td input:focus { outline: none; border-color: var(--green); background: white; }
+
+    .rooms-table td.area-cell {
+      font-weight: 700;
+      font-size: 9pt;
+      text-align: center;
+      color: #333;
+      min-width: 48px;
+    }
+
+    .rooms-table td .work-checks { display: flex; justify-content: center; gap: 6px; }
+    .rooms-table td .work-checks label { display: flex; align-items: center; gap: 3px; font-size: 10px; cursor: pointer; }
+    .rooms-table td .work-checks input { width: 13px; height: 13px; accent-color: var(--green); }
+
+    /* Totals row */
+    .rooms-table tfoot tr { background: #111; color: white; }
+    .rooms-table tfoot td {
+      padding: 7px 8px;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 8pt;
+      letter-spacing: 1px;
+    }
+    .rooms-table tfoot td.total-val {
+      text-align: center;
+      font-size: 9pt;
+      color: var(--green);
+    }
+    .rooms-table tfoot td.total-label {
+      font-size: 7pt;
+      letter-spacing: 2px;
+      color: #aaa;
+    }
+    .rooms-table tfoot td.total-combined {
+      text-align: center;
+      font-size: 9pt;
+      color: var(--green);
+      border-left: 1px solid #333;
+    }
+
+    .btn-add-row {
+      background: none;
+      border: 1px dashed #ccc;
+      border-radius: 2px;
+      padding: 7px 14px;
+      font-size: 12px;
+      color: #aaa;
+      cursor: pointer;
+      font-family: 'Lato', sans-serif;
+      margin-top: 6px;
+    }
+
+    .btn-add-row:hover { border-color: var(--green); color: #666; }
+
+    .btn-remove-row {
+      background: none;
+      border: none;
+      color: #ddd;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+    }
+
+    .btn-remove-row:hover { color: #c33; }
+
+    /* Photos section */
+    .photos-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .photo-slot {
+      border: 1px dashed #ccc;
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+      background: #fafafa;
+      aspect-ratio: 4/3;
+      cursor: pointer;
+    }
+
+    .photo-slot:hover { border-color: var(--green); background: #f5fff0; }
+
+    .photo-slot input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      z-index: 2;
+    }
+
+    .photo-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .photo-placeholder .ph-icon { font-size: 28px; opacity: 0.3; }
+
+    .photo-placeholder .ph-num {
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 9pt;
+      letter-spacing: 2px;
+      color: #bbb;
+    }
+
+    .photo-placeholder .ph-hint {
+      font-size: 8px;
+      color: #ccc;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .photo-slot img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+      display: none;
+      border-radius: 2px;
+    }
+
+    .photo-caption-wrap {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 3;
+      background: rgba(0,0,0,0.55);
+      padding: 4px 6px;
+      display: none;
+    }
+
+    .photo-caption-wrap input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 10px;
+      font-family: 'Lato', sans-serif;
+      outline: none;
+    }
+
+    .photo-caption-wrap input::placeholder { color: rgba(255,255,255,0.5); }
+
+    .photo-remove {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      z-index: 4;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .photo-remove:hover { background: #c33; }
+
+    .photo-add-more {
+      border: 1px dashed #ccc;
+      border-radius: 3px;
+      background: #fafafa;
+      aspect-ratio: 4/3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      color: #bbb;
+      font-size: 12px;
+      font-family: 'Lato', sans-serif;
+    }
+
+    .photo-add-more:hover { border-color: var(--green); color: #666; background: #f5fff0; }
+    .photo-add-more span { font-size: 26px; opacity: 0.35; }
+
+    /* Footer */
+    .doc-footer {
+      margin-top: 8mm;
+      padding-top: 5mm;
+      border-top: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      font-size: 7.5pt;
+      color: #888;
+    }
+
+    .doc-footer .sig { font-size: 10pt; font-weight: 700; color: #111; margin-bottom: 2px; }
+    .doc-footer .sig-sub { font-size: 8pt; color: #888; }
+
+    .doc-footer .guarantee {
+      text-align: right;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 9pt;
+      letter-spacing: 1px;
+      color: var(--green);
+    }
+
+    .doc-footer .guarantee-sub {
+      font-size: 6.5pt;
+      color: #bbb;
+      letter-spacing: 1px;
+      font-family: 'Lato', sans-serif;
+      margin-top: 2px;
+    }
+
+    /* Pricing table */
+    .price-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8.5pt;
+      margin-bottom: 4px;
+    }
+    .price-table thead tr { background: #111; color: white; }
+    .price-table th {
+      padding: 6px 8px;
+      text-align: left;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 7pt;
+      letter-spacing: 1.5px;
+      font-weight: normal;
+    }
+    .price-table th.c { text-align: center; }
+    .price-table th.r { text-align: right; }
+    .price-table td {
+      padding: 3px 4px;
+      border-bottom: 1px solid #eee;
+      vertical-align: middle;
+    }
+    .price-table td input[type="text"],
+    .price-table td input[type="number"] {
+      width: 100%;
+      padding: 6px 7px;
+      border: 1px solid #e0e0e0;
+      border-radius: 2px;
+      font-size: 13px;
+      font-family: 'Lato', sans-serif;
+      color: #000;
+      background: #fafafa;
+    }
+    .price-table td input:focus { outline: none; border-color: var(--green); background: white; }
+    .price-table td.price-total-cell {
+      text-align: right;
+      font-weight: 700;
+      font-size: 9pt;
+      color: #333;
+      padding-right: 10px;
+      white-space: nowrap;
+    }
+    .price-table tfoot tr { background: #111; color: white; }
+    .price-table tfoot td {
+      padding: 8px 10px;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 8pt;
+      letter-spacing: 1.5px;
+    }
+    .price-table tfoot td.grand-label { color: #aaa; font-size: 7pt; letter-spacing: 2px; }
+    .price-table tfoot td.grand-val { text-align: right; font-size: 11pt; color: var(--green); }
+
+    /* ===== PRINT ===== */
+    @media print {
+      body { background: white; padding: 0; }
+      .top-bar { display: none !important; }
+      .sheet { box-shadow: none; width: 100%; padding: 10mm; }
+      .photo-slot input[type="file"] { display: none; }
+      .photo-add-more { display: none !important; }
+      .photo-remove { display: none !important; }
+      .photo-slot { border: 1px solid #ddd; }
+      .photo-slot img { display: block !important; }
+      .photo-caption-wrap { display: block !important; background: rgba(0,0,0,0.45); }
+      @page { margin: 0; size: A4; }
+    }
+
+    @media (max-width: 700px) {
+      body { padding: 0; }
+      .sheet { padding: 10px; }
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+      .photos-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <span class="top-bar-title"><span>P&R</span> SITE VISIT FORM</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-pdf" onclick="toggleImport()" style="background:#2a2a2a;color:#aaa;border:1px solid #444">⬇ Import Email / Message</button>
+      <button class="btn-pdf" onclick="savePDF()">⬇ SAVE AS PDF</button>
+    </div>
+  </div>
+
+  <!-- Import panel -->
+  <div id="import-panel" style="display:none;background:#1a1a1a;border-bottom:2px solid var(--green);padding:14px 20px">
+    <div style="max-width:800px;margin:0 auto">
+      <div style="color:#aaa;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Paste email, WhatsApp or text message — fields fill automatically</div>
+      <div style="background:#1e3a1e;border:1px solid #66FF33;border-radius:3px;padding:12px 14px;margin-bottom:10px;color:#ccc;font-size:14px;line-height:1.7">
+        1. Copy your WhatsApp or text message<br>
+        2. <strong style="color:white">Hold your finger on the box below</strong><br>
+        3. Tap <strong style="color:white">Paste</strong> — it imports automatically
+      </div>
+      <textarea id="import-text" onpaste="setTimeout(runImport,100)" style="width:100%;height:180px;background:#111;color:#ccc;border:2px solid #66FF33;border-radius:3px;padding:14px;font-size:16px;resize:vertical;-webkit-user-select:text;user-select:text" placeholder="Hold here → Paste"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+        <button onclick="runImport()" style="background:var(--green);color:#111;border:none;padding:10px 24px;font-family:'Fjalla One',sans-serif;font-size:14px;letter-spacing:1px;cursor:pointer;border-radius:2px">IMPORT</button>
+        <button onclick="toggleImport()" style="background:none;border:1px solid #444;color:#aaa;padding:10px 14px;font-size:13px;cursor:pointer;border-radius:2px">Cancel</button>
+        <span id="import-status" style="font-size:12px;color:var(--green);display:none"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sheet">
+
+    <!-- Doc Header -->
+    <div class="doc-header">
+      <div class="doc-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" style="width:100px;display:block">
+          <rect width="600" height="360" fill="#FFFFFF"/>
+          <g transform="translate(167.5, 60)">
+            <path fill="#66FF33" d="M 0,0 L 0,160 L 35,160 L 35,95 L 80,95 C 115,95 140,70 140,40 C 140,10 115,-10 80,-10 L 0,-10 Z M 35,20 L 80,20 C 95,20 105,30 105,45 C 105,60 95,70 80,70 L 35,70 Z"/>
+            <path fill="#000000" d="M 120,0 L 120,160 L 155,160 L 155,100 L 185,100 L 225,160 L 265,160 L 220,95 C 245,90 265,70 265,40 C 265,10 240,-10 205,-10 L 120,-10 Z M 155,20 L 205,20 C 220,20 230,30 230,45 C 230,60 220,70 205,70 L 155,70 Z"/>
+          </g>
+          <line x1="190" y1="245" x2="410" y2="245" stroke="#66FF33" stroke-width="2"/>
+          <text x="300" y="280" font-family="'Fjalla One', Impact, Arial, sans-serif" font-size="36" letter-spacing="4" text-anchor="middle">
+            <tspan fill="#66FF33">P&amp;R</tspan><tspan fill="#000000"> SOLUTIONS</tspan>
+          </text>
+          <text x="300" y="311" font-family="'Lato', Arial, sans-serif" font-size="11" font-weight="300" fill="#666666" letter-spacing="6" text-anchor="middle">PLASTER · RENDER · SPECIALISTS</text>
+        </svg>
+      </div>
+      <div class="doc-title-block">
+        <div class="doc-type">SITE VISIT</div>
+        <div class="doc-company-name"><span class="g">P&R</span> SOLUTIONS</div>
+        <div class="doc-company-tag">PLASTER · RENDER · SPECIALISTS</div>
+        <div class="doc-company-contact">
+          3 Rocher Close, Grenoside, Sheffield S35 8QP<br>
+          07595 399525 · Plastersolutionsltd@gmail.com
+        </div>
+      </div>
+    </div>
+
+    <!-- Visit Info -->
+    <div class="sec">Visit Details</div>
+    <div class="grid-3">
+      <div class="f">
+        <label>Visit Date</label>
+        <input type="date" id="visit-date">
+      </div>
+      <div class="f">
+        <label>Visit Ref</label>
+        <input type="text" placeholder="SV-001">
+      </div>
+      <div class="f">
+        <label>Weather</label>
+        <select>
+          <option value="">— select —</option>
+          <option>Dry</option>
+          <option>Overcast</option>
+          <option>Wet / Rain</option>
+          <option>Cold</option>
+          <option>Hot / Sun</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Customer Details -->
+    <div class="sec">Customer Details</div>
+    <div class="grid-2">
+      <div class="f">
+        <label>Customer Name</label>
+        <input type="text" id="customer-name" placeholder="Full name">
+      </div>
+      <div class="f">
+        <label>Phone</label>
+        <input type="tel" placeholder="07xxx xxxxxx">
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="f">
+        <label>Email</label>
+        <input type="email" placeholder="email@example.com">
+      </div>
+      <div class="f">
+        <label>How Did They Find Us?</label>
+        <select>
+          <option value="">— select —</option>
+          <option>Word of mouth</option>
+          <option>Checkatrade</option>
+          <option>Google</option>
+          <option>Facebook</option>
+          <option>Returning customer</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="f">
+      <label>Site Address</label>
+      <input type="text" placeholder="Street, City, Postcode">
+    </div>
+
+    <!-- Type of Work -->
+    <div class="sec">Type of Work</div>
+    <div class="checks">
+      <label><input type="checkbox"> Plastering</label>
+      <label><input type="checkbox"> Rendering</label>
+      <label><input type="checkbox"> Dry Lining</label>
+      <label><input type="checkbox"> Patching / Repair</label>
+      <label><input type="checkbox"> Coving</label>
+      <label><input type="checkbox"> Sand &amp; Cement</label>
+      <label><input type="checkbox"> K-Rend</label>
+      <label><input type="checkbox"> Monocouche</label>
+      <label><input type="checkbox"> Tyrolean</label>
+      <label><input type="checkbox"> External Render</label>
+    </div>
+
+    <!-- Rooms & Measurements -->
+    <div class="sec">Rooms &amp; Measurements</div>
+    <table class="rooms-table" id="rooms-table">
+      <thead>
+        <tr>
+          <th style="width:22%">Room / Area</th>
+          <th style="width:10%">L (m)</th>
+          <th style="width:10%">W (m)</th>
+          <th style="width:10%">H (m)</th>
+          <th style="width:12%" class="c">Wall m²</th>
+          <th style="width:10%" class="c">Ceil m²</th>
+          <th style="width:18%" class="c">Work</th>
+          <th style="width:22%">Notes</th>
+          <th style="width:24px"></th>
+        </tr>
+      </thead>
+      <tbody id="rooms-tbody"></tbody>
+      <tfoot>
+        <tr>
+          <td colspan="4" class="total-label">TOTAL AREA</td>
+          <td class="total-val" id="total-wall">—</td>
+          <td class="total-val" id="total-ceil">—</td>
+          <td colspan="2" class="total-combined" id="total-combined">— combined</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+    <button class="btn-add-row" onclick="addRoom()">+ Add room / area</button>
+
+    <!-- Surface Condition -->
+    <div class="sec">Surface Condition</div>
+    <div class="grid-2">
+      <div class="f">
+        <label>Existing Surface</label>
+        <select>
+          <option value="">— select —</option>
+          <option>Bare brick</option>
+          <option>Existing plaster</option>
+          <option>Existing render</option>
+          <option>Plasterboard</option>
+          <option>Block / breeze block</option>
+          <option>Stone</option>
+          <option>Mixed</option>
+        </select>
+      </div>
+      <div class="f">
+        <label>Prep Required</label>
+        <select>
+          <option value="">— select —</option>
+          <option>None — ready to go</option>
+          <option>Hack off existing plaster</option>
+          <option>Hack off existing render</option>
+          <option>Bonding coat required</option>
+          <option>PVA required</option>
+          <option>Salt / damp treatment needed</option>
+          <option>Dubbing out required</option>
+          <option>Multiple — see notes</option>
+        </select>
+      </div>
+    </div>
+    <div class="f">
+      <label>Surface Notes</label>
+      <textarea placeholder="Describe any issues, cracks, damp, staining, structural concerns..."></textarea>
+    </div>
+
+    <!-- Materials & Finish -->
+    <div class="sec">Materials &amp; Finish</div>
+    <div class="grid-3">
+      <div class="f">
+        <label>Finish Type</label>
+        <select>
+          <option value="">— select —</option>
+          <option>Smooth skim</option>
+          <option>Sand &amp; cement</option>
+          <option>K-Rend</option>
+          <option>Monocouche</option>
+          <option>Full Silicone</option>
+          <option>EWI</option>
+          <option>Roughcast</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="f">
+        <label>Colour (if render)</label>
+        <input type="text" placeholder="e.g. K-Rend Ivory">
+      </div>
+      <div class="f">
+        <label>Coats Required</label>
+        <select>
+          <option value="">—</option>
+          <option>1 coat</option>
+          <option>2 coats</option>
+          <option>3 coats</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Site Conditions -->
+    <div class="sec">Site Conditions</div>
+    <div class="grid-2">
+      <div class="f">
+        <label>Access</label>
+        <div class="radios">
+          <label><input type="radio" name="access" value="easy"> Easy</label>
+          <label><input type="radio" name="access" value="restricted"> Restricted</label>
+          <label><input type="radio" name="access" value="difficult"> Difficult</label>
+        </div>
+      </div>
+      <div class="f">
+        <label>Parking</label>
+        <div class="radios">
+          <label><input type="radio" name="parking" value="free"> Free on street</label>
+          <label><input type="radio" name="parking" value="driveway"> Driveway</label>
+          <label><input type="radio" name="parking" value="paid"> Paid / limited</label>
+        </div>
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="f">
+        <label>Scaffold Needed?</label>
+        <div class="radios">
+          <label><input type="radio" name="scaffold" value="no"> No</label>
+          <label><input type="radio" name="scaffold" value="yes"> Yes</label>
+          <label><input type="radio" name="scaffold" value="tower"> Tower only</label>
+        </div>
+      </div>
+      <div class="f">
+        <label>Skip Required?</label>
+        <div class="radios">
+          <label><input type="radio" name="skip" value="no"> No</label>
+          <label><input type="radio" name="skip" value="yes"> Yes</label>
+        </div>
+      </div>
+      <div class="f">
+        <label>Property Type</label>
+        <select>
+          <option value="">—</option>
+          <option>Terraced</option>
+          <option>Semi-detached</option>
+          <option>Detached</option>
+          <option>Flat / apartment</option>
+          <option>Commercial</option>
+          <option>New build</option>
+        </select>
+      </div>
+    </div>
+    <div class="f">
+      <label>Access / Site Notes</label>
+      <input type="text" placeholder="Any restrictions, key pickup, dogs on site, fragile areas to protect...">
+    </div>
+
+    <!-- Photos -->
+    <div class="sec">Photos</div>
+    <div class="photos-grid" id="photos-grid">
+      <!-- slots injected by JS -->
+    </div>
+
+    <!-- Pricing Calculator -->
+    <div class="sec">Pricing Calculator</div>
+    <table class="price-table" id="price-table">
+      <thead>
+        <tr>
+          <th style="width:35%">Finish / Item</th>
+          <th style="width:15%" class="c">m²</th>
+          <th style="width:15%" class="c">£ / m²</th>
+          <th style="width:18%" class="r">Total £</th>
+          <th style="width:24px"></th>
+        </tr>
+      </thead>
+      <tbody id="price-tbody"></tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3" class="grand-label">GRAND TOTAL</td>
+          <td class="grand-val" id="grand-total">£0.00</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+    <button class="btn-add-row" onclick="addPriceRow()">+ Add line</button>
+
+    <!-- Pricing Notes -->
+    <div class="sec" style="margin-top:6mm">Pricing Notes</div>
+    <div class="f">
+      <label>Notes</label>
+      <input type="text" placeholder="Any cost considerations, difficult access uplift, disposal etc.">
+    </div>
+
+    <!-- General Notes -->
+    <div class="sec">General Notes</div>
+    <div class="f">
+      <textarea placeholder="Any other observations from the visit..." style="min-height:80px"></textarea>
+    </div>
+
+    <!-- Footer -->
+    <div class="doc-footer">
+      <div>
+        <div class="sig">Chris Glover</div>
+        <div class="sig-sub">Plaster and Rendering Solutions</div>
+      </div>
+      <div class="guarantee">
+        25-YEAR GUARANTEE
+        <div class="guarantee-sub">on materials · 5 years on workmanship</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let roomCount = 0;
+    let photoCount = 0;
+
+    /* ===== EMAIL IMPORT ===== */
+    function toggleImport() {
+      const panel = document.getElementById('import-panel');
+      const isHidden = panel.style.display === 'none';
+      panel.style.display = isHidden ? 'block' : 'none';
+      if (isHidden) {
+        document.getElementById('import-text').focus();
+        document.getElementById('import-status').style.display = 'none';
+      }
+    }
+
+function parseFreetextMessage(raw) {
+      // Extracts name, phone, address from a natural WhatsApp/SMS message
+      const data = {};
+
+      // UK mobile phone
+      const phoneMatch = raw.match(/\b(07\d{3}[\s\-]?\d{3}[\s\-]?\d{3,4}|\+44[\s\-]?7\d{3}[\s\-]?\d{6}|07\d{9})\b/);
+      if (phoneMatch) data['phone'] = phoneMatch[0].replace(/\s|\-/g, '');
+
+      // UK postcode
+      const postcodeMatch = raw.match(/\b([A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2})\b/i);
+
+      // Street address: house number + road/street name
+      const streetTypes = 'Road|Street|Avenue|Lane|Close|Drive|Way|Crescent|Place|Gardens|Grove|Hill|View|Park|Court|Terrace|Row|Walk|Rise|Mews|Square|Green';
+      const streetRe = new RegExp(`(\\d+[a-z]?\\s+[\\w\\s]+(?:${streetTypes}))`, 'i');
+      const streetMatch = raw.match(streetRe);
+      if (streetMatch) {
+        data['address'] = streetMatch[0].trim();
+        if (postcodeMatch) data['address'] += ', ' + postcodeMatch[0].toUpperCase();
+      } else if (postcodeMatch) {
+        // No street pattern, but has postcode — grab text before it as address
+        const pcIdx = raw.search(new RegExp(postcodeMatch[0].replace(/\s/, '\\s*'), 'i'));
+        const before = raw.substring(0, pcIdx).replace(/[^a-zA-Z0-9\s,\-]/g, '').trim();
+        // Take the last address-like chunk (starts with a number or follows comma)
+        const addrChunk = before.match(/(?:^|,|\n)\s*(\d+[\s\S]+)$/);
+        if (addrChunk) data['address'] = addrChunk[1].trim() + ' ' + postcodeMatch[0].toUpperCase();
+        else data['address'] = postcodeMatch[0].toUpperCase();
+      }
+
+      // Name — common patterns in conversational messages
+      const namePatterns = [
+        /(?:my name[''s]*\s+is|i[''']m|i am|it[''']s|this is|name is|from)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})/i,
+        /^(?:hi|hello|hey|good\s+\w+)[,\s]+(?:(?:mate|there|chris)[,\s]+)?(?:i[''']m\s+|it[''']s\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+))/im,
+      ];
+      for (const p of namePatterns) {
+        const m = raw.match(p);
+        if (m) {
+          // Exclude obvious non-name matches
+          const candidate = m[1].trim();
+          const skip = ['Looking','Wondering','Hoping','Wanting','Calling','Ringing','Writing','Contacting'];
+          if (!skip.some(w => candidate.startsWith(w))) {
+            data['name'] = candidate; break;
+          }
+        }
+      }
+
+      // Job description — anything after trigger words
+      const descMatch = raw.match(/(?:looking\s+(?:for|to\s+get)|want(?:ing)?(?:\s+a)?|need(?:ing)?(?:\s+a)?|quote\s+(?:for|on)|regarding|about)\s+([\s\S]+?)(?:\.|$)/i);
+      if (descMatch) data['description'] = descMatch[1].trim();
+
+      return data;
+    }
+
+    function runImport() {
+      const raw = document.getElementById('import-text').value;
+      if (!raw.trim()) return;
+
+      // Detect format: structured (key: value) or freetext (WhatsApp/SMS)
+      const structuredLineCount = (raw.match(/^[a-zA-Z _\-]+?\s*:\s*.+$/gm) || []).length;
+      const isStructured = structuredLineCount >= 2;
+
+      const data = {};
+
+      if (isStructured) {
+        // --- Structured: Formspree email format ---
+        const lines = raw.split('\n');
+        lines.forEach(line => {
+          const m = line.match(/^([a-zA-Z _\-]+?)\s*:\s*(.+)$/);
+          if (m) data[m[1].trim().toLowerCase()] = m[2].trim();
+        });
+        // Also try Formspree's label-then-value format (label line, blank, value line)
+        for (let i = 0; i < lines.length - 1; i++) {
+          const key = lines[i].replace(/\*+/g, '').trim().toLowerCase();
+          const val = lines[i + 1].trim();
+          if (key && val && !val.includes(':') && !data[key]) {
+            data[key] = val;
+          }
+        }
+        // Multi-line description
+        const descMatch = raw.match(/description\s*:\s*([\s\S]+?)(?:\n[a-zA-Z]|$)/i);
+        if (descMatch) data['description'] = descMatch[1].trim();
+      } else {
+        // --- Freetext: WhatsApp / SMS / natural message ---
+        const parsed = parseFreetextMessage(raw);
+        Object.assign(data, parsed);
+        // Also try any key: value pairs that happen to be in the message
+        const lines = raw.split('\n');
+        lines.forEach(line => {
+          const m = line.match(/^([a-zA-Z _\-]+?)\s*:\s*(.+)$/);
+          if (m) data[m[1].trim().toLowerCase()] = data[m[1].trim().toLowerCase()] || m[2].trim();
+        });
+      }
+
+      let filled = 0;
+
+      function set(selector, value) {
+        const el = document.querySelector(selector);
+        if (el && value) { el.value = value; filled++; }
+      }
+
+      // Map fields to form inputs
+      set('#customer-name',       data['name'] || data['full name'] || data['your name'] || '');
+      set('input[type="email"]',  data['email'] || data['email address'] || '');
+      set('input[type="tel"]',    data['phone'] || data['telephone'] || data['mobile'] || data['contact number'] || '');
+
+      // Address: combine address + postcode if both present
+      const addr = [data['address'], data['postcode']].filter(Boolean).join(', ');
+      if (addr) set('input[placeholder="Street, City, Postcode"]', addr);
+
+      // Property type select
+      if (data['propertytype'] || data['property type'] || data['property']) {
+        const pt = (data['propertytype'] || data['property type'] || data['property']).toLowerCase();
+        const sel = document.querySelector('select');
+        // find the property type select (3rd select - after weather and existing surface)
+        const selects = document.querySelectorAll('select');
+        selects.forEach(s => {
+          Array.from(s.options).forEach(o => {
+            if (o.text.toLowerCase().includes(pt) || pt.includes(o.text.toLowerCase())) {
+              s.value = o.value; filled++;
+            }
+          });
+        });
+      }
+
+      // Services → tick matching checkboxes in Type of Work
+      const services = data['services'] || data['service'] || data['type of work'] || '';
+      if (services) {
+        const serviceMap = {
+          'silicone': 'K-Rend',
+          'render': 'Rendering',
+          'plaster': 'Plastering',
+          'monocouche': 'Monocouche',
+          'ewi': 'EWI',
+          'dry lin': 'Dry Lining',
+          'patch': 'Patching / Repair',
+          'coving': 'Coving',
+        };
+        document.querySelectorAll('.checks input[type="checkbox"]').forEach(cb => {
+          const label = cb.parentElement.textContent.trim().toLowerCase();
+          if (services.toLowerCase().includes(label) || label.split(' ').some(w => services.toLowerCase().includes(w))) {
+            cb.checked = true; filled++;
+          }
+        });
+      }
+
+      // Description → General Notes
+      const notes = data['description'] || data['message'] || data['details'] || data['project details'] || '';
+      if (notes) {
+        const textareas = document.querySelectorAll('textarea');
+        const notesTA = textareas[textareas.length - 1]; // last textarea = General Notes
+        if (notesTA) { notesTA.value = notes; filled++; }
+      }
+
+      // Show result
+      const status = document.getElementById('import-status');
+      const modeLabel = isStructured ? 'email' : 'message';
+      status.textContent = filled > 0 ? `✓ ${filled} fields filled from ${modeLabel}` : '⚠ No fields found — try more detail (name, address, phone)';
+      status.style.color = filled > 0 ? 'var(--green)' : '#f87171';
+      status.style.display = 'inline';
+
+      if (filled > 0) {
+        setTimeout(() => {
+          document.getElementById('import-panel').style.display = 'none';
+          document.getElementById('import-text').value = '';
+        }, 1200);
+      }
+    }
+
+    function savePDF() {
+      const nameInput = document.querySelector('#customer-name');
+      const name = nameInput ? nameInput.value.trim() : '';
+      const original = document.title;
+      document.title = name ? 'Site Visit - ' + name : 'Site Visit Form';
+      window.print();
+      document.title = original;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('visit-date').value = new Date().toISOString().split('T')[0];
+      addRoom('Living Room');
+      addRoom('');
+      addRoom('');
+      addPriceRow('');
+
+      // ── Auto-fill from PR Jobs app URL params ──
+      const _p = new URLSearchParams(location.search);
+      if (_p.get('name'))    document.getElementById('customer-name').value = _p.get('name');
+      if (_p.get('phone'))   document.querySelector('input[type="tel"]').value = _p.get('phone');
+      if (_p.get('email'))   document.querySelector('input[type="email"]').value = _p.get('email');
+      if (_p.get('address')) document.querySelector('input[placeholder="Street, City, Postcode"]').value = _p.get('address');
+
+      // Auto-save client details to localStorage whenever they change
+      const clientFields = [
+        { sel: '#customer-name',                       key: 'name' },
+        { sel: 'input[type="tel"]',                    key: 'phone' },
+        { sel: 'input[type="email"]',                  key: 'email' },
+        { sel: 'input[placeholder="Street, City, Postcode"]', key: 'address' },
+      ];
+      clientFields.forEach(({ sel, key }) => {
+        const el = document.querySelector(sel);
+        if (el) el.addEventListener('input', () => {
+          const saved = JSON.parse(localStorage.getItem('pr_current_client') || '{}');
+          saved[key] = el.value.trim();
+          localStorage.setItem('pr_current_client', JSON.stringify(saved));
+        });
+      });
+      // Start with 6 empty photo slots + add-more button
+      for (let i = 0; i < 6; i++) addPhotoSlot();
+      renderAddMoreBtn();
+    });
+
+    /* ===== ROOMS ===== */
+    function addRoom(defaultName) {
+      roomCount++;
+      const rc = roomCount;
+      const tbody = document.getElementById('rooms-tbody');
+      const tr = document.createElement('tr');
+      tr.id = 'room-' + rc;
+
+      // Build cells manually so we can attach real event listeners
+      tr.innerHTML = `
+        <td><input type="text" placeholder="e.g. Hall" value="${defaultName || ''}"></td>
+        <td><input type="number" placeholder="0.0" step="0.1" min="0" id="l-${rc}"></td>
+        <td><input type="number" placeholder="0.0" step="0.1" min="0" id="w-${rc}"></td>
+        <td><input type="number" placeholder="0.0" step="0.1" min="0" id="h-${rc}"></td>
+        <td class="area-cell" id="wall-${rc}">—</td>
+        <td class="area-cell" id="ceil-${rc}">—</td>
+        <td>
+          <div class="work-checks">
+            <label><input type="checkbox"> Walls</label>
+            <label><input type="checkbox"> Ceil</label>
+            <label><input type="checkbox"> Both</label>
+          </div>
+        </td>
+        <td><input type="text" placeholder="Notes"></td>
+        <td><button class="btn-remove-row" type="button" title="Remove">×</button></td>
+      `;
+      tbody.appendChild(tr);
+
+      // Attach event listeners directly — avoids inline handler issues on local files
+      tr.querySelector('#l-' + rc).addEventListener('input', () => calcRoom(rc));
+      tr.querySelector('#w-' + rc).addEventListener('input', () => calcRoom(rc));
+      tr.querySelector('#h-' + rc).addEventListener('input', () => calcRoom(rc));
+      tr.querySelector('.btn-remove-row').addEventListener('click', () => { tr.remove(); calcTotals(); });
+    }
+
+    function calcRoom(rc) {
+      const l = parseFloat(document.getElementById('l-' + rc).value) || 0;
+      const w = parseFloat(document.getElementById('w-' + rc).value) || 0;
+      const h = parseFloat(document.getElementById('h-' + rc).value) || 0;
+      const wallEl = document.getElementById('wall-' + rc);
+      const ceilEl = document.getElementById('ceil-' + rc);
+      if (l > 0 && w > 0 && h > 0) {
+        // Full room: all 4 walls + ceiling
+        wallEl.textContent = (2 * (l + w) * h).toFixed(1) + ' m²';
+        ceilEl.textContent = (l * w).toFixed(1) + ' m²';
+      } else if (l > 0 && h > 0 && w === 0) {
+        // Single surface (render): L × H, no ceiling
+        wallEl.textContent = (l * h).toFixed(1) + ' m²';
+        ceilEl.textContent = '—';
+      } else {
+        wallEl.textContent = '—';
+        ceilEl.textContent = '—';
+      }
+      calcTotals();
+    }
+
+    function calcTotals() {
+      let wallTotal = 0, ceilTotal = 0;
+      document.querySelectorAll('[id^="wall-"]').forEach(el => {
+        const v = parseFloat(el.textContent);
+        if (!isNaN(v)) wallTotal += v;
+      });
+      document.querySelectorAll('[id^="ceil-"]').forEach(el => {
+        const v = parseFloat(el.textContent);
+        if (!isNaN(v)) ceilTotal += v;
+      });
+      const combined = wallTotal + ceilTotal;
+      document.getElementById('total-wall').textContent = wallTotal > 0 ? wallTotal.toFixed(1) + ' m²' : '—';
+      document.getElementById('total-ceil').textContent = ceilTotal > 0 ? ceilTotal.toFixed(1) + ' m²' : '—';
+      document.getElementById('total-combined').textContent = combined > 0 ? combined.toFixed(1) + ' m² total' : '—';
+    }
+
+    /* ===== PHOTOS ===== */
+
+    function addPhotoSlot() {
+      photoCount++;
+      const pc = photoCount;
+      const grid = document.getElementById('photos-grid');
+
+      // Remove add-more button if present
+      const existing = document.getElementById('add-more-btn');
+      if (existing) existing.remove();
+
+      const slot = document.createElement('div');
+      slot.className = 'photo-slot';
+      slot.id = 'photo-slot-' + pc;
+      slot.innerHTML = `
+        <input type="file" accept="image/*" capture="environment" onchange="loadPhoto(${pc}, this)">
+        <div class="photo-placeholder" id="ph-placeholder-${pc}">
+          <div class="ph-icon">📷</div>
+          <div class="ph-num">PHOTO ${pc}</div>
+          <div class="ph-hint">Tap to add</div>
+        </div>
+        <img id="ph-img-${pc}" src="" alt="Photo ${pc}">
+        <button class="photo-remove" id="ph-remove-${pc}" onclick="removePhoto(${pc})" title="Remove photo">×</button>
+        <div class="photo-caption-wrap" id="ph-caption-wrap-${pc}">
+          <input type="text" placeholder="Add caption..." id="ph-caption-${pc}">
+        </div>
+      `;
+      grid.appendChild(slot);
+      renderAddMoreBtn();
+    }
+
+    function renderAddMoreBtn() {
+      const grid = document.getElementById('photos-grid');
+      const existing = document.getElementById('add-more-btn');
+      if (existing) existing.remove();
+      const btn = document.createElement('div');
+      btn.className = 'photo-add-more';
+      btn.id = 'add-more-btn';
+      btn.innerHTML = '<span>+</span>Add photo';
+      btn.onclick = addPhotoSlot;
+      grid.appendChild(btn);
+    }
+
+    function loadPhoto(pc, input) {
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = document.getElementById('ph-img-' + pc);
+        const placeholder = document.getElementById('ph-placeholder-' + pc);
+        const removeBtn = document.getElementById('ph-remove-' + pc);
+        const captionWrap = document.getElementById('ph-caption-wrap-' + pc);
+        img.src = e.target.result;
+        img.style.display = 'block';
+        placeholder.style.display = 'none';
+        removeBtn.style.display = 'flex';
+        captionWrap.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    /* ===== PRICING TABLE ===== */
+    let priceCount = 0;
+
+    function addPriceRow(defaultName) {
+      priceCount++;
+      const pc = priceCount;
+      const tbody = document.getElementById('price-tbody');
+      const tr = document.createElement('tr');
+      tr.id = 'price-row-' + pc;
+      tr.innerHTML = `
+        <td><input type="text" placeholder="e.g. K-Rend scratch coat" value="${defaultName || ''}"></td>
+        <td><input type="number" placeholder="0.0" step="0.1" min="0" id="pm2-${pc}"></td>
+        <td><input type="number" placeholder="0.00" step="0.01" min="0" id="prate-${pc}"></td>
+        <td class="price-total-cell" id="ptotal-${pc}">—</td>
+        <td><button class="btn-remove-row" type="button" title="Remove">×</button></td>
+      `;
+      tbody.appendChild(tr);
+      tr.querySelector('#pm2-' + pc).addEventListener('input', () => calcPriceRow(pc));
+      tr.querySelector('#prate-' + pc).addEventListener('input', () => calcPriceRow(pc));
+      tr.querySelector('.btn-remove-row').addEventListener('click', () => { tr.remove(); calcGrandTotal(); });
+    }
+
+    function calcPriceRow(pc) {
+      const m2 = parseFloat(document.getElementById('pm2-' + pc).value) || 0;
+      const rate = parseFloat(document.getElementById('prate-' + pc).value) || 0;
+      const totalEl = document.getElementById('ptotal-' + pc);
+      totalEl.textContent = (m2 > 0 && rate > 0) ? '£' + (m2 * rate).toFixed(2) : '—';
+      calcGrandTotal();
+    }
+
+    function calcGrandTotal() {
+      let grand = 0;
+      document.querySelectorAll('[id^="ptotal-"]').forEach(el => {
+        const v = parseFloat(el.textContent.replace('£', ''));
+        if (!isNaN(v)) grand += v;
+      });
+      document.getElementById('grand-total').textContent = '£' + grand.toFixed(2);
+    }
+
+    function removePhoto(pc) {
+      const img = document.getElementById('ph-img-' + pc);
+      const placeholder = document.getElementById('ph-placeholder-' + pc);
+      const removeBtn = document.getElementById('ph-remove-' + pc);
+      const captionWrap = document.getElementById('ph-caption-wrap-' + pc);
+      const caption = document.getElementById('ph-caption-' + pc);
+      img.src = '';
+      img.style.display = 'none';
+      placeholder.style.display = 'flex';
+      removeBtn.style.display = 'none';
+      captionWrap.style.display = 'none';
+      caption.value = '';
+      // reset file input
+      const slot = document.getElementById('photo-slot-' + pc);
+      const fileInput = slot.querySelector('input[type="file"]');
+      if (fileInput) fileInput.value = '';
+    }
+  </script>
+</body>
+</html>

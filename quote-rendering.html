@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P&R Solutions — Render Quotation Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fjalla+One&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #66FF33;
+      --dark: #111;
+      --border: #ddd;
+    }
+
+    body {
+      font-family: 'Lato', Arial, sans-serif;
+      background: #f0f0f0;
+      color: var(--dark);
+    }
+
+    /* ===== APP HEADER ===== */
+    .app-header {
+      background: #111;
+      color: white;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 200;
+    }
+
+    .app-title {
+      font-family: 'Fjalla One', Impact, sans-serif;
+      font-size: 17px;
+      letter-spacing: 2px;
+    }
+
+    .app-title span { color: var(--green); }
+
+    .btn-print {
+      background: var(--green);
+      color: #111;
+      border: none;
+      padding: 9px 18px;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 13px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+
+    .btn-print:active { opacity: 0.8; }
+
+    /* ===== MOBILE TABS ===== */
+    .tab-bar {
+      display: flex;
+      background: #1a1a1a;
+      border-bottom: 2px solid var(--green);
+      position: sticky;
+      top: 49px;
+      z-index: 100;
+    }
+
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 13px;
+      color: #666;
+      font-family: 'Fjalla One', sans-serif;
+      letter-spacing: 2px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      color: var(--green);
+      border-bottom: 3px solid var(--green);
+      margin-bottom: -2px;
+    }
+
+    /* ===== LAYOUT ===== */
+    .app-body { display: flex; height: calc(100vh - 97px); }
+    .panel { flex: 1; overflow-y: auto; }
+    .panel-form { background: white; max-width: 480px; border-right: 1px solid #ddd; }
+    .panel-preview { background: #ddd; padding: 24px; display: flex; flex-direction: column; align-items: center; }
+
+    @media (max-width: 900px) {
+      .app-body { height: auto; flex-direction: column; }
+      .panel { display: none; }
+      .panel.active { display: block; }
+      .panel-form { max-width: 100%; border-right: none; }
+      .panel-preview { padding: 12px; }
+    }
+
+    @media (min-width: 901px) {
+      .tab-bar { display: none; }
+      .panel { display: block !important; }
+    }
+
+    /* ===== FORM ===== */
+    .form-section { border-bottom: 1px solid #f0f0f0; padding: 20px 16px; }
+
+    .form-section-title {
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: #aaa;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .field { margin-bottom: 12px; }
+
+    .field label {
+      display: block;
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: #999;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .field input,
+    .field textarea,
+    .field select {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      font-family: 'Lato', sans-serif;
+      font-size: 15px;
+      color: var(--dark);
+      background: white;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .field input:focus,
+    .field textarea:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 2px rgba(102,255,51,0.15); }
+
+    .field textarea { resize: vertical; min-height: 72px; }
+    .field-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .col-labels { display: grid; gap: 8px; margin-bottom: 6px; }
+    .col-labels.labour { grid-template-columns: 1fr 70px 70px 70px 34px; }
+    .col-labels.simple { grid-template-columns: 1fr 90px 34px; }
+    .col-label { font-size: 9px; letter-spacing: 1px; color: #bbb; text-transform: uppercase; }
+
+    .line-item { display: grid; gap: 6px; margin-bottom: 6px; align-items: center; }
+    .line-item-labour { grid-template-columns: 1fr 70px 70px 70px 34px; }
+    .line-item-simple { grid-template-columns: 1fr 90px 34px; }
+
+    .line-item input {
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      font-size: 14px;
+      font-family: 'Lato', sans-serif;
+    }
+
+    .line-item input:focus { outline: none; border-color: var(--green); }
+
+    .btn-remove {
+      background: #f8f8f8;
+      border: 1px solid #e8e8e8;
+      border-radius: 2px;
+      width: 34px;
+      height: 36px;
+      cursor: pointer;
+      color: #bbb;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .btn-remove:hover { background: #fff0f0; border-color: #f99; color: #c33; }
+
+    .btn-add {
+      background: none;
+      border: 1px dashed #ddd;
+      border-radius: 2px;
+      width: 100%;
+      padding: 9px 12px;
+      color: #aaa;
+      font-family: 'Lato', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      margin-top: 6px;
+      text-align: left;
+    }
+
+    .btn-add:hover { border-color: var(--green); color: #5cc; }
+
+    /* ===== QUOTE PREVIEW ===== */
+    .invoice {
+      background: white;
+      width: 210mm;
+      min-height: 297mm;
+      padding: 14mm 15mm;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+      font-family: 'Lato', Arial, sans-serif;
+      font-size: 9pt;
+      color: #111;
+    }
+
+    .inv-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 7mm;
+      border-bottom: 3px solid var(--green);
+      margin-bottom: 7mm;
+    }
+
+    .inv-logo { width: 110px; }
+
+    .inv-company { text-align: right; }
+
+    .inv-company-name {
+      font-family: 'Fjalla One', Impact, sans-serif;
+      font-size: 15pt;
+      letter-spacing: 2px;
+    }
+
+    .inv-company-name .g { color: var(--green); }
+
+    .inv-company-tag {
+      font-size: 6.5pt;
+      letter-spacing: 3.5px;
+      color: #999;
+      margin: 3px 0 6px;
+    }
+
+    .inv-company-contact {
+      font-size: 8pt;
+      color: #666;
+      line-height: 1.65;
+    }
+
+    .inv-meta {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8mm;
+      gap: 10mm;
+    }
+
+    .inv-bill-to { flex: 1; }
+
+    .inv-bill-to h3 {
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 7.5pt;
+      letter-spacing: 2.5px;
+      color: #bbb;
+      margin-bottom: 5px;
+    }
+
+    .inv-client-name { font-size: 11pt; font-weight: 700; margin-bottom: 3px; }
+    .inv-client-addr { font-size: 8.5pt; color: #666; white-space: pre-line; line-height: 1.6; }
+    .inv-client-phone { font-size: 8pt; color: #888; margin-top: 3px; }
+
+    .inv-details { text-align: right; flex-shrink: 0; }
+
+    .inv-title {
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 26pt;
+      letter-spacing: 4px;
+      color: #111;
+      margin-bottom: 5mm;
+    }
+
+    .inv-detail-row {
+      display: flex;
+      justify-content: flex-end;
+      gap: 14px;
+      font-size: 8pt;
+      margin-bottom: 4px;
+    }
+
+    .inv-detail-label { color: #bbb; letter-spacing: 1px; text-transform: uppercase; }
+    .inv-detail-value { font-weight: 700; min-width: 110px; text-align: right; }
+
+    /* Valid notice */
+    .quote-valid-banner {
+      background: #111;
+      color: var(--green);
+      text-align: center;
+      padding: 5px 10px;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 8pt;
+      letter-spacing: 2px;
+      margin-bottom: 6mm;
+    }
+
+    .inv-section-label {
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 7.5pt;
+      letter-spacing: 2.5px;
+      color: #999;
+      margin: 5mm 0 2mm;
+      padding-bottom: 3px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .inv-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2mm;
+      font-size: 8.5pt;
+    }
+
+    .inv-table thead tr { background: #111; color: white; }
+
+    .inv-table th {
+      padding: 5px 8px;
+      text-align: left;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 7pt;
+      letter-spacing: 2px;
+      font-weight: normal;
+    }
+
+    .inv-table th.r { text-align: right; }
+
+    .inv-table td {
+      padding: 5px 8px;
+      border-bottom: 1px solid #f0f0f0;
+      vertical-align: top;
+    }
+
+    .inv-table td.r { text-align: right; }
+    .inv-table tbody tr:nth-child(even) td { background: #fafafa; }
+    .inv-empty td { color: #ccc; text-align: center; padding: 10px; }
+
+    .inv-totals { margin-top: 5mm; display: flex; justify-content: flex-end; }
+    .inv-totals-inner { width: 210px; }
+
+    .inv-total-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 8px;
+      font-size: 8.5pt;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .inv-total-row .tl { color: #888; }
+    .inv-total-row .tv { font-weight: 700; }
+
+    .inv-total-grand {
+      display: flex;
+      justify-content: space-between;
+      padding: 7px 8px;
+      background: #111;
+      color: white;
+      margin-top: 3px;
+    }
+
+    .inv-total-grand .tl {
+      font-family: 'Fjalla One', sans-serif;
+      letter-spacing: 1px;
+      font-size: 9pt;
+    }
+
+    .inv-total-grand .tv { font-weight: 700; font-size: 10pt; }
+
+    /* Why choose us / terms box */
+    .inv-terms {
+      margin-top: 7mm;
+      padding: 4mm 5mm;
+      background: #f9f9f9;
+      border: 1px solid #eee;
+      font-size: 7pt;
+      color: #888;
+      line-height: 1.6;
+    }
+
+    .inv-terms h4 {
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 7.5pt;
+      letter-spacing: 2.5px;
+      color: #aaa;
+      margin-bottom: 5px;
+    }
+
+    .inv-terms-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4mm 6mm;
+      margin-top: 4px;
+    }
+
+    .inv-terms-col strong { color: #666; font-size: 7pt; display: block; margin-bottom: 2px; }
+
+    /* Acceptance box */
+    .inv-acceptance {
+      margin-top: 6mm;
+      border: 1px solid #ddd;
+      padding: 4mm 5mm;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4mm;
+      font-size: 8pt;
+    }
+
+    .inv-acceptance h4 {
+      grid-column: 1 / -1;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 7.5pt;
+      letter-spacing: 2.5px;
+      color: #aaa;
+      margin-bottom: 2px;
+    }
+
+    .sig-line {
+      border-bottom: 1px solid #ccc;
+      margin-top: 8mm;
+      margin-bottom: 2px;
+    }
+
+    .sig-label { font-size: 7pt; color: #bbb; letter-spacing: 1px; }
+
+    /* Footer */
+    .inv-footer {
+      margin-top: 7mm;
+      padding-top: 5mm;
+      border-top: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .inv-signature { font-size: 10pt; font-weight: 700; margin-bottom: 2px; }
+    .inv-sig-company { font-size: 8pt; color: #888; }
+    .inv-notes { font-size: 7.5pt; color: #777; margin-top: 5px; max-width: 260px; line-height: 1.5; }
+
+    .inv-guarantee {
+      text-align: right;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 9pt;
+      letter-spacing: 1px;
+      color: var(--green);
+    }
+
+    .inv-guarantee-sub { font-size: 7pt; color: #aaa; letter-spacing: 1px; font-family: 'Lato', sans-serif; margin-top: 2px; }
+
+    /* ===== PHOTO FORM ZONES ===== */
+    .photo-upload-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .photo-slot-label {
+      font-size: 9px;
+      letter-spacing: 1px;
+      color: #bbb;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .photo-drop-zone {
+      border: 1.5px dashed #ddd;
+      border-radius: 4px;
+      min-height: 88px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 12px 8px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 11px;
+      color: #bbb;
+      background: #fafafa;
+      transition: border-color .15s, background .15s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .photo-drop-zone:hover { border-color: var(--green); color: #666; background: #f5fff0; }
+    .photo-drop-zone.drag-over { border-color: var(--green); background: #f5fff0; }
+
+    .photo-drop-zone.has-photo {
+      border-style: solid;
+      border-color: #e0e0e0;
+      padding: 0;
+      cursor: default;
+    }
+
+    .photo-drop-zone.has-photo img {
+      width: 100%;
+      height: 90px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .photo-drop-zone .photo-plus { font-size: 22px; opacity: .3; line-height: 1; }
+    .photo-drop-zone .photo-sub { font-size: 10px; color: #ccc; }
+
+    .photo-remove-btn {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: rgba(0,0,0,.55);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      z-index: 2;
+    }
+
+    .photo-remove-btn:hover { background: rgba(200,0,0,.7); }
+
+    .photo-size-hint {
+      font-size: 10px;
+      color: #bbb;
+      margin-top: 6px;
+      text-align: center;
+    }
+
+    /* ===== PHOTO PREVIEW ON QUOTE ===== */
+    .photo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3mm;
+      margin-top: 3mm;
+    }
+
+    .photo-grid.single {
+      grid-template-columns: 1fr;
+      max-width: 110mm;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .photo-cell {
+      position: relative;
+      overflow: hidden;
+      border: 0.5pt solid #e8e8e8;
+      background: #f5f5f5;
+    }
+
+    .photo-cell img {
+      width: 100%;
+      height: 55mm;
+      object-fit: cover;
+      display: block;
+    }
+
+    .photo-grid.single .photo-cell img { height: 65mm; }
+
+    .photo-cell-label {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0,0,0,.52);
+      color: #fff;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 6.5pt;
+      letter-spacing: 2px;
+      text-align: center;
+      padding: 3px 6px;
+    }
+
+    .photo-caption-line {
+      font-size: 7pt;
+      color: #999;
+      text-align: center;
+      margin-top: 2.5mm;
+      letter-spacing: 0.5px;
+      font-style: italic;
+    }
+
+    /* ===== PRINT ===== */
+    @media print {
+      body { background: white; }
+      .app-header, .tab-bar, .panel-form { display: none !important; }
+      .app-body { height: auto; }
+      .panel-preview { background: white; padding: 0; display: block; }
+      .invoice { box-shadow: none; width: 100%; min-height: auto; padding: 10mm; }
+      @page { margin: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="app-header">
+    <span class="app-title"><span>P&R</span> RENDER QUOTATION</span>
+    <button class="btn-print" onclick="saveNum().then(()=>window.print())">⬇ PRINT / SAVE PDF</button>
+  </header>
+
+  <div class="tab-bar">
+    <div class="tab active" onclick="switchTab('form', this)">✏ FORM</div>
+    <div class="tab" onclick="switchTab('preview', this)">👁 PREVIEW</div>
+  </div>
+
+  <div class="app-body">
+
+    <!-- ===== FORM PANEL ===== -->
+    <div class="panel panel-form active" id="panel-form">
+
+      <div class="form-section">
+        <div class="form-section-title">Quote Details</div>
+        <div class="field-row-2">
+          <div class="field">
+            <label>Quote Number</label>
+            <input type="text" id="inv-number" placeholder="QR-001" oninput="update()">
+          </div>
+          <div class="field">
+            <label>Date</label>
+            <input type="date" id="inv-date" oninput="update()">
+          </div>
+        </div>
+        <div class="field-row-2">
+          <div class="field">
+            <label>Valid Until</label>
+            <input type="date" id="inv-due" oninput="update()">
+          </div>
+          <div class="field">
+            <label>Project Reference</label>
+            <input type="text" id="inv-ref" placeholder="e.g. Jones — Silicone Render" oninput="update()">
+          </div>
+        </div>
+        <div class="field-row-2">
+          <div class="field">
+            <label>Render System</label>
+            <select id="render-system" oninput="update()">
+              <option value="">Select system…</option>
+              <option>Silicone Render</option>
+              <option>Monocouche Render</option>
+              <option>Mineral Render</option>
+              <option>EWI System</option>
+              <option>Tyrolean Finish</option>
+              <option>Scratch & Render</option>
+              <option>Sand & Cement Render</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Finish / Colour</label>
+            <input type="text" id="render-finish" placeholder="e.g. Fine, White K15" oninput="update()">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title" style="display:flex;justify-content:space-between;align-items:center">
+          Client
+          <span style="display:flex;gap:6px">
+            <button type="button" onclick="loadCurrentClient()" style="font-size:10px;padding:2px 8px;background:var(--green);color:#111;border:none;border-radius:2px;cursor:pointer;font-family:inherit;font-weight:700;letter-spacing:0.5px">↓ Load Saved Client</button>
+            <button type="button" onclick="toggleClientImport()" style="font-size:10px;padding:2px 8px;background:#111;color:var(--green);border:1px solid #ddd;border-radius:2px;cursor:pointer;font-family:inherit;letter-spacing:0.5px">⬇ Import Email</button>
+          </span>
+        </div>
+        <div id="client-import-panel" style="display:none;background:#f8f8f8;border:1px solid #ddd;border-radius:3px;padding:10px;margin-bottom:10px">
+          <div style="font-size:10px;color:#888;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Paste Formspree email body</div>
+          <textarea id="client-import-text" style="width:100%;height:100px;font-family:monospace;font-size:11px;border:1px solid #ccc;border-radius:2px;padding:7px;resize:vertical" placeholder="Paste email here..."></textarea>
+          <div style="display:flex;gap:6px;margin-top:6px;align-items:center">
+            <button type="button" onclick="runClientImport()" style="background:#111;color:var(--green);border:none;padding:6px 14px;font-size:11px;letter-spacing:1px;cursor:pointer;border-radius:2px;font-family:inherit">IMPORT</button>
+            <button type="button" onclick="toggleClientImport()" style="background:none;border:1px solid #ccc;color:#888;padding:6px 10px;font-size:11px;cursor:pointer;border-radius:2px">Cancel</button>
+            <span id="client-import-status" style="font-size:11px;color:var(--green);display:none"></span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Client Name</label>
+          <input type="text" id="client-name" placeholder="Full name or company" oninput="update()">
+        </div>
+        <div class="field">
+          <label>Address</label>
+          <textarea id="client-addr" placeholder="Street&#10;City&#10;Postcode" oninput="update()"></textarea>
+        </div>
+        <div class="field">
+          <label>Phone</label>
+          <input type="tel" id="client-phone" placeholder="07xxx xxxxxx" oninput="update()">
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Project Timeline</div>
+        <div class="field-row-2">
+          <div class="field">
+            <label>Estimated Start Date</label>
+            <input type="date" id="start-date" oninput="update()">
+          </div>
+          <div class="field">
+            <label>Estimated Duration</label>
+            <input type="text" id="duration" placeholder="e.g. 3–5 days" oninput="update()">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Proposed Works</div>
+        <div class="col-labels labour">
+          <span class="col-label">Description</span>
+          <span class="col-label">Qty / m²</span>
+          <span class="col-label">Unit £</span>
+          <span class="col-label">Total</span>
+          <span></span>
+        </div>
+        <div id="labour-rows"></div>
+        <button class="btn-add" onclick="addRow('labour')">+ Add works item</button>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Additional Fees</div>
+        <div class="col-labels simple">
+          <span class="col-label">Description</span>
+          <span class="col-label">Amount £</span>
+          <span></span>
+        </div>
+        <div id="fees-rows"></div>
+        <button class="btn-add" onclick="addRow('fees')">+ Add fee</button>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Project Photos</div>
+        <div class="photo-upload-grid">
+          <div>
+            <div class="photo-slot-label">Before Photo</div>
+            <div class="photo-drop-zone" id="zone-before" onclick="triggerPhotoUpload('before')">
+              <span class="photo-plus">+</span>
+              <span>Before Photo</span>
+              <span class="photo-sub">click or drag &amp; drop</span>
+            </div>
+          </div>
+          <div>
+            <div class="photo-slot-label">Render Preview</div>
+            <div class="photo-drop-zone" id="zone-after" onclick="triggerPhotoUpload('after')">
+              <span class="photo-plus">+</span>
+              <span>Render Preview</span>
+              <span class="photo-sub">click or drag &amp; drop</span>
+            </div>
+          </div>
+        </div>
+        <div class="photo-size-hint">Photos auto-compressed to WebP · prints cleanly</div>
+        <div class="field" style="margin-top:12px">
+          <label>Image Caption (optional)</label>
+          <input type="text" id="photo-caption" placeholder="e.g. Proposed White K15 Silicone Render" oninput="update()">
+        </div>
+        <input type="file" id="file-before" accept="image/*" style="display:none">
+        <input type="file" id="file-after"  accept="image/*" style="display:none">
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">VAT & Notes</div>
+        <div class="field-row-2">
+          <div class="field">
+            <label>VAT %</label>
+            <input type="number" id="vat-rate" placeholder="0" value="0" min="0" max="100" oninput="update()">
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <div style="padding:11px 0;font-size:13px;color:#aaa">Leave 0 if not VAT registered</div>
+          </div>
+        </div>
+        <div class="field">
+          <label style="display:flex;justify-content:space-between;align-items:center">
+            Scope of Works / Notes
+            <select onchange="if(this.value){insertScopeTemplate(this.value);this.value=''}" style="font-size:11px;padding:3px 8px;background:#111;color:#66FF33;border:1px solid #333;border-radius:2px;cursor:pointer;font-family:inherit;max-width:200px">
+              <option value="">— Load template —</option>
+              <option value="silicone_pebbledash">Silicone over Pebble Dash</option>
+              <option value="silicone_brick_block">Full Silicone — Brick &amp; Block</option>
+              <option value="monocouche_brick_block">Monocouche — Brick &amp; Block</option>
+              <option value="ewi_brick_block">EWI — Brick &amp; Block</option>
+            </select>
+          </label>
+          <textarea id="notes" placeholder="Brief description of the works included in this quote..." oninput="update()"></textarea>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ===== PREVIEW PANEL ===== -->
+    <div class="panel panel-preview" id="panel-preview">
+      <div class="invoice" id="invoice">
+
+        <!-- Header -->
+        <div class="inv-header">
+          <div class="inv-logo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" style="width:110px;display:block">
+              <defs>
+                <style>@import url('https://fonts.googleapis.com/css2?family=Fjalla+One&family=Lato:wght@300;400&display=swap');</style>
+              </defs>
+              <rect width="600" height="360" fill="#FFFFFF"/>
+              <g transform="translate(167.5, 60)">
+                <path fill="#66FF33" d="M 0,0 L 0,160 L 35,160 L 35,95 L 80,95 C 115,95 140,70 140,40 C 140,10 115,-10 80,-10 L 0,-10 Z M 35,20 L 80,20 C 95,20 105,30 105,45 C 105,60 95,70 80,70 L 35,70 Z"/>
+                <path fill="#000000" d="M 120,0 L 120,160 L 155,160 L 155,100 L 185,100 L 225,160 L 265,160 L 220,95 C 245,90 265,70 265,40 C 265,10 240,-10 205,-10 L 120,-10 Z M 155,20 L 205,20 C 220,20 230,30 230,45 C 230,60 220,70 205,70 L 155,70 Z"/>
+              </g>
+              <line x1="190" y1="245" x2="410" y2="245" stroke="#66FF33" stroke-width="2"/>
+              <text x="300" y="280" font-family="'Fjalla One', Impact, Arial, sans-serif" font-size="36" letter-spacing="4" text-anchor="middle">
+                <tspan fill="#66FF33">P&amp;R</tspan><tspan fill="#000000"> SOLUTIONS</tspan>
+              </text>
+              <text x="300" y="311" font-family="'Lato', Arial, sans-serif" font-size="11" font-weight="300" fill="#666666" letter-spacing="6" text-anchor="middle">PLASTER · RENDER · SPECIALISTS</text>
+            </svg>
+          </div>
+          <div class="inv-company">
+            <div class="inv-company-name"><span class="g">P&R</span> SOLUTIONS</div>
+            <div class="inv-company-tag">PLASTER · RENDER · SPECIALISTS</div>
+            <div class="inv-company-contact">
+              3 Rocher Close, Grenoside<br>
+              Sheffield, S35 8QP<br>
+              07595 399525<br>
+              Plastersolutionsltd@gmail.com
+            </div>
+          </div>
+        </div>
+
+        <!-- Meta -->
+        <div class="inv-meta">
+          <div class="inv-bill-to">
+            <h3>Prepared For</h3>
+            <div class="inv-client-name" id="p-client-name">—</div>
+            <div class="inv-client-addr" id="p-client-addr"></div>
+            <div class="inv-client-phone" id="p-client-phone"></div>
+          </div>
+          <div class="inv-details">
+            <div class="inv-title">RENDER QUOTE</div>
+            <div class="inv-detail-row">
+              <span class="inv-detail-label">Quote No.</span>
+              <span class="inv-detail-value" id="p-inv-number">—</span>
+            </div>
+            <div class="inv-detail-row">
+              <span class="inv-detail-label">Date</span>
+              <span class="inv-detail-value" id="p-inv-date">—</span>
+            </div>
+            <div class="inv-detail-row">
+              <span class="inv-detail-label">Valid Until</span>
+              <span class="inv-detail-value" id="p-inv-due">—</span>
+            </div>
+            <div class="inv-detail-row" id="p-ref-row" style="display:none">
+              <span class="inv-detail-label">Project Ref</span>
+              <span class="inv-detail-value" id="p-inv-ref">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Valid banner -->
+        <div class="quote-valid-banner">THIS QUOTATION IS VALID FOR 30 DAYS FROM DATE OF ISSUE · FREE SURVEY · NO DEPOSIT REQUIRED</div>
+
+        <!-- Render system + timeline row -->
+        <div style="display:flex;gap:6mm;margin-bottom:5mm" id="p-render-meta-wrap">
+          <div id="p-render-system-wrap" style="flex:1;display:none">
+            <div style="font-family:'Fjalla One',sans-serif;font-size:7.5pt;letter-spacing:2px;color:#bbb;margin-bottom:3px">RENDER SYSTEM</div>
+            <div id="p-render-system" style="font-size:10pt;font-weight:700"></div>
+            <div id="p-render-finish" style="font-size:8pt;color:#888;margin-top:2px"></div>
+          </div>
+          <div id="p-timeline-wrap" style="flex:1;display:none">
+            <div style="font-family:'Fjalla One',sans-serif;font-size:7.5pt;letter-spacing:2px;color:#bbb;margin-bottom:3px">PROJECT TIMELINE</div>
+            <div id="p-start-date" style="font-size:8.5pt"></div>
+            <div id="p-duration" style="font-size:8.5pt;color:#666"></div>
+          </div>
+        </div>
+
+        <!-- Scope of works -->
+        <div id="p-scope-wrap" style="display:none;margin-bottom:5mm">
+          <div class="inv-section-label">SCOPE OF WORKS</div>
+          <div id="p-notes" style="font-size:8.5pt;color:#555;line-height:1.7;padding:2mm 0;white-space:pre-line"></div>
+        </div>
+
+        <!-- Design Preview Photos -->
+        <div id="p-photos-wrap" style="display:none;margin-bottom:5mm">
+          <div class="inv-section-label">DESIGN PREVIEW</div>
+          <div class="photo-grid" id="p-photos-grid"></div>
+          <div class="photo-caption-line" id="p-photo-caption" style="display:none"></div>
+        </div>
+
+        <!-- Proposed Works -->
+        <div class="inv-section-label">PROPOSED WORKS</div>
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Qty / Area</th>
+              <th class="r">Unit Price</th>
+              <th class="r">Total</th>
+            </tr>
+          </thead>
+          <tbody id="p-labour-rows">
+            <tr class="inv-empty"><td colspan="4">No labour items added</td></tr>
+          </tbody>
+        </table>
+
+        <!-- Fees -->
+        <div class="inv-section-label">ADDITIONAL FEES</div>
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th colspan="3">Description</th>
+              <th class="r">Amount</th>
+            </tr>
+          </thead>
+          <tbody id="p-fees-rows">
+            <tr class="inv-empty"><td colspan="4">No additional fees</td></tr>
+          </tbody>
+        </table>
+
+        <!-- Totals -->
+        <div class="inv-totals">
+          <div class="inv-totals-inner">
+            <div class="inv-total-row">
+              <span class="tl">Subtotal</span>
+              <span class="tv" id="p-subtotal">£0.00</span>
+            </div>
+            <div class="inv-total-row" id="p-vat-row" style="display:none">
+              <span class="tl" id="p-vat-label">VAT (0%)</span>
+              <span class="tv" id="p-vat-amount">£0.00</span>
+            </div>
+            <div class="inv-total-grand">
+              <span class="tl">QUOTE TOTAL</span>
+              <span class="tv" id="p-total">£0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Terms / Why us -->
+        <div class="inv-terms">
+          <h4>OUR COMMITMENT TO YOU</h4>
+          <div class="inv-terms-grid">
+            <div class="inv-terms-col">
+              <strong>25-Year Manufacturer Guarantee</strong>
+              All materials carry a 25-year guarantee (K-Rend, Ecorend, Baumit). Covers material defects. Transferable to future property owners.
+            </div>
+            <div class="inv-terms-col">
+              <strong>5-Year Workmanship Guarantee</strong>
+              All installations guaranteed for 5 years. Free repairs if issues arise from our work. Requires normal surface maintenance.
+            </div>
+            <div class="inv-terms-col">
+              <strong>No Deposit Required</strong>
+              We do not require payment upfront. Payment is only due upon completion and when you are fully satisfied with the work. No risk to you.
+            </div>
+            <div class="inv-terms-col">
+              <strong>Quote Terms</strong>
+              This quote is valid for 30 days. Quotes are based on the site survey. Significant changes to scope may require a revised quote. All prices include materials and labour unless stated.
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="inv-footer">
+          <div>
+            <div class="inv-signature">Chris Glover</div>
+            <div class="inv-sig-company">Plaster and Rendering Solutions</div>
+            <div style="font-size:7.5pt;color:#aaa;margin-top:3px">07595 399525 · Plastersolutionsltd@gmail.com</div>
+          </div>
+          <div style="text-align:right">
+            <div class="inv-guarantee">25-YEAR GUARANTEE</div>
+            <div class="inv-guarantee-sub">on materials · 5 years on workmanship</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let rows = { labour: [], materials: [], fees: [] };
+    let rowId = 0;
+
+    // ── Photos ───────────────────────────────────────────────────────────────
+    const photos = { before: null, after: null };
+
+    // Compress uploaded image → WebP (Chrome/Edge) or JPEG fallback
+    // Max 900×650px at 78% quality → typically 60–120 KB, prints sharply
+    function compressImage(file, maxW = 900, maxH = 650, q = 0.78) {
+      return new Promise(resolve => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+          const w = Math.round(img.width  * scale);
+          const h = Math.round(img.height * scale);
+          const c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          c.getContext('2d').drawImage(img, 0, 0, w, h);
+          const webp = c.toDataURL('image/webp', q);
+          const jpeg = c.toDataURL('image/jpeg', q);
+          // Use WebP if the browser actually encoded it (not all do)
+          resolve(webp.startsWith('data:image/webp') ? webp : jpeg);
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+        img.src = url;
+      });
+    }
+
+    function triggerPhotoUpload(slot) {
+      document.getElementById('file-' + slot).click();
+    }
+
+    async function handlePhotoFile(slot, file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      const data = await compressImage(file);
+      if (!data) return;
+      photos[slot] = data;
+      renderPhotoZone(slot);
+      update();
+    }
+
+    function renderPhotoZone(slot) {
+      const zone = document.getElementById('zone-' + slot);
+      if (!zone) return;
+      if (photos[slot]) {
+        zone.className = 'photo-drop-zone has-photo';
+        zone.onclick = null;
+        zone.innerHTML = `
+          <img src="${photos[slot]}" alt="${slot} photo">
+          <button class="photo-remove-btn" title="Remove"
+            onclick="photos['${slot}']=null;renderPhotoZone('${slot}');update();event.stopPropagation()">×</button>
+        `;
+      } else {
+        zone.className = 'photo-drop-zone';
+        zone.onclick = () => triggerPhotoUpload(slot);
+        const lbl = slot === 'before' ? 'Before Photo' : 'Render Preview';
+        zone.innerHTML = `
+          <span class="photo-plus">+</span>
+          <span>${lbl}</span>
+          <span class="photo-sub">click or drag &amp; drop</span>
+        `;
+      }
+    }
+
+    function setupPhotoZones() {
+      ['before', 'after'].forEach(slot => {
+        const zone  = document.getElementById('zone-'  + slot);
+        const input = document.getElementById('file-'  + slot);
+
+        // Drag & drop
+        zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
+        zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+        zone.addEventListener('drop', async e => {
+          e.preventDefault();
+          zone.classList.remove('drag-over');
+          const file = e.dataTransfer.files[0];
+          if (file) await handlePhotoFile(slot, file);
+        });
+
+        // File picker
+        input.addEventListener('change', async e => {
+          const file = e.target.files[0];
+          if (file) await handlePhotoFile(slot, file);
+          e.target.value = '';
+        });
+      });
+    }
+
+    function renderPhotosOnPreview() {
+      const wrap    = document.getElementById('p-photos-wrap');
+      const grid    = document.getElementById('p-photos-grid');
+      const capEl   = document.getElementById('p-photo-caption');
+      const hasBef  = !!photos.before;
+      const hasAft  = !!photos.after;
+
+      if (!hasBef && !hasAft) { wrap.style.display = 'none'; return; }
+
+      wrap.style.display = 'block';
+      const single = hasBef !== hasAft; // exactly one image
+      grid.className = 'photo-grid' + (single ? ' single' : '');
+
+      let html = '';
+      if (hasBef) html += `<div class="photo-cell"><img src="${photos.before}" alt="Before"><div class="photo-cell-label">EXISTING PROPERTY</div></div>`;
+      if (hasAft) html += `<div class="photo-cell"><img src="${photos.after}"  alt="Render Preview"><div class="photo-cell-label">PROPOSED RENDER</div></div>`;
+      grid.innerHTML = html;
+
+      const cap = v('photo-caption');
+      capEl.textContent = cap;
+      capEl.style.display = cap ? 'block' : 'none';
+    }
+
+    const API_NS = 'pr-solutions-sheff';
+    const API_KEY = 'qt-rend26';
+    const API_BASE = `https://api.counterapi.dev/v1/${API_NS}/${API_KEY}`;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      setupPhotoZones();
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('inv-date').value = today;
+      const due = new Date();
+      due.setDate(due.getDate() + 30);
+      document.getElementById('inv-due').value = due.toISOString().split('T')[0];
+      document.getElementById('inv-number').value = '…';
+      addRow('labour');
+      addRow('fees');
+      update();
+      // Get current count (no increment) to show next number
+      let next = parseInt(localStorage.getItem('pr_qr_last') || '0', 10) + 1;
+      try {
+        const res = await fetch(API_BASE + '/', { signal: AbortSignal.timeout(4000) });
+        if (res.ok) {
+          const data = await res.json();
+          next = (data.count || 0) + 1;
+        }
+      } catch(e) {}
+      const year = new Date().getFullYear();
+      document.getElementById('inv-number').value = 'QR-' + year + '-' + String(next).padStart(3, '0');
+      update();
+
+      // ── Auto-fill from PR Jobs app URL params ──
+      const _p = new URLSearchParams(location.search);
+      if (_p.get('name'))    document.getElementById('client-name').value = _p.get('name');
+      if (_p.get('address')) document.getElementById('client-addr').value = _p.get('address');
+      if (_p.get('phone'))   document.getElementById('client-phone').value = _p.get('phone');
+      if (_p.get('job'))     document.getElementById('notes').value = _p.get('job');
+      if (_p.get('ref'))     document.getElementById('inv-ref').value = _p.get('ref');
+      if (_p.get('name') || _p.get('address') || _p.get('phone')) update();
+    });
+
+    async function saveNum() {
+      // Set document title → becomes the PDF filename in browser Save dialog
+      const quoteNum = document.getElementById('inv-number').value || 'Quote';
+      const client   = (document.getElementById('client-name').value || '').trim().replace(/[/\\?%*:|"<>]/g, '');
+      const date     = document.getElementById('inv-date').value || new Date().toISOString().split('T')[0];
+      const oldTitle = document.title;
+      document.title = 'Quote - ' + (client || quoteNum);
+      window.onafterprint = () => { document.title = oldTitle; };
+
+      // Increment the shared counter on print
+      try {
+        await fetch(API_BASE + '/up', { signal: AbortSignal.timeout(4000) });
+      } catch(e) {}
+      const val = document.getElementById('inv-number').value;
+      const match = val.match(/(\d+)$/);
+      if (match) localStorage.setItem('pr_qr_last', parseInt(match[1], 10));
+    }
+
+    function switchTab(tab, el) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('panel-form').classList.toggle('active', tab === 'form');
+      document.getElementById('panel-preview').classList.toggle('active', tab === 'preview');
+    }
+
+    function addRow(type) {
+      const id = ++rowId;
+      rows[type].push(id);
+      const container = document.getElementById(type + '-rows');
+      const div = document.createElement('div');
+      div.className = 'line-item ' + (type === 'labour' ? 'line-item-labour' : 'line-item-simple');
+      div.id = 'row-' + id;
+
+      if (type === 'labour') {
+        div.innerHTML = `
+          <input type="text" placeholder="e.g. Apply silicone render to front elevation" data-id="${id}" data-field="desc" oninput="update()">
+          <input type="number" placeholder="0" data-id="${id}" data-field="qty" step="0.1" oninput="calcRow(${id})">
+          <input type="number" placeholder="0.00" data-id="${id}" data-field="unit" step="0.01" oninput="calcRow(${id})">
+          <input type="text" id="row-total-${id}" placeholder="£0.00" readonly style="background:#f8f8f8;color:#888">
+          <button class="btn-remove" onclick="removeRow('labour',${id})" title="Remove">×</button>
+        `;
+      } else {
+        const ph = type === 'fees' ? 'e.g. Scaffolding hire' : 'e.g. K-Rend Silicone TC (25kg bag)';
+        div.innerHTML = `
+          <input type="text" placeholder="${ph}" data-id="${id}" data-field="desc" oninput="update()">
+          <input type="number" placeholder="0.00" data-id="${id}" data-field="cost" step="0.01" oninput="update()">
+          <button class="btn-remove" onclick="removeRow('${type}',${id})" title="Remove">×</button>
+        `;
+      }
+      container.appendChild(div);
+    }
+
+    function removeRow(type, id) {
+      rows[type] = rows[type].filter(r => r !== id);
+      document.getElementById('row-' + id)?.remove();
+      update();
+    }
+
+    function calcRow(id) {
+      const qty = parseFloat(document.querySelector(`[data-id="${id}"][data-field="qty"]`)?.value) || 0;
+      const unit = parseFloat(document.querySelector(`[data-id="${id}"][data-field="unit"]`)?.value) || 0;
+      const el = document.getElementById('row-total-' + id);
+      if (el) el.value = (qty && unit) ? '£' + (qty * unit).toFixed(2) : '£0.00';
+      update();
+    }
+
+    function v(id) { return document.getElementById(id)?.value || ''; }
+    function fmt(n) { return '£' + Number(n).toFixed(2); }
+    function fmtDate(d) {
+      if (!d) return '—';
+      const [y, m, day] = d.split('-');
+      return `${day}/${m}/${y}`;
+    }
+    function setText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    }
+
+    function buildRows(type, tbodyId) {
+      const tbody = document.getElementById(tbodyId);
+      tbody.innerHTML = '';
+      let total = 0;
+      let hasRows = false;
+
+      rows[type].forEach(id => {
+        const desc = document.querySelector(`[data-id="${id}"][data-field="desc"]`)?.value?.trim();
+        let amount = 0;
+
+        if (type === 'labour') {
+          const qty = parseFloat(document.querySelector(`[data-id="${id}"][data-field="qty"]`)?.value) || 0;
+          const unit = parseFloat(document.querySelector(`[data-id="${id}"][data-field="unit"]`)?.value) || 0;
+          amount = qty * unit;
+          if (desc || amount > 0) {
+            hasRows = true;
+            total += amount;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${esc(desc || '')}</td>
+              <td>${qty > 0 ? qty : ''}</td>
+              <td class="r">${unit > 0 ? fmt(unit) : ''}</td>
+              <td class="r">${fmt(amount)}</td>
+            `;
+            tbody.appendChild(tr);
+          }
+        } else {
+          amount = parseFloat(document.querySelector(`[data-id="${id}"][data-field="cost"]`)?.value) || 0;
+          if (desc || amount > 0) {
+            hasRows = true;
+            total += amount;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td colspan="3">${esc(desc || '')}</td><td class="r">${fmt(amount)}</td>`;
+            tbody.appendChild(tr);
+          }
+        }
+      });
+
+      if (!hasRows) {
+        const tr = document.createElement('tr');
+        tr.className = 'inv-empty';
+        tr.innerHTML = `<td colspan="4">${type === 'labour' ? 'No labour items added' : type === 'materials' ? 'No materials added' : 'No additional fees'}</td>`;
+        tbody.appendChild(tr);
+      }
+      return total;
+    }
+
+    function esc(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    const SCOPE_TEMPLATES = {
+      silicone_pebbledash: `Following inspection, the existing render substrate has been assessed as suitable to receive a full silicone render system.
+
+Works to include:
+
+• Supply and fit new stop beads to all door and window reveals
+• Apply 10mm EcoRend basecoat with reinforcement mesh (EWI Net) fully embedded throughout to prevent cracking
+• Finished with EcoRend silicone topcoat in client's choice of colour
+
+All works carried out to manufacturer's specification and come with a full guarantee.`,
+
+      monocouche_brick_block: `Supply of all labour, materials, plant and equipment to carry out a full monocouche render system to brick and block substrate. No hack-off required.
+
+Works to include:
+
+• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works.
+
+• Thorough preparation of the existing brick and block substrate; removal of all loose material, surface contamination, organic growth, moss, algae and efflorescence. All existing pointing inspected and any failed joints re-pointed prior to render application to ensure a sound, stable base.
+
+• Application of a suitable bonding agent / primer to the prepared substrate to promote adhesion and ensure full compatibility with the render system.
+
+• All stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points prior to application, ensuring clean, true and straight arrises throughout.
+
+• Application of monocouche render in a single through-coloured coat, applied to a uniform thickness and finished to a consistent scratch texture across all treated elevations. Being a through-colour product, no painting or topcoat is required — colour is integral throughout.
+
+• Upon completion, all masking, tape and protective materials removed and all working areas left clean and tidy.
+
+All works carried out in full accordance with manufacturer's specification. Full guarantee applies to materials and workmanship.`,
+
+      ewi_brick_block: `Supply of all labour, materials, plant and equipment to carry out a full External Wall Insulation (EWI) system to brick and block substrate. No hack-off required.
+
+Works to include:
+
+• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works.
+
+• Thorough preparation of the existing brick and block substrate; removal of all loose material, surface contamination, organic growth, moss, algae and efflorescence. All existing pointing inspected and any failed joints re-pointed prior to insulation board installation to ensure a sound, stable base.
+
+• Supply and mechanical fixing of insulation boards to the prepared substrate, fixed in a staggered brick-bond pattern using a combination of adhesive and mechanical fixings in accordance with manufacturer's specification. Board thickness as agreed and specified.
+
+• All starter tracks, stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points prior to render application, ensuring clean, true and straight arrises throughout.
+
+• Application of a polymer-modified basecoat adhesive over the full insulation board surface, reinforced throughout with alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints. All corners and reveals to be double-meshed for additional strength. Basecoat to be left to fully cure in accordance with manufacturer's guidelines.
+
+• Application of primer coat to the cured basecoat to promote adhesion and ensure an even absorption across all treated areas.
+
+• Application of 1.5mm premium silicone topcoat in the client's choice of colour, applied uniformly to a consistent texture and finish across all treated elevations.
+
+• Upon completion, all masking, tape and protective materials removed and all working areas left clean and tidy.
+
+All works carried out in full accordance with manufacturer's specification. Full guarantee applies to materials and workmanship.`,
+
+      silicone_brick_block: `Supply of all labour, materials, plant and equipment to carry out a full silicone render system (10mm basecoat / 1.5mm silicone topcoat) to brick and block substrate. No hack-off required.
+
+Works to include:
+
+• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works.
+
+• Thorough preparation of the existing brick and block substrate; removal of all loose material, surface contamination, organic growth, moss, algae and efflorescence. All existing pointing inspected and any failed joints re-pointed prior to render application to ensure a sound, stable base.
+
+• Application of a suitable bonding agent / primer to the prepared substrate to promote adhesion and ensure full compatibility with the render system.
+
+• All stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points prior to application, ensuring clean, true and straight arrises throughout.
+
+• Application of a 10mm polymer-modified base coat, reinforced throughout with alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints in accordance with manufacturer's specification. Base coat to be left to fully cure before topcoat application.
+
+• Application of a 1.5mm premium silicone topcoat in the client's choice of colour, applied uniformly to a consistent texture and finish across all treated elevations.
+
+• Upon completion, all masking, tape and protective materials removed and all working areas left clean and tidy.
+
+All works carried out in full accordance with manufacturer's specification. Full guarantee applies to materials and workmanship.`
+    };
+
+    /* ===== CLIENT IMPORT & LOAD ===== */
+    function toggleClientImport() {
+      const p = document.getElementById('client-import-panel');
+      p.style.display = p.style.display === 'none' ? 'block' : 'none';
+      if (p.style.display === 'block') document.getElementById('client-import-text').focus();
+    }
+
+    function parseEmailToClient(raw) {
+      const data = {};
+      const lines = raw.split('\n');
+      lines.forEach(line => {
+        const m = line.match(/^([a-zA-Z _\-]+?)\s*:\s*(.+)$/);
+        if (m) data[m[1].trim().toLowerCase()] = m[2].trim();
+      });
+      for (let i = 0; i < lines.length - 1; i++) {
+        const key = lines[i].replace(/\*+/g, '').trim().toLowerCase();
+        const val = lines[i + 1].trim();
+        if (key && val && !val.includes(':') && !data[key]) data[key] = val;
+      }
+      return {
+        name:    data['name'] || data['full name'] || data['your name'] || '',
+        phone:   data['phone'] || data['telephone'] || data['mobile'] || '',
+        email:   data['email'] || data['email address'] || '',
+        address: [data['address'], data['postcode']].filter(Boolean).join('\n'),
+      };
+    }
+
+    function applyClientToQuote(client) {
+      let filled = 0;
+      if (client.name)    { document.getElementById('client-name').value = client.name;    filled++; }
+      if (client.address) { document.getElementById('client-addr').value = client.address; filled++; }
+      if (client.phone)   { document.getElementById('client-phone').value = client.phone;  filled++; }
+      update();
+      return filled;
+    }
+
+    function runClientImport() {
+      const raw = document.getElementById('client-import-text').value;
+      const client = parseEmailToClient(raw);
+      // Save to localStorage for other templates
+      localStorage.setItem('pr_current_client', JSON.stringify(client));
+      const filled = applyClientToQuote(client);
+      const status = document.getElementById('client-import-status');
+      status.textContent = filled > 0 ? `✓ ${filled} fields filled` : '⚠ No fields found';
+      status.style.color = filled > 0 ? 'green' : '#c33';
+      status.style.display = 'inline';
+      if (filled > 0) setTimeout(() => {
+        document.getElementById('client-import-panel').style.display = 'none';
+        document.getElementById('client-import-text').value = '';
+      }, 1200);
+    }
+
+    function loadCurrentClient() {
+      const client = JSON.parse(localStorage.getItem('pr_current_client') || '{}');
+      if (!client.name && !client.phone && !client.address) {
+        alert('No saved client found. Fill in the site visit form first, or use Import Email.');
+        return;
+      }
+      applyClientToQuote(client);
+    }
+
+    function insertScopeTemplate(key) {
+      const ta = document.getElementById('notes');
+      ta.value = SCOPE_TEMPLATES[key] || '';
+      update();
+    }
+
+    function update() {
+      setText('p-inv-number', v('inv-number') || '—');
+      setText('p-inv-date', fmtDate(v('inv-date')));
+      setText('p-inv-due', fmtDate(v('inv-due')));
+      setText('p-inv-ref', v('inv-ref') || '—');
+      document.getElementById('p-ref-row').style.display = v('inv-ref') ? 'flex' : 'none';
+
+      setText('p-client-name', v('client-name') || '—');
+      document.getElementById('p-client-addr').textContent = v('client-addr');
+      document.getElementById('p-client-phone').textContent = v('client-phone');
+
+      // Render system
+      const sys = v('render-system');
+      const fin = v('render-finish');
+      const sysWrap = document.getElementById('p-render-system-wrap');
+      sysWrap.style.display = sys ? 'block' : 'none';
+      setText('p-render-system', sys);
+      setText('p-render-finish', fin);
+
+      // Project timeline
+      const startDate = v('start-date');
+      const duration = v('duration');
+      const tlWrap = document.getElementById('p-timeline-wrap');
+      tlWrap.style.display = (startDate || duration) ? 'block' : 'none';
+      setText('p-start-date', startDate ? 'Start: ' + fmtDate(startDate) : '');
+      setText('p-duration', duration ? 'Duration: ' + duration : '');
+
+      const notes = v('notes');
+      document.getElementById('p-notes').textContent = notes;
+      document.getElementById('p-scope-wrap').style.display = notes ? 'block' : 'none';
+
+      const labourTotal = buildRows('labour', 'p-labour-rows');
+      const matTotal = 0;
+      const feesTotal = buildRows('fees', 'p-fees-rows');
+
+      const subtotal = labourTotal + matTotal + feesTotal;
+      const vatRate = parseFloat(v('vat-rate')) || 0;
+      const vatAmount = subtotal * (vatRate / 100);
+      const total = subtotal + vatAmount;
+
+      setText('p-subtotal', fmt(subtotal));
+      setText('p-vat-label', `VAT (${vatRate}%)`);
+      setText('p-vat-amount', fmt(vatAmount));
+      setText('p-total', fmt(total));
+      document.getElementById('p-vat-row').style.display = vatRate > 0 ? 'flex' : 'none';
+
+      renderPhotosOnPreview();
+    }
+  </script>
+</body>
+</html>
