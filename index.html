@@ -689,6 +689,7 @@ function openTemplate(filename) {
   if (j.address) p.set('address', j.address);
   if (j.notes)   p.set('job',     j.notes);
   p.set('ref', (j.name || '').split(' ')[0] + (j.address ? ' - ' + j.address.split(',')[0] : ''));
+  p.set('jobId', j.id);
   window.open(base + filename + '?' + p.toString(), '_blank');
 }
 

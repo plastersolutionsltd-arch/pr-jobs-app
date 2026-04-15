@@ -518,8 +518,9 @@
   <div class="top-bar">
     <span class="top-bar-title"><span>P&R</span> SITE VISIT FORM</span>
     <div style="display:flex;gap:8px;align-items:center">
-      <button class="btn-pdf" onclick="toggleImport()" style="background:#2a2a2a;color:#aaa;border:1px solid #444">⬇ Import Email / Message</button>
-      <button class="btn-pdf" onclick="savePDF()">⬇ SAVE AS PDF</button>
+      <button class="btn-pdf" onclick="toggleImport()" style="background:#2a2a2a;color:#aaa;border:1px solid #444">⬇ Import</button>
+      <button class="btn-pdf" id="save-app-btn" onclick="saveToApp()" style="background:#1a3a1a;color:#66FF33;border:1px solid #66FF33">✓ Save to App</button>
+      <button class="btn-pdf" onclick="savePDF()">⬇ PDF</button>
     </div>
   </div>
 
@@ -1246,6 +1247,45 @@ function parseFreetextMessage(raw) {
         if (!isNaN(v)) grand += v;
       });
       document.getElementById('grand-total').textContent = '£' + grand.toFixed(2);
+    }
+
+    function saveToApp() {
+      const jobId = new URLSearchParams(location.search).get('jobId');
+      if (!jobId) { alert('Open this form from the PR Jobs app to save back to a client.'); return; }
+      const jobs = JSON.parse(localStorage.getItem('pr_jobs_v1') || '[]');
+      const job = jobs.find(j => j.id === jobId);
+      if (!job) { alert('Client not found — make sure you opened this from the PR Jobs app.'); return; }
+
+      const workTypes = [...document.querySelectorAll('.checks input[type="checkbox"]:checked')]
+        .map(cb => cb.parentElement.textContent.trim()).join(', ');
+
+      job.siteVisit = {
+        date:          document.getElementById('visit-date').value,
+        wallM2:        document.getElementById('total-wall').textContent.replace('—','').trim(),
+        ceilM2:        document.getElementById('total-ceil').textContent.replace('—','').trim(),
+        combinedM2:    document.getElementById('total-combined').textContent.replace('— combined','').replace('combined','').trim(),
+        estTotal:      document.getElementById('grand-total').textContent,
+        workTypes:     workTypes,
+        savedAt:       new Date().toISOString()
+      };
+
+      // Also update top-level client details in case they were edited on site
+      const nameEl    = document.getElementById('customer-name');
+      const phoneEl   = document.querySelector('input[type="tel"]');
+      const emailEl   = document.querySelector('input[type="email"]');
+      const addrEl    = document.querySelector('input[placeholder="Street, City, Postcode"]');
+      if (nameEl?.value)  job.name    = nameEl.value;
+      if (phoneEl?.value) job.phone   = phoneEl.value;
+      if (emailEl?.value) job.email   = emailEl.value;
+      if (addrEl?.value)  job.address = addrEl.value;
+
+      localStorage.setItem('pr_jobs_v1', JSON.stringify(jobs));
+
+      const btn = document.getElementById('save-app-btn');
+      btn.textContent = '✓ Saved!';
+      btn.style.background = '#66FF33';
+      btn.style.color = '#111';
+      setTimeout(() => { btn.textContent = '✓ Save to App'; btn.style.background = '#1a3a1a'; btn.style.color = '#66FF33'; }, 2500);
     }
 
     function removePhoto(pc) {

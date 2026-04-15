@@ -467,7 +467,11 @@
 
   <header class="app-header">
     <span class="app-title"><span>P&R</span> QUOTATION GENERATOR</span>
-    <button class="btn-print" onclick="saveNum().then(()=>window.print())">⬇ PRINT / SAVE PDF</button>
+    <div style="display:flex;gap:6px;align-items:center">
+      <button class="btn-print" id="save-app-btn" onclick="saveQuoteToApp()" style="background:#1a3a1a;color:#66FF33;border:1px solid #66FF33">✓ Save</button>
+      <button class="btn-print" onclick="emailClient()" style="background:#1a2a3a;color:#5599ff;border:1px solid #5599ff">✉ Send</button>
+      <button class="btn-print" onclick="saveNum().then(()=>window.print())">⬇ PDF</button>
+    </div>
   </header>
 
   <div class="tab-bar">
@@ -798,13 +802,31 @@
       document.getElementById('inv-number').value = 'QT-' + year + '-' + String(next).padStart(3, '0');
       update();
 
-      // ── Auto-fill from PR Jobs app URL params ──
+      // ── Auto-fill from PR Jobs app URL params + saved site visit data ──
       const _p = new URLSearchParams(location.search);
       if (_p.get('name'))    document.getElementById('client-name').value = _p.get('name');
       if (_p.get('address')) document.getElementById('client-addr').value = _p.get('address');
       if (_p.get('phone'))   document.getElementById('client-phone').value = _p.get('phone');
       if (_p.get('job'))     document.getElementById('notes').value = _p.get('job');
       if (_p.get('ref'))     document.getElementById('inv-ref').value = _p.get('ref');
+
+      const _jobId = _p.get('jobId');
+      if (_jobId) {
+        window._prJobId = _jobId;
+        const _jobs = JSON.parse(localStorage.getItem('pr_jobs_v1') || '[]');
+        const _job  = _jobs.find(j => j.id === _jobId);
+        if (_job?.siteVisit) {
+          const sv = _job.siteVisit;
+          // Pre-fill scope notes with work types from site visit
+          if (!document.getElementById('notes').value && sv.workTypes)
+            document.getElementById('notes').value = sv.workTypes;
+          // Pre-fill first labour row with combined m² if available
+          if (sv.combinedM2 && sv.combinedM2 !== '—') {
+            const firstQty = document.querySelector('[data-field="qty"]');
+            if (firstQty) { firstQty.value = sv.combinedM2; calcRow(1); }
+          }
+        }
+      }
       if (_p.get('name') || _p.get('address') || _p.get('phone')) update();
     });
 
@@ -992,6 +1014,46 @@
         tbody.appendChild(tr);
       }
       return total;
+    }
+
+    function saveQuoteToApp() {
+      const jobId = window._prJobId || new URLSearchParams(location.search).get('jobId');
+      if (!jobId) { alert('Open this from the PR Jobs app to save to a client.'); return; }
+      const jobs = JSON.parse(localStorage.getItem('pr_jobs_v1') || '[]');
+      const job = jobs.find(j => j.id === jobId);
+      if (!job) { alert('Client not found.'); return; }
+      job.quote = {
+        number:  document.getElementById('inv-number').value,
+        date:    document.getElementById('inv-date').value,
+        total:   document.getElementById('p-total').textContent,
+        savedAt: new Date().toISOString()
+      };
+      job.status = 'quoted';
+      localStorage.setItem('pr_jobs_v1', JSON.stringify(jobs));
+      const btn = document.getElementById('save-app-btn');
+      btn.textContent = '✓ Saved!';
+      btn.style.background = '#66FF33';
+      btn.style.color = '#111';
+      setTimeout(() => { btn.textContent = '✓ Save'; btn.style.background = '#1a3a1a'; btn.style.color = '#66FF33'; }, 2500);
+    }
+
+    function emailClient() {
+      saveQuoteToApp();
+      const jobId = window._prJobId || new URLSearchParams(location.search).get('jobId');
+      const jobs  = JSON.parse(localStorage.getItem('pr_jobs_v1') || '[]');
+      const job   = jobs.find(j => j.id === jobId) || {};
+      const total = document.getElementById('p-total').textContent;
+      const qNum  = document.getElementById('inv-number').value;
+      const subject = encodeURIComponent('Your Quote from P&R Solutions — ' + qNum);
+      const body = encodeURIComponent(
+        'Hi ' + (job.name ? job.name.split(' ')[0] : '') + ',\n\n' +
+        'Please find your quotation from P&R Solutions below.\n\n' +
+        'Quote Ref: ' + qNum + '\n' +
+        'Total: ' + total + '\n\n' +
+        'To accept this quote or ask any questions, reply to this email or call Chris on 07595 399525.\n\n' +
+        'Thanks,\nChris\nP&R Solutions\nplastersolutionsltd@gmail.com'
+      );
+      window.open('mailto:' + (job.email || '') + '?subject=' + subject + '&body=' + body);
     }
 
     function esc(str) {
