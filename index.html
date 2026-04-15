@@ -563,11 +563,15 @@ function setEP(id, val) {
 function saveJob() {
   var job = {
     id: newId(),
-    name: _extracted.name || '',
-    phone: _extracted.phone || '',
-    address: _extracted.address || '',
-    email: _extracted.email || '',
-    notes: _extracted.notes || '',
+    name:         _extracted.name         || '',
+    phone:        _extracted.phone        || '',
+    address:      _extracted.address      || '',
+    email:        _extracted.email        || '',
+    notes:        _extracted.notes        || '',
+    propertyType: _extracted.propertyType || '',
+    workType:     _extracted.workType     || '',
+    description:  _extracted.description  || '',
+    timescale:    _extracted.timescale    || '',
     status: 'enquiry',
     created: Date.now(),
     source: 'message',
@@ -630,12 +634,25 @@ function openJob(id) {
   // Info
   html += '<div class="section-hdr">Details</div>';
   html += '<div class="card">';
-  html += infoRow('Phone',   j.phone   || '—');
-  html += infoRow('Address', j.address || '—');
-  html += infoRow('Email',   j.email   || '—');
-  html += infoRow('Job',     j.notes   || '—');
-  html += infoRow('Added',   formatDate(j.created));
+  html += infoRow('Phone',    j.phone   || '—');
+  html += infoRow('Address',  j.address || '—');
+  html += infoRow('Email',    j.email   || '—');
+  html += infoRow('Added',    formatDate(j.created));
   html += '</div>';
+
+  // Enquiry details (from form submission)
+  if (j.workType || j.propertyType || j.description || j.timescale) {
+    html += '<div class="section-hdr">Enquiry</div>';
+    html += '<div class="card">';
+    if (j.workType)     html += infoRow('Work',     j.workType);
+    if (j.propertyType) html += infoRow('Property', j.propertyType);
+    if (j.description)  html += infoRow('Details',  j.description);
+    if (j.timescale)    html += infoRow('Timescale',j.timescale);
+    html += '</div>';
+  } else if (j.notes) {
+    html += '<div class="section-hdr">Notes</div>';
+    html += '<div class="card">' + infoRow('Job', j.notes) + '</div>';
+  }
 
   // Status
   html += '<div class="section-hdr">Status</div>';
@@ -687,7 +704,10 @@ function openTemplate(filename) {
   if (j.phone)   p.set('phone',   j.phone);
   if (j.email)   p.set('email',   j.email);
   if (j.address) p.set('address', j.address);
-  if (j.notes)   p.set('job',     j.notes);
+  var jobDesc = j.workType || j.description || j.notes || '';
+  if (jobDesc)          p.set('job',          jobDesc);
+  if (j.workType)       p.set('workType',     j.workType);
+  if (j.propertyType)   p.set('propertyType', j.propertyType);
   p.set('ref', (j.name || '').split(' ')[0] + (j.address ? ' - ' + j.address.split(',')[0] : ''));
   p.set('jobId', j.id);
   window.open(base + filename + '?' + p.toString(), '_blank');
@@ -766,33 +786,71 @@ function updateGrandTotal() {
 // ══════════════════════════════════════════════════════════
 // EXTRACTION (same engine as before, improved)
 // ══════════════════════════════════════════════════════════
+// Known Formspree field labels from enquiry form
+var KNOWN_LABELS = ['name','phone','email','address','postcode','property_type','property type','work_type','work type','description','timescale','message','details','full name','telephone','mobile'];
+
+function parseStructured(data) {
+  data.name         = data['name']||data['full name']||data['your name']||'';
+  data.phone        = data['phone']||data['telephone']||data['mobile']||data['contact number']||'';
+  data.email        = data['email']||data['email address']||'';
+  data.address      = [data['address'],data['postcode']].filter(Boolean).join(', ');
+  data.propertyType = data['property_type']||data['property type']||'';
+  data.workType     = data['work_type']||data['work type']||data['service']||'';
+  data.description  = data['description']||data['message']||data['details']||'';
+  data.timescale    = data['timescale']||data['timeframe']||'';
+  data.notes        = data.description;
+  return data;
+}
+
 function parse(raw) {
   var data = {};
+  var lines = raw.split('\n');
+
+  // Format 1: key: value with colons
   var kvLines = (raw.match(/^[a-zA-Z _\-]+?\s*:\s*.+$/gm)||[]).length;
   if (kvLines >= 2) {
-    var lines = raw.split('\n');
     lines.forEach(function(line){
       var m = line.match(/^([a-zA-Z _\-]+?)\s*:\s*(.+)$/);
       if (m) data[m[1].trim().toLowerCase()] = m[2].trim();
     });
+    // also try label-then-value for any missed keys
     for (var i=0;i<lines.length-1;i++){
       var key=lines[i].replace(/\*+/g,'').trim().toLowerCase();
       var val=lines[i+1].trim();
       if(key&&val&&!val.includes(':')&&!data[key]) data[key]=val;
     }
-    data.name    = data['name']||data['full name']||data['your name']||'';
-    data.phone   = data['phone']||data['telephone']||data['mobile']||data['contact number']||'';
-    data.email   = data['email']||data['email address']||'';
-    data.address = [data['address'],data['postcode']].filter(Boolean).join(', ');
-    data.notes   = data['description']||data['message']||data['details']||'';
-    return data;
+    return parseStructured(data);
   }
+
+  // Format 2: Formspree label-then-value (label line then value on next line)
+  var trimmed = lines.map(function(l){ return l.trim(); });
+  var labelHits = 0;
+  for (var i=0;i<trimmed.length;i++){
+    var norm = trimmed[i].toLowerCase().replace(/\s+/g,'_');
+    if (KNOWN_LABELS.indexOf(norm) > -1 || KNOWN_LABELS.indexOf(trimmed[i].toLowerCase()) > -1) labelHits++;
+  }
+  if (labelHits >= 2) {
+    for (var i=0;i<trimmed.length-1;i++){
+      var key = trimmed[i].toLowerCase().replace(/\s+/g,'_');
+      var val = trimmed[i+1];
+      var isKnown = KNOWN_LABELS.indexOf(key) > -1;
+      var nextIsLabel = KNOWN_LABELS.indexOf(val.toLowerCase().replace(/\s+/g,'_')) > -1;
+      if (isKnown && val && !nextIsLabel && !val.includes(':')) {
+        data[key] = val;
+        i++; // skip value line
+      }
+    }
+    return parseStructured(data);
+  }
+
+  // Format 3: freetext (WhatsApp, SMS)
   data.phone   = findPhone(raw);
   data.email   = findEmail(raw);
   var pc       = findPostcode(raw);
   data.address = findAddress(raw, pc);
   data.name    = findName(raw);
   data.notes   = findNotes(raw);
+  data.propertyType = ''; data.workType = ''; data.description = data.notes; data.timescale = '';
   return data;
 }
 
@@ -810,8 +868,13 @@ function findPostcode(s) {
 }
 function findAddress(s, postcode) {
   var types = 'Road|Street|Avenue|Lane|Close|Drive|Way|Crescent|Place|Gardens|Grove|Hill|View|Park|Court|Terrace|Row|Walk|Rise|Mews|Square|Green|Fields';
-  var re = new RegExp('(\\d+[a-zA-Z]?[,\\s]+[\\w\\s,\\.\\-]+?(?:'+types+')[\\w\\s,]*)', 'i');
-  var m = s.match(re);
+  // Stop at newline or at known Formspree field label words
+  var stopWords = 'postcode|property|work_type|work type|description|timescale|phone|email|name';
+  var re = new RegExp('(\\d+[a-zA-Z]?[,\\s]+[\\w\\s,\\.\\-]{0,50}?(?:'+types+')(?:[\\w\\s,]{0,20})?)', 'i');
+  var singleLine = s.replace(new RegExp('\\s+(?:'+stopWords+')\\b.*','i'),' ').split('\n')[0];
+  var m = singleLine.match(re) || s.split('\n').reduce(function(found, line){
+    return found || line.match(re);
+  }, null);
   if (m) {
     var addr = m[0].replace(/\s+/g,' ').trim().replace(/,\s*$/,'');
     if (postcode && addr.toUpperCase().indexOf(postcode.replace(/\s/,''))===-1) addr += ', '+postcode;
