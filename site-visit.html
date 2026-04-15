@@ -715,7 +715,7 @@
     <div class="grid-3">
       <div class="f">
         <label>Finish Type</label>
-        <select>
+        <select id="finish-type-sel">
           <option value="">— select —</option>
           <option>Smooth skim</option>
           <option>Sand &amp; cement</option>
@@ -1050,12 +1050,54 @@ function parseFreetextMessage(raw) {
       addRoom('');
       addPriceRow('');
 
+      // ── Work type → finish type & price lookup ──
+      const WORK_PRICE_MAP = {
+        'silicone render':              { label: 'Silicone Render — No Hack Off',   finish: 'Full Silicone', price: 45 },
+        'k-rend / monocouche':          { label: 'K-Rend / Monocouche — No Hack Off', finish: 'K-Rend',   price: 42 },
+        'k-rend':                       { label: 'K-Rend — No Hack Off',            finish: 'K-Rend',      price: 38 },
+        'monocouche':                   { label: 'Monocouche — No Hack Off',         finish: 'Monocouche',  price: 42 },
+        'sand & cement render':         { label: 'Sand & Cement Render',             finish: 'Sand & cement', price: 25 },
+        'sand & cement':                { label: 'Sand & Cement',                    finish: 'Sand & cement', price: 25 },
+        'roughcast / pebbledash':       { label: 'Roughcast / Pebbledash',           finish: 'Roughcast',   price: 35 },
+        'roughcast':                    { label: 'Roughcast',                        finish: 'Roughcast',   price: 35 },
+        'ewi (external wall insulation)':{ label: 'EWI System',                     finish: 'EWI',         price: 85 },
+        'ewi':                          { label: 'EWI System',                       finish: 'EWI',         price: 85 },
+        'smooth skim plaster':          { label: 'Smooth Skim Coat',                 finish: 'Smooth skim', price: 20 },
+        'dry lining / stud walls':      { label: 'Dot & Dab Dry Lining',             finish: 'Smooth skim', price: 22 },
+        'patching & repair':            { label: 'Patching & Repair',                finish: 'Other',       price: 35 },
+      };
+
       // ── Auto-fill from PR Jobs app URL params ──
       const _p = new URLSearchParams(location.search);
       if (_p.get('name'))    document.getElementById('customer-name').value = _p.get('name');
       if (_p.get('phone'))   document.querySelector('input[type="tel"]').value = _p.get('phone');
       if (_p.get('email'))   document.querySelector('input[type="email"]').value = _p.get('email');
       if (_p.get('address')) document.querySelector('input[placeholder="Street, City, Postcode"]').value = _p.get('address');
+
+      // Pre-fill finish type + pricing row from workType param
+      const _wt = (_p.get('workType') || '').toLowerCase();
+      if (_wt) {
+        let preset = null;
+        for (const [key, val] of Object.entries(WORK_PRICE_MAP)) {
+          if (_wt.includes(key) || key.includes(_wt)) { preset = val; break; }
+        }
+        if (preset) {
+          // Set Finish Type select
+          const finSel = document.getElementById('finish-type-sel');
+          if (finSel) {
+            for (const opt of finSel.options) {
+              if (opt.text.toLowerCase().includes(preset.finish.toLowerCase())) {
+                finSel.value = opt.value; break;
+              }
+            }
+          }
+          // Pre-fill first pricing row description and rate
+          const descEl = document.getElementById('pdesc-1');
+          const rateEl = document.getElementById('prate-1');
+          if (descEl) descEl.value = preset.label;
+          if (rateEl) { rateEl.value = preset.price; calcPriceRow(1); }
+        }
+      }
 
       // Auto-save client details to localStorage whenever they change
       const clientFields = [
@@ -1147,6 +1189,11 @@ function parseFreetextMessage(raw) {
       document.getElementById('total-wall').textContent = wallTotal > 0 ? wallTotal.toFixed(1) + ' m²' : '—';
       document.getElementById('total-ceil').textContent = ceilTotal > 0 ? ceilTotal.toFixed(1) + ' m²' : '—';
       document.getElementById('total-combined').textContent = combined > 0 ? combined.toFixed(1) + ' m² total' : '—';
+      // Auto-sync combined m² into first pricing row
+      if (combined > 0) {
+        const m2El = document.getElementById('pm2-1');
+        if (m2El) { m2El.value = combined.toFixed(1); calcPriceRow(1); }
+      }
     }
 
     /* ===== PHOTOS ===== */
@@ -1220,7 +1267,7 @@ function parseFreetextMessage(raw) {
       const tr = document.createElement('tr');
       tr.id = 'price-row-' + pc;
       tr.innerHTML = `
-        <td><input type="text" placeholder="e.g. K-Rend scratch coat" value="${defaultName || ''}"></td>
+        <td><input type="text" id="pdesc-${pc}" placeholder="e.g. K-Rend scratch coat" value="${defaultName || ''}"></td>
         <td><input type="number" placeholder="0.0" step="0.1" min="0" id="pm2-${pc}"></td>
         <td><input type="number" placeholder="0.00" step="0.01" min="0" id="prate-${pc}"></td>
         <td class="price-total-cell" id="ptotal-${pc}">—</td>
