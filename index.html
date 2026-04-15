@@ -291,6 +291,8 @@
         <div class="ext-row"><span class="ext-lbl">Address</span><span class="ext-val" id="ep-addr"></span></div>
         <div class="ext-row" id="ep-email-row"><span class="ext-lbl">Email</span><span class="ext-val" id="ep-email"></span></div>
         <div class="ext-row" id="ep-notes-row"><span class="ext-lbl">Job</span><span class="ext-val" id="ep-notes"></span></div>
+        <div class="ext-row" id="ep-work-row" style="display:none"><span class="ext-lbl">Work</span><span class="ext-val" id="ep-work"></span></div>
+        <div class="ext-row" id="ep-prop-row" style="display:none"><span class="ext-lbl">Property</span><span class="ext-val" id="ep-prop"></span></div>
       </div>
       <button class="btn btn-green" onclick="saveJob()">Save Job</button>
     </div>
@@ -550,8 +552,12 @@ function onMsgInput() {
   setEP('ep-addr',  _extracted.address);
   setEP('ep-email', _extracted.email);
   setEP('ep-notes', _extracted.notes);
-  document.getElementById('ep-email-row').style.display = _extracted.email ? 'flex' : 'none';
-  document.getElementById('ep-notes-row').style.display = _extracted.notes ? 'flex' : 'none';
+  setEP('ep-work',  _extracted.workType);
+  setEP('ep-prop',  _extracted.propertyType);
+  document.getElementById('ep-email-row').style.display = _extracted.email        ? 'flex' : 'none';
+  document.getElementById('ep-notes-row').style.display = _extracted.notes        ? 'flex' : 'none';
+  document.getElementById('ep-work-row').style.display  = _extracted.workType     ? 'flex' : 'none';
+  document.getElementById('ep-prop-row').style.display  = _extracted.propertyType ? 'flex' : 'none';
 }
 
 function setEP(id, val) {
@@ -819,20 +825,24 @@ function parse(raw) {
       var val=lines[i+1].trim();
       if(key&&val&&!val.includes(':')&&!data[key]) data[key]=val;
     }
-    return parseStructured(data);
+    var result = parseStructured(data);
+    if (!result.name) result.name = findName(raw);
+    return result;
   }
 
   // Format 2: Formspree label-then-value (label line then value on next line)
   var trimmed = lines.map(function(l){ return l.trim(); });
   var labelHits = 0;
   for (var i=0;i<trimmed.length;i++){
-    var norm = trimmed[i].toLowerCase().replace(/\s+/g,'_');
-    if (KNOWN_LABELS.indexOf(norm) > -1 || KNOWN_LABELS.indexOf(trimmed[i].toLowerCase()) > -1) labelHits++;
+    var clean = trimmed[i].replace(/\*+/g,'').trim();
+    var norm = clean.toLowerCase().replace(/\s+/g,'_');
+    if (KNOWN_LABELS.indexOf(norm) > -1 || KNOWN_LABELS.indexOf(clean.toLowerCase()) > -1) labelHits++;
   }
   if (labelHits >= 2) {
     for (var i=0;i<trimmed.length-1;i++){
-      var key = trimmed[i].toLowerCase().replace(/\s+/g,'_');
-      var val = trimmed[i+1];
+      // strip markdown asterisks/bold that Formspree adds to labels
+      var key = trimmed[i].replace(/\*+/g,'').trim().toLowerCase().replace(/\s+/g,'_');
+      var val = trimmed[i+1].replace(/\*+/g,'').trim();
       var isKnown = KNOWN_LABELS.indexOf(key) > -1;
       var nextIsLabel = KNOWN_LABELS.indexOf(val.toLowerCase().replace(/\s+/g,'_')) > -1;
       if (isKnown && val && !nextIsLabel && !val.includes(':')) {
@@ -840,7 +850,10 @@ function parse(raw) {
         i++; // skip value line
       }
     }
-    return parseStructured(data);
+    var result = parseStructured(data);
+    // Fallback: if name still empty, try freetext patterns
+    if (!result.name) result.name = findName(raw);
+    return result;
   }
 
   // Format 3: freetext (WhatsApp, SMS)
