@@ -681,7 +681,7 @@ function toolBtn(svg, label, action) {
 function openTemplate(filename) {
   var j = jobs.find(function(x){ return x.id === currentJobId; });
   if (!j) return;
-  var base = location.href.replace(/\/[^/]*$/, '/');
+  var base = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/';
   var p = new URLSearchParams();
   if (j.name)    p.set('name',    j.name);
   if (j.phone)   p.set('phone',   j.phone);
