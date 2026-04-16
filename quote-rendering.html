@@ -598,6 +598,7 @@
       .invoice { box-shadow: none; width: 100%; min-height: auto; padding: 10mm; }
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 
@@ -973,6 +974,22 @@
   </div>
 
   <script>
+    var SB_URL = 'https://ngakblcdnuqectjappkl.supabase.co';
+    var SB_KEY = 'sb_publishable_wX0TOGQTtNWi0ex14ux6Hw_eKVge5cJ';
+    var sb = supabase.createClient(SB_URL, SB_KEY);
+    var _cachedJob = null;
+
+    async function sbGetJob(jobId) {
+      var r = await sb.from('jobs').select('*').eq('id', jobId).single();
+      if (r.error || !r.data) return null;
+      return Object.assign({}, r.data.data, { id: r.data.id, name: r.data.name, status: r.data.status, created: r.data.created });
+    }
+    async function sbSaveJob(job) {
+      var row = { id: job.id, name: job.name || '', status: job.status || 'enquiry', created: job.created || Date.now(), data: job };
+      var r = await sb.from('jobs').upsert(row);
+      if (r.error) throw r.error;
+    }
+
     let rows = { labour: [], materials: [], fees: [] };
     let rowId = 0;
 
@@ -1199,8 +1216,8 @@
           const pc = (raw.match(/\b([A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2})\b/i) || [])[1];
           addrEl.value = (pc && !clean.toUpperCase().includes(pc.toUpperCase())) ? clean + ', ' + pc.toUpperCase() : clean;
         }
-        const _jobs = JSON.parse(localStorage.getItem('pr_jobs_v1') || '[]');
-        const _job  = _jobs.find(j => j.id === _jobId);
+        const _job = await sbGetJob(_jobId);
+        _cachedJob = _job;
 
         if (_job?.quoteData) {
           // ── Restore previously saved quote ──
@@ -1424,11 +1441,10 @@
       update();
     }
 
-    function saveQuoteToApp() {
+    async function saveQuoteToApp() {
       const jobId = window._prJobId || new URLSearchParams(location.search).get('jobId');
       if (!jobId) { alert('Open this from the PR Jobs app to save to a client.'); return; }
-      const jobs = JSON.parse(localStorage.getItem('pr_jobs_v1') || '[]');
-      const job = jobs.find(j => j.id === jobId);
+      const job = _cachedJob || await sbGetJob(jobId);
       if (!job) { alert('Client not found.'); return; }
 
       // Capture all form state so we can restore it next time
@@ -1457,14 +1473,21 @@
         savedAt: new Date().toISOString()
       };
       job.status = 'quoted';
-      localStorage.setItem('pr_jobs_v1', JSON.stringify(jobs));
       const btn = document.getElementById('save-app-btn');
-      btn.textContent = '✓ Saved! Going back…';
-      btn.style.background = '#66FF33';
-      btn.style.color = '#111';
-      setTimeout(() => {
-        window.location.href = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/?openJob=' + jobId;
-      }, 1200);
+      try {
+        await sbSaveJob(job);
+        _cachedJob = job;
+        btn.textContent = '✓ Saved! Going back…';
+        btn.style.background = '#66FF33';
+        btn.style.color = '#111';
+        setTimeout(() => {
+          window.location.href = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/?openJob=' + jobId;
+        }, 1200);
+      } catch(e) {
+        btn.textContent = 'Save failed — check connection';
+        btn.style.background = '#c0392b';
+        btn.style.color = '#fff';
+      }
     }
 
     function addToCalendar() {
@@ -1508,11 +1531,9 @@
       window.open(url, '_blank');
     }
 
-    function emailClient() {
-      saveQuoteToApp();
-      const jobId = window._prJobId || new URLSearchParams(location.search).get('jobId');
-      const jobs  = JSON.parse(localStorage.getItem('pr_jobs_v1') || '[]');
-      const job   = jobs.find(j => j.id === jobId) || {};
+    async function emailClient() {
+      await saveQuoteToApp();
+      const job = _cachedJob || {};
 
       const qNum    = v('inv-number');
       const qDate   = fmtDate(v('inv-date'));

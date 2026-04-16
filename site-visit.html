@@ -512,6 +512,7 @@
       .photos-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 
@@ -887,6 +888,28 @@
   </div>
 
   <script>
+    var SB_URL = 'https://ngakblcdnuqectjappkl.supabase.co';
+    var SB_KEY = 'sb_publishable_wX0TOGQTtNWi0ex14ux6Hw_eKVge5cJ';
+    var sb = supabase.createClient(SB_URL, SB_KEY);
+    var _svJob = null;
+
+    async function sbGetJob(jobId) {
+      var r = await sb.from('jobs').select('*').eq('id', jobId).single();
+      if (r.error || !r.data) return null;
+      return Object.assign({}, r.data.data, { id: r.data.id, name: r.data.name, status: r.data.status, created: r.data.created });
+    }
+    async function sbSaveJob(job) {
+      var row = { id: job.id, name: job.name || '', status: job.status || 'enquiry', created: job.created || Date.now(), data: job };
+      var r = await sb.from('jobs').upsert(row);
+      if (r.error) throw r.error;
+    }
+
+    // Pre-load job from Supabase on page open
+    (async function() {
+      var jobId = new URLSearchParams(location.search).get('jobId');
+      if (jobId) _svJob = await sbGetJob(jobId);
+    })();
+
     let roomCount = 0;
     let photoCount = 0;
 
@@ -1343,11 +1366,10 @@ function parseFreetextMessage(raw) {
       document.getElementById('grand-total').textContent = '£' + grand.toFixed(2);
     }
 
-    function saveToApp() {
+    async function saveToApp() {
       const jobId = new URLSearchParams(location.search).get('jobId');
       if (!jobId) { alert('Open this form from the PR Jobs app to save back to a client.'); return; }
-      const jobs = JSON.parse(localStorage.getItem('pr_jobs_v1') || '[]');
-      const job = jobs.find(j => j.id === jobId);
+      const job = _svJob || await sbGetJob(jobId);
       if (!job) { alert('Client not found — make sure you opened this from the PR Jobs app.'); return; }
 
       const workTypes = [...document.querySelectorAll('.checks input[type="checkbox"]:checked')]
@@ -1380,15 +1402,21 @@ function parseFreetextMessage(raw) {
       if (emailEl?.value) job.email   = emailEl.value;
       if (addrEl?.value)  job.address = addrEl.value;
 
-      localStorage.setItem('pr_jobs_v1', JSON.stringify(jobs));
-
       const btn = document.getElementById('save-app-btn');
-      btn.textContent = '✓ Saved! Going back…';
-      btn.style.background = '#66FF33';
-      btn.style.color = '#111';
-      setTimeout(() => {
-        window.location.href = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/?openJob=' + jobId;
-      }, 1200);
+      try {
+        await sbSaveJob(job);
+        _svJob = job;
+        btn.textContent = '✓ Saved! Going back…';
+        btn.style.background = '#66FF33';
+        btn.style.color = '#111';
+        setTimeout(() => {
+          window.location.href = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/?openJob=' + jobId;
+        }, 1200);
+      } catch(e) {
+        btn.textContent = 'Save failed — check connection';
+        btn.style.background = '#c0392b';
+        btn.style.color = '#fff';
+      }
     }
 
     // ── Skip hire ──
