@@ -1094,14 +1094,14 @@
       const job   = jobs.find(j => j.id === jobId) || {};
       const total = document.getElementById('p-total').textContent;
       const qNum  = document.getElementById('inv-number').value;
-      const subject = encodeURIComponent('Your Quote from P&R Solutions — ' + qNum);
+      const firstName = (job.name || '').split(' ')[0] || 'there';
+      const subject = encodeURIComponent('Your Plastering Quotation from P&R Solutions — ' + qNum);
       const body = encodeURIComponent(
-        'Hi ' + (job.name ? job.name.split(' ')[0] : '') + ',\n\n' +
-        'Please find your quotation from P&R Solutions below.\n\n' +
-        'Quote Ref: ' + qNum + '\n' +
+        'Hi ' + firstName + ',\n\n' +
+        'Please find your plastering quotation attached (' + qNum + ').\n\n' +
         'Total: ' + total + '\n\n' +
-        'To accept this quote or ask any questions, reply to this email or call Chris on 07595 399525.\n\n' +
-        'Thanks,\nChris\nP&R Solutions\nplastersolutionsltd@gmail.com'
+        'If you have any questions or would like to go ahead, just reply to this email or give me a call on 07595 399525.\n\n' +
+        'Thanks,\nChris\nP&R Solutions\n07595 399525'
       );
       window.open('mailto:' + (job.email || '') + '?subject=' + subject + '&body=' + body);
     }
