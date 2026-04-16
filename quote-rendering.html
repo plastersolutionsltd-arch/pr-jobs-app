@@ -588,13 +588,14 @@
     }
 
     /* ===== PRINT ===== */
+    @page { margin: 0; size: A4; }
+
     @media print {
       body { background: white; }
       .app-header, .tab-bar, .panel-form { display: none !important; }
       .app-body { height: auto; }
       .panel-preview { background: white; padding: 0; display: block; }
       .invoice { box-shadow: none; width: 100%; min-height: auto; padding: 10mm; }
-      @page { margin: 0; }
     }
   </style>
 </head>
@@ -889,13 +890,11 @@
           <thead>
             <tr>
               <th>Description</th>
-              <th>Qty / Area</th>
-              <th class="r">Unit Price</th>
               <th class="r">Total</th>
             </tr>
           </thead>
           <tbody id="p-labour-rows">
-            <tr class="inv-empty"><td colspan="4">No labour items added</td></tr>
+            <tr class="inv-empty"><td colspan="2">No labour items added</td></tr>
           </tbody>
         </table>
 
@@ -1367,8 +1366,6 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
               <td>${esc(desc || '')}</td>
-              <td>${qty > 0 ? qty : ''}</td>
-              <td class="r">${unit > 0 ? fmt(unit) : ''}</td>
               <td class="r">${fmt(amount)}</td>
             `;
             tbody.appendChild(tr);
@@ -1388,7 +1385,8 @@
       if (!hasRows) {
         const tr = document.createElement('tr');
         tr.className = 'inv-empty';
-        tr.innerHTML = `<td colspan="4">${type === 'labour' ? 'No labour items added' : type === 'materials' ? 'No materials added' : 'No additional fees'}</td>`;
+        const span = type === 'labour' ? '2' : '4';
+        tr.innerHTML = `<td colspan="${span}">${type === 'labour' ? 'No labour items added' : type === 'materials' ? 'No materials added' : 'No additional fees'}</td>`;
         tbody.appendChild(tr);
       }
       return total;
