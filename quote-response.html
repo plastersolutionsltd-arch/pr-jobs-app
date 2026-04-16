@@ -112,6 +112,21 @@
         return;
       }
 
+      // Notify Chris via Formspree
+      fetch('https://formspree.io/f/mvzdkwvw', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          _subject: (action === 'accept' ? '✅ Quote Accepted' : '❌ Quote Declined') + ' — ' + name + ' (' + ref + ')',
+          customer:  name,
+          quote_ref: ref,
+          response:  action === 'accept' ? 'ACCEPTED' : 'DECLINED',
+          message:   action === 'accept'
+            ? name + ' has accepted quote ' + ref + '. Status updated to Booked. Call to arrange start date.'
+            : name + ' has declined quote ' + ref + '. You may want to follow up.'
+        })
+      }).catch(function(){});  // silent fail — Supabase already updated
+
       if (action === 'accept') {
         showAccepted(ref, firstName, false);
       } else {
