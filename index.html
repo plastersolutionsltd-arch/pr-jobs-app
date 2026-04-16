@@ -514,6 +514,7 @@ function renderJobs() {
       + '<span class="badge badge-'+j.status+'">'+statusLabel(j.status)+'</span>'
       + '</div>'
       + (j.address ? '<div class="job-addr">📍 '+esc(j.address)+'</div>' : '')
+      + (j.scheduledDate ? '<div style="font-size:12px;color:var(--green);margin-bottom:6px">📅 ' + new Date(j.scheduledDate+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}) + (j.scheduledEndDate ? ' – '+new Date(j.scheduledEndDate+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '') + '</div>' : '')
       + '<div class="job-meta">'
       + '<span style="font-size:13px;color:#888">'+(j.phone?'📞 '+esc(j.phone):'No phone')+'</span>'
       + '<span class="job-date">'+formatDate(j.created)+'</span>'
@@ -668,6 +669,16 @@ function openJob(id) {
   html += infoRow('Address',  j.address || '—');
   html += infoRow('Email',    j.email   || '—');
   html += infoRow('Added',    formatDate(j.created));
+  if (j.scheduledDate) {
+    var sd = new Date(j.scheduledDate + 'T00:00:00');
+    var sdStr = sd.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+    if (j.scheduledEndDate) {
+      var ed = new Date(j.scheduledEndDate + 'T00:00:00');
+      sdStr += ' – ' + ed.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
+    }
+    if (j.scheduleNotes) sdStr += ' · ' + j.scheduleNotes;
+    html += infoRow('📅 Booked', sdStr);
+  }
   html += '</div>';
 
   // Enquiry details (from form submission)
@@ -696,10 +707,11 @@ function openJob(id) {
 
   // Workflow templates
   html += '<div class="section-hdr">Workflow</div>';
-  html += '<div class="tools-grid" style="grid-template-columns:1fr 1fr 1fr">';
+  html += '<div class="tools-grid">';
   html += toolBtn(noteSVG(),  'Site Visit',      "openTemplate('site-visit.html')");
   html += toolBtn(quoteSVG(), 'Quote Plaster',   "openTemplate('quote-plastering.html')");
   html += toolBtn(quoteSVG(), 'Quote Render',    "openTemplate('quote-rendering.html')");
+  html += toolBtn(calSVG(),   'Book Date',       'scheduleJob()');
   html += '</div>';
 
   // Tools shortcut
@@ -1007,6 +1019,7 @@ function ruleSVG(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="current
 function noteSVG(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>'; }
 function imgSVG(){  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>'; }
 function quoteSVG(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>'; }
+function calSVG(){  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/></svg>'; }
 
 // ══════════════════════════════════════════════════════════
 // SHARE ENQUIRY FORM
@@ -1044,6 +1057,149 @@ function showEnquiryModal(url) {
     + '</div>';
   modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
   document.body.appendChild(modal);
+}
+
+// ══════════════════════════════════════════════════════════
+// SCHEDULE / BOOK DATE
+// ══════════════════════════════════════════════════════════
+function scheduleJob() {
+  var j = jobs.find(function(x){ return x.id === currentJobId; });
+  if (!j) return;
+
+  var existing = document.getElementById('schedule-modal');
+  if (existing) existing.remove();
+
+  var savedStart = j.scheduledDate    || '';
+  var savedEnd   = j.scheduledEndDate || '';
+  var savedNotes = j.scheduleNotes    || '';
+
+  var modal = document.createElement('div');
+  modal.id = 'schedule-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;display:flex;align-items:flex-end;padding:0';
+  modal.innerHTML =
+    '<div style="background:#1a1a1a;border-radius:16px 16px 0 0;padding:24px 20px 44px;width:100%;border-top:1px solid #2a2a2a;max-height:90vh;overflow-y:auto">'
+      + '<div style="font-size:17px;font-weight:700;margin-bottom:4px">📅 Book Job Date</div>'
+      + '<div style="font-size:13px;color:#666;margin-bottom:20px">' + esc(j.name) + (j.address ? ' · ' + esc(j.address.split(',')[0]) : '') + '</div>'
+
+      + '<div class="lbl">Start Date</div>'
+      + '<input class="inp" type="date" id="sched-start" value="' + savedStart + '" style="margin-bottom:0">'
+
+      + '<div class="lbl" style="margin-top:14px">End Date <span style="color:#555;font-size:10px;letter-spacing:0;text-transform:none;font-weight:400">(optional — for multi-day jobs)</span></div>'
+      + '<input class="inp" type="date" id="sched-end" value="' + savedEnd + '" style="margin-bottom:0">'
+
+      + '<div class="lbl" style="margin-top:14px">Notes <span style="color:#555;font-size:10px;letter-spacing:0;text-transform:none;font-weight:400">(access, start time, etc.)</span></div>'
+      + '<input class="inp" type="text" id="sched-notes" placeholder="e.g. 8am start, back gate" value="' + esc(savedNotes) + '" style="margin-bottom:0">'
+
+      + '<button class="btn btn-green" onclick="saveSchedule()" style="margin-top:20px">💾 Save Dates</button>'
+      + '<button class="btn" onclick="addToCalendar()" style="background:#0f2a0f;border:1.5px solid #2a4a2a;color:var(--green);margin-top:8px">📅 Add to My Calendar</button>'
+      + '<button class="btn" onclick="confirmDatesToCustomer()" style="background:#0f1a2a;border:1.5px solid #1a2a4a;color:#5599ff;margin-top:8px">✉ Email Dates to Customer</button>'
+      + '<button onclick="closeScheduleModal()" style="width:100%;background:none;border:none;color:#555;font-size:14px;padding:14px;cursor:pointer;margin-top:4px">Cancel</button>'
+    + '</div>';
+
+  modal.addEventListener('click', function(e){ if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+function closeScheduleModal() {
+  var m = document.getElementById('schedule-modal');
+  if (m) m.remove();
+}
+
+async function saveSchedule() {
+  var start = document.getElementById('sched-start').value;
+  if (!start) { toast('Please pick a start date'); return; }
+
+  var j = jobs.find(function(x){ return x.id === currentJobId; });
+  if (!j) return;
+
+  j.scheduledDate    = start;
+  j.scheduledEndDate = document.getElementById('sched-end').value || '';
+  j.scheduleNotes    = document.getElementById('sched-notes').value.trim();
+
+  await upsertJob(j);
+  closeScheduleModal();
+  toast('Dates saved');
+  openJob(currentJobId);
+}
+
+function addToCalendar() {
+  var j = jobs.find(function(x){ return x.id === currentJobId; });
+  if (!j) return;
+
+  var start = document.getElementById('sched-start').value;
+  if (!start) { toast('Pick a start date first'); return; }
+
+  var end = document.getElementById('sched-end').value;
+  var startFmt = start.replace(/-/g, '');
+
+  // Google Calendar all-day: end date is exclusive (day after last day)
+  var endFmt;
+  if (end) {
+    var endD = new Date(end + 'T12:00:00');
+    endD.setDate(endD.getDate() + 1);
+    endFmt = endD.toISOString().slice(0, 10).replace(/-/g, '');
+  } else {
+    var startD = new Date(start + 'T12:00:00');
+    startD.setDate(startD.getDate() + 1);
+    endFmt = startD.toISOString().slice(0, 10).replace(/-/g, '');
+  }
+
+  var notes     = document.getElementById('sched-notes').value.trim();
+  var workDesc  = j.workType || j.description || j.notes || 'Plastering / Rendering';
+  var details   = workDesc
+    + (notes ? '\n\n' + notes : '')
+    + '\n\nPhone: ' + (j.phone || '—')
+    + '\nEmail: ' + (j.email  || '—');
+
+  var params = new URLSearchParams({
+    action:   'TEMPLATE',
+    text:     'P&R Solutions — ' + (j.name || 'Job'),
+    dates:    startFmt + '/' + endFmt,
+    details:  details,
+    location: j.address || ''
+  });
+
+  window.open('https://calendar.google.com/calendar/render?' + params.toString(), '_blank');
+}
+
+function confirmDatesToCustomer() {
+  var j = jobs.find(function(x){ return x.id === currentJobId; });
+  if (!j || !j.email) { toast('No email address saved for this customer'); return; }
+
+  var start = document.getElementById('sched-start').value;
+  if (!start) { toast('Pick a start date first'); return; }
+
+  var end   = document.getElementById('sched-end').value;
+  var notes = document.getElementById('sched-notes').value.trim();
+  var workDesc = j.workType || j.description || j.notes || 'your job';
+
+  var startDate = new Date(start + 'T12:00:00');
+  var startStr  = startDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  var dateStr = startStr;
+  if (end) {
+    var endDate = new Date(end + 'T12:00:00');
+    var endStr  = endDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    dateStr = startStr + ' to ' + endStr;
+  }
+
+  var firstName = (j.name || '').split(' ')[0] || 'there';
+  var subject   = 'Your P&R Solutions Job is Confirmed — ' + startStr;
+  var body      = 'Hi ' + firstName + ',\n\n'
+    + 'Great news — we\'ve got you booked in!\n\n'
+    + '📅 Date: ' + dateStr + '\n'
+    + '📍 Address: ' + (j.address || 'your property') + '\n'
+    + '🔨 Work: ' + workDesc + '\n'
+    + (notes ? '📌 Notes: ' + notes + '\n' : '')
+    + '\nIf you need to move anything around, just give us a call or WhatsApp on 07595 399525 and we\'ll sort it out.\n\n'
+    + 'Looking forward to seeing you!\n\n'
+    + 'Chris\n'
+    + 'P&R Solutions\n'
+    + '07595 399525';
+
+  location.href = 'mailto:' + j.email
+    + '?subject=' + encodeURIComponent(subject)
+    + '&body='    + encodeURIComponent(body);
 }
 
 // ── INIT ──
