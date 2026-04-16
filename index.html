@@ -1186,13 +1186,14 @@ function confirmDatesToCustomer() {
   var firstName = (j.name || '').split(' ')[0] || 'there';
   var subject   = 'Your P&R Solutions Job is Confirmed — ' + startStr;
   var body      = 'Hi ' + firstName + ',\n\n'
-    + 'Great news — we\'ve got you booked in!\n\n'
+    + 'Great news — your job is confirmed and in the diary!\n\n'
     + '📅 Date: ' + dateStr + '\n'
     + '📍 Address: ' + (j.address || 'your property') + '\n'
     + '🔨 Work: ' + workDesc + '\n'
     + (notes ? '📌 Notes: ' + notes + '\n' : '')
-    + '\nIf you need to move anything around, just give us a call or WhatsApp on 07595 399525 and we\'ll sort it out.\n\n'
-    + 'Looking forward to seeing you!\n\n'
+    + '\nI always do my best to stick to the dates agreed, and in most cases we start exactly as planned. However, as with any external work, factors such as adverse weather conditions can occasionally mean we need to shift the schedule by a day or two either way. If that ever happens I\'ll always give you as much notice as possible and keep you fully updated — you won\'t be left wondering.\n\n'
+    + 'If you have any questions in the meantime, don\'t hesitate to give me a call or drop me a WhatsApp on 07595 399525.\n\n'
+    + 'Looking forward to getting started!\n\n'
     + 'Chris\n'
     + 'P&R Solutions\n'
     + '07595 399525';
