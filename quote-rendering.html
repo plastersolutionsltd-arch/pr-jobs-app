@@ -1559,15 +1559,21 @@
       const base = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/quote-response.html';
       const acceptUrl = base + '?action=accept&jobId=' + encodeURIComponent(result.jobId) + '&ref=' + encodeURIComponent(qNum) + '&name=' + encodeURIComponent(job.name || '');
       const declineUrl = base + '?action=decline&jobId=' + encodeURIComponent(result.jobId) + '&ref=' + encodeURIComponent(qNum) + '&name=' + encodeURIComponent(job.name || '');
+      const workLine = [sys, colour].filter(Boolean).join(' — ');
       const body = encodeURIComponent(
         `Hi ${firstName},\n\n` +
-        `Please find your render quotation attached (${qNum}).\n\n` +
-        `Total: ${total}\n\n` +
+        `Please find your render quotation attached — ${qNum}.\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `✅ ACCEPT this quote:\n${acceptUrl}\n\n` +
-        `❌ DECLINE this quote:\n${declineUrl}\n` +
+        `QUOTE TOTAL: ${total}\n` +
+        (workLine ? `Work: ${workLine}\n` : '') +
+        (start    ? `Estimated Start: ${start}\n` : '') +
+        (endD     ? `Estimated Completion: ${endD}\n` : '') +
+        `Quote valid for 30 days\n` +
         `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `If you have any questions, just reply or call Chris on 07595 399525.\n\n` +
+        `To respond to this quote, use the links below:\n\n` +
+        `✅ ACCEPT this quote:\n${acceptUrl}\n\n` +
+        `❌ DECLINE this quote:\n${declineUrl}\n\n` +
+        `If you have any questions, just reply to this email or call/WhatsApp Chris on 07595 399525.\n\n` +
         `Thanks,\nChris\nP&R Solutions\n07595 399525`
       );
 
