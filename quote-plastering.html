@@ -846,7 +846,10 @@
       const date     = document.getElementById('inv-date').value || new Date().toISOString().split('T')[0];
       const oldTitle = document.title;
       document.title = 'Quote - ' + (client || quoteNum);
-      window.onafterprint = () => { document.title = oldTitle; };
+      // Strip URL params before printing so iOS Safari footer shows clean URL (not long GitHub params)
+      const originalUrl = window.location.href;
+      history.replaceState(null, '', window.location.pathname);
+      window.onafterprint = () => { document.title = oldTitle; history.replaceState(null, '', originalUrl); };
 
       // Increment the shared counter on print
       try {
