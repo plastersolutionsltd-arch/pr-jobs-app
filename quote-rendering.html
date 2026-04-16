@@ -1525,48 +1525,16 @@
       const notes   = v('notes');
       const firstName = (job.name || '').split(' ')[0] || 'there';
 
-      // Build proposed works lines from the form
-      const workLines = rows.labour.map(id => {
-        const desc = document.querySelector(`[data-id="${id}"][data-field="desc"]`)?.value?.trim();
-        const tot  = document.getElementById('row-total-' + id)?.value || '';
-        return (desc && tot && tot !== '£0.00') ? '  • ' + desc + '  —  ' + tot : null;
-      }).filter(Boolean).join('\n');
-
-      const feeLines = rows.fees.map(id => {
-        const desc = document.querySelector(`[data-id="${id}"][data-field="desc"]`)?.value?.trim();
-        const cost = document.querySelector(`[data-id="${id}"][data-field="cost"]`)?.value;
-        return (desc && cost > 0) ? '  • ' + desc + '  —  £' + parseFloat(cost).toFixed(2) : null;
-      }).filter(Boolean).join('\n');
-
-      let body = `Hi ${firstName},\n\n`;
-      body += `Thank you for your enquiry. Please find your quotation from P&R Solutions below.\n\n`;
-      body += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-      body += `RENDER QUOTATION\n`;
-      body += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-      body += `Quote Ref:    ${qNum}\n`;
-      body += `Date:         ${qDate}\n`;
-      body += `Valid Until:  ${qDue}\n`;
-      if (sys)    body += `Render System: ${sys}\n`;
-      if (colour) body += `Colour:        ${colour}\n`;
-      if (start)  body += `Start Date:    ${start}\n`;
-      if (endD)   body += `Est. Completion: ${endD}\n`;
-      body += `\nPROPOSED WORKS\n`;
-      body += workLines || '  See attached PDF';
-      if (feeLines) { body += `\n\nADDITIONAL FEES\n` + feeLines; }
-      body += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-      body += `QUOTE TOTAL:  ${total}\n`;
-      body += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-      if (notes) body += `\nSCOPE OF WORKS\n${notes}\n`;
-      body += `\nTERMS\n`;
-      body += `• This quote is valid for 30 days from the date above\n`;
-      body += `• No deposit required — payment on completion\n`;
-      body += `• 25-year manufacturer guarantee on materials\n`;
-      body += `• 5-year workmanship guarantee\n`;
-      body += `\nTo accept this quote or ask any questions, simply reply to this email or call Chris on 07595 399525.\n\n`;
-      body += `Thanks,\nChris Glover\nP&R Solutions\n07595 399525\nPlastersolutionsltd@gmail.com`;
+      const body = encodeURIComponent(
+        `Hi ${firstName},\n\n` +
+        `Please find your render quotation attached (${qNum}).\n\n` +
+        `Total: ${total}\n\n` +
+        `If you have any questions or would like to go ahead, just reply to this email or give me a call on 07595 399525.\n\n` +
+        `Thanks,\nChris\nP&R Solutions\n07595 399525`
+      );
 
       const subject = encodeURIComponent('Your Render Quotation from P&R Solutions — ' + qNum);
-      window.open('mailto:' + (job.email || '') + '?subject=' + subject + '&body=' + encodeURIComponent(body));
+      window.open('mailto:' + (job.email || '') + '?subject=' + subject + '&body=' + body);
     }
 
     function esc(str) {
