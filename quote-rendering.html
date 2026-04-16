@@ -1105,13 +1105,13 @@
     // ── Work type → labour row preset value ──
     function mapToPreset(wt, ft) {
       const s = ((wt||'') + ' ' + (ft||'')).toLowerCase();
-      if (s.includes('ewi')) return 'EWI System|85';
-      if (s.includes('monocouche')) return 'Monocouche — No Hack Off|42';
-      if (s.includes('tyrolean')) return 'Tyrolean|32';
-      if (s.includes('roughcast') || s.includes('pebbledash')) return 'Roughcast|35';
-      if (s.includes('sand') && s.includes('cement')) return 'Sand & Cement Base Coat|25';
-      if (s.includes('k-rend') || s.includes('krend')) return 'K-Rend K1 — No Hack Off|38';
-      if (s.includes('silicone') || s.includes('render')) return 'Silicone Render — No Hack Off|45';
+      if (s.includes('ewi')) return 'EWI System|120';
+      if (s.includes('monocouche')) return 'Monocouche — No Hack Off|80';
+      if (s.includes('tyrolean')) return 'Tyrolean|50';
+      if (s.includes('roughcast') || s.includes('pebbledash')) return 'Roughcast / Pebbledash|55';
+      if (s.includes('sand') && s.includes('cement')) return 'Sand & Cement Base Coat|50';
+      if (s.includes('k-rend') || s.includes('krend')) return 'K-Rend K1 — No Hack Off|80';
+      if (s.includes('silicone') || s.includes('render')) return 'Silicone Render — No Hack Off|90';
       return '';
     }
 
@@ -1287,16 +1287,16 @@
       if (type === 'labour') {
         const opts = [
           ['', '— Select item —'],
-          ['Silicone Render — No Hack Off|45',  'Silicone Render — No Hack Off  £45/m²'],
-          ['Silicone Render — Full Hack Off|55', 'Silicone Render — Full Hack Off  £55/m²'],
-          ['Monocouche — No Hack Off|42',        'Monocouche — No Hack Off  £42/m²'],
-          ['Monocouche — Full Hack Off|52',      'Monocouche — Full Hack Off  £52/m²'],
-          ['K-Rend K1 — No Hack Off|38',         'K-Rend K1 — No Hack Off  £38/m²'],
-          ['K-Rend K1 — Full Hack Off|48',       'K-Rend K1 — Full Hack Off  £48/m²'],
-          ['Sand & Cement Base Coat|25',          'Sand & Cement Base Coat  £25/m²'],
-          ['EWI System|85',                       'EWI System  £85/m²'],
-          ['Roughcast|35',                        'Roughcast  £35/m²'],
-          ['Tyrolean|32',                         'Tyrolean  £32/m²'],
+          ['Silicone Render — No Hack Off|90',  'Silicone Render — No Hack Off  £90/m²'],
+          ['Silicone Render — Full Hack Off|100', 'Silicone Render — Full Hack Off  £100/m²'],
+          ['Monocouche — No Hack Off|80',        'Monocouche — No Hack Off  £80/m²'],
+          ['Monocouche — Full Hack Off|90',      'Monocouche — Full Hack Off  £90/m²'],
+          ['K-Rend K1 — No Hack Off|80',         'K-Rend K1 — No Hack Off  £80/m²'],
+          ['K-Rend K1 — Full Hack Off|90',       'K-Rend K1 — Full Hack Off  £90/m²'],
+          ['Sand & Cement Base Coat|50',          'Sand & Cement Base Coat  £50/m²'],
+          ['EWI System|120',                      'EWI System  £120/m²'],
+          ['Roughcast / Pebbledash|55',           'Roughcast / Pebbledash  £55/m²'],
+          ['Tyrolean|50',                         'Tyrolean  £50/m²'],
           ['custom',                              '✎ Custom…'],
         ].map(([v,l]) => `<option value="${v}">${l}</option>`).join('');
         div.innerHTML = `

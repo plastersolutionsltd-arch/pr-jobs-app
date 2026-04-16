@@ -633,8 +633,8 @@
     <!-- Type of Work -->
     <div class="sec">Type of Work</div>
     <div class="checks">
-      <label><input type="checkbox"> Plastering</label>
-      <label><input type="checkbox"> Rendering</label>
+      <label><input type="checkbox" id="wt-plastering" onchange="filterFinish()"> Plastering</label>
+      <label><input type="checkbox" id="wt-rendering" onchange="filterFinish()"> Rendering</label>
       <label><input type="checkbox"> Dry Lining</label>
       <label><input type="checkbox"> Patching / Repair</label>
       <label><input type="checkbox"> Coving</label>
@@ -717,19 +717,45 @@
         <label>Finish Type</label>
         <select id="finish-type-sel">
           <option value="">— select —</option>
-          <option>Smooth skim</option>
-          <option>Sand &amp; cement</option>
-          <option>K-Rend</option>
-          <option>Monocouche</option>
-          <option>Full Silicone</option>
-          <option>EWI</option>
-          <option>Roughcast</option>
-          <option>Other</option>
+          <optgroup label="── Rendering ──" id="finish-render-group">
+            <option data-cat="render">Full Silicone Render</option>
+            <option data-cat="render">Monocouche Render</option>
+            <option data-cat="render">K-Rend</option>
+            <option data-cat="render">EWI System</option>
+            <option data-cat="render">Sand &amp; Cement Render</option>
+            <option data-cat="render">Roughcast / Pebbledash</option>
+            <option data-cat="render">Tyrolean</option>
+            <option data-cat="render">Scratch &amp; Render</option>
+          </optgroup>
+          <optgroup label="── Plastering ──" id="finish-plaster-group">
+            <option data-cat="plaster">Smooth Skim</option>
+            <option data-cat="plaster">Dot &amp; Dab</option>
+            <option data-cat="plaster">Bonding Coat</option>
+            <option data-cat="plaster">Sand &amp; Cement (internal)</option>
+            <option data-cat="plaster">Patching &amp; Repair</option>
+            <option data-cat="plaster">Artex Removal</option>
+            <option data-cat="plaster">Coving</option>
+          </optgroup>
+          <option value="">Other</option>
         </select>
       </div>
       <div class="f">
         <label>Colour (if render)</label>
-        <input type="text" id="colour-render" placeholder="e.g. K-Rend Ivory">
+        <select id="colour-render">
+          <option value="">— select —</option>
+          <option>Pure White</option>
+          <option>Off White</option>
+          <option>Cream</option>
+          <option>Ivory</option>
+          <option>Stone</option>
+          <option>Buff</option>
+          <option>Light Grey</option>
+          <option>Mid Grey</option>
+          <option>Dark Grey</option>
+          <option>Anthracite</option>
+          <option>Mocha / Brown</option>
+          <option>Custom (see notes)</option>
+        </select>
       </div>
       <div class="f">
         <label>Coats Required</label>
@@ -774,13 +800,21 @@
       <div class="f">
         <label>Skip Required?</label>
         <div class="radios">
-          <label><input type="radio" name="skip" value="no"> No</label>
-          <label><input type="radio" name="skip" value="yes"> Yes</label>
+          <label><input type="radio" name="skip" value="no" onchange="toggleSkip(this)"> No</label>
+          <label><input type="radio" name="skip" value="yes" onchange="toggleSkip(this)"> Yes</label>
+        </div>
+        <div id="skip-size-wrap" style="display:none;margin-top:8px">
+          <select id="skip-size" onchange="updateSkipCost()">
+            <option value="">— Select size —</option>
+            <option value="4|240">4 ton skip — £240</option>
+            <option value="6|300">6 ton skip — £300</option>
+            <option value="8|360">8 ton skip — £360</option>
+          </select>
         </div>
       </div>
       <div class="f">
         <label>Property Type</label>
-        <select>
+        <select id="property-type-sel">
           <option value="">—</option>
           <option>Terraced</option>
           <option>Semi-detached</option>
@@ -1052,19 +1086,19 @@ function parseFreetextMessage(raw) {
 
       // ── Work type → finish type & price lookup ──
       const WORK_PRICE_MAP = {
-        'silicone render':              { label: 'Silicone Render — No Hack Off',   finish: 'Full Silicone', price: 45 },
-        'k-rend / monocouche':          { label: 'K-Rend / Monocouche — No Hack Off', finish: 'K-Rend',   price: 42 },
-        'k-rend':                       { label: 'K-Rend — No Hack Off',            finish: 'K-Rend',      price: 38 },
-        'monocouche':                   { label: 'Monocouche — No Hack Off',         finish: 'Monocouche',  price: 42 },
-        'sand & cement render':         { label: 'Sand & Cement Render',             finish: 'Sand & cement', price: 25 },
-        'sand & cement':                { label: 'Sand & Cement',                    finish: 'Sand & cement', price: 25 },
-        'roughcast / pebbledash':       { label: 'Roughcast / Pebbledash',           finish: 'Roughcast',   price: 35 },
-        'roughcast':                    { label: 'Roughcast',                        finish: 'Roughcast',   price: 35 },
-        'ewi (external wall insulation)':{ label: 'EWI System',                     finish: 'EWI',         price: 85 },
-        'ewi':                          { label: 'EWI System',                       finish: 'EWI',         price: 85 },
-        'smooth skim plaster':          { label: 'Smooth Skim Coat',                 finish: 'Smooth skim', price: 20 },
-        'dry lining / stud walls':      { label: 'Dot & Dab Dry Lining',             finish: 'Smooth skim', price: 22 },
-        'patching & repair':            { label: 'Patching & Repair',                finish: 'Other',       price: 35 },
+        'silicone render':              { label: 'Silicone Render — No Hack Off',   finish: 'Full Silicone Render', price: 90 },
+        'k-rend / monocouche':          { label: 'Monocouche — No Hack Off',      finish: 'Monocouche Render',    price: 80 },
+        'k-rend':                       { label: 'K-Rend — No Hack Off',            finish: 'K-Rend',      price: 80 },
+        'monocouche':                   { label: 'Monocouche — No Hack Off',         finish: 'Monocouche Render', price: 80 },
+        'sand & cement render':         { label: 'Sand & Cement Render',             finish: 'Sand & Cement Render', price: 50 },
+        'sand & cement':                { label: 'Sand & Cement',                    finish: 'Sand & Cement Render', price: 50 },
+        'roughcast / pebbledash':       { label: 'Roughcast / Pebbledash',           finish: 'Roughcast / Pebbledash', price: 55 },
+        'roughcast':                    { label: 'Roughcast',                        finish: 'Roughcast / Pebbledash', price: 55 },
+        'ewi (external wall insulation)':{ label: 'EWI System',                     finish: 'EWI System',  price: 120 },
+        'ewi':                          { label: 'EWI System',                       finish: 'EWI System',  price: 120 },
+        'smooth skim plaster':          { label: 'Smooth Skim Coat',                 finish: 'Smooth Skim', price: 70 },
+        'dry lining / stud walls':      { label: 'Dot & Dab Dry Lining',             finish: 'Dot & Dab',   price: 70 },
+        'patching & repair':            { label: 'Patching & Repair',                finish: 'Patching & Repair', price: 70 },
       };
 
       // ── Auto-fill from PR Jobs app URL params ──
@@ -1073,6 +1107,19 @@ function parseFreetextMessage(raw) {
       if (_p.get('phone'))   document.querySelector('input[type="tel"]').value = _p.get('phone');
       if (_p.get('email'))   document.querySelector('input[type="email"]').value = _p.get('email');
       if (_p.get('address')) document.querySelector('input[placeholder="Street, City, Postcode"]').value = _p.get('address');
+
+      // Property type auto-fill
+      const _pt = (_p.get('propertyType') || '').toLowerCase();
+      if (_pt) {
+        const ptSel = document.getElementById('property-type-sel');
+        if (ptSel) {
+          Array.from(ptSel.options).forEach(o => {
+            if (o.text.toLowerCase().includes(_pt) || _pt.includes(o.text.toLowerCase().replace(/[^a-z]/g,''))) {
+              ptSel.value = o.value || o.text;
+            }
+          });
+        }
+      }
 
       // Pre-fill finish type + pricing row from workType param
       const _wt = (_p.get('workType') || '').toLowerCase();
@@ -1306,6 +1353,9 @@ function parseFreetextMessage(raw) {
       const workTypes = [...document.querySelectorAll('.checks input[type="checkbox"]:checked')]
         .map(cb => cb.parentElement.textContent.trim()).join(', ');
 
+      const skipVal  = document.getElementById('skip-size')?.value || '';
+      const [skipTons, skipCost] = skipVal ? skipVal.split('|') : ['', ''];
+
       job.siteVisit = {
         date:          document.getElementById('visit-date').value,
         wallM2:        document.getElementById('total-wall').textContent.replace('—','').trim(),
@@ -1315,6 +1365,8 @@ function parseFreetextMessage(raw) {
         workTypes:     workTypes,
         finishType:    document.getElementById('finish-type-sel')?.value || '',
         colour:        document.getElementById('colour-render')?.value || '',
+        skipTons:      skipTons || '',
+        skipCost:      skipCost ? '£' + parseFloat(skipCost).toFixed(2) : '',
         savedAt:       new Date().toISOString()
       };
 
@@ -1337,6 +1389,59 @@ function parseFreetextMessage(raw) {
       setTimeout(() => {
         window.location.href = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/?openJob=' + jobId;
       }, 1200);
+    }
+
+    // ── Skip hire ──
+    function toggleSkip(radio) {
+      const wrap = document.getElementById('skip-size-wrap');
+      if (radio.value === 'yes') {
+        wrap.style.display = 'block';
+      } else {
+        wrap.style.display = 'none';
+        document.getElementById('skip-size').value = '';
+        updateSkipCost();
+      }
+    }
+
+    function updateSkipCost() {
+      // Remove existing skip row
+      const existing = document.getElementById('price-row-skip');
+      if (existing) existing.remove();
+
+      const val = document.getElementById('skip-size')?.value;
+      if (!val) { calcGrandTotal(); return; }
+
+      const [tons, cost] = val.split('|');
+      const tbody = document.getElementById('price-tbody');
+      const tr = document.createElement('tr');
+      tr.id = 'price-row-skip';
+      tr.style.background = '#f5f5f5';
+      tr.innerHTML = `
+        <td colspan="3" style="padding:6px 8px;font-size:8pt;color:#888;font-style:italic">Skip Hire — ${tons} ton (internal)</td>
+        <td class="price-total-cell" id="ptotal-skip">£${parseFloat(cost).toFixed(2)}</td>
+        <td></td>
+      `;
+      tbody.appendChild(tr);
+      calcGrandTotal();
+    }
+
+    // ── Smart finish filter: show render or plaster options based on work type ticked ──
+    function filterFinish() {
+      const isRender   = document.getElementById('wt-rendering')?.checked;
+      const isPlaster  = document.getElementById('wt-plastering')?.checked;
+      const renderGrp  = document.getElementById('finish-render-group');
+      const plasterGrp = document.getElementById('finish-plaster-group');
+      if (!renderGrp || !plasterGrp) return;
+      if (isRender && !isPlaster) {
+        renderGrp.style.display  = '';
+        plasterGrp.style.display = 'none';
+      } else if (isPlaster && !isRender) {
+        renderGrp.style.display  = 'none';
+        plasterGrp.style.display = '';
+      } else {
+        renderGrp.style.display  = '';
+        plasterGrp.style.display = '';
+      }
     }
 
     function removePhoto(pc) {
