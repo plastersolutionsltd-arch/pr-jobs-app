@@ -729,7 +729,7 @@
       </div>
       <div class="f">
         <label>Colour (if render)</label>
-        <input type="text" placeholder="e.g. K-Rend Ivory">
+        <input type="text" id="colour-render" placeholder="e.g. K-Rend Ivory">
       </div>
       <div class="f">
         <label>Coats Required</label>
@@ -1313,6 +1313,8 @@ function parseFreetextMessage(raw) {
         combinedM2:    document.getElementById('total-combined').textContent.replace('— combined','').replace('combined','').trim(),
         estTotal:      document.getElementById('grand-total').textContent,
         workTypes:     workTypes,
+        finishType:    document.getElementById('finish-type-sel')?.value || '',
+        colour:        document.getElementById('colour-render')?.value || '',
         savedAt:       new Date().toISOString()
       };
 

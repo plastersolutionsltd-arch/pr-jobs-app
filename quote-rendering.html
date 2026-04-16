@@ -1090,31 +1090,87 @@
     const API_KEY = 'qt-rend26';
     const API_BASE = `https://api.counterapi.dev/v1/${API_NS}/${API_KEY}`;
 
+    // ── Work type → render system dropdown ──
+    function mapToRenderSystem(wt, ft) {
+      const s = ((wt||'') + ' ' + (ft||'')).toLowerCase();
+      if (s.includes('ewi') || s.includes('external wall')) return 'EWI System';
+      if (s.includes('monocouche')) return 'Monocouche Render';
+      if (s.includes('tyrolean')) return 'Tyrolean Finish';
+      if (s.includes('roughcast') || s.includes('pebbledash')) return 'Sand & Cement Render';
+      if ((s.includes('sand') && s.includes('cement')) || s.includes('scratch')) return 'Sand & Cement Render';
+      if (s.includes('silicone') || s.includes('k-rend') || s.includes('krend')) return 'Silicone Render';
+      if (s.includes('render')) return 'Silicone Render';
+      return '';
+    }
+
+    // ── Work type → labour row preset value ──
+    function mapToPreset(wt, ft) {
+      const s = ((wt||'') + ' ' + (ft||'')).toLowerCase();
+      if (s.includes('ewi')) return 'EWI System|85';
+      if (s.includes('monocouche')) return 'Monocouche — No Hack Off|42';
+      if (s.includes('tyrolean')) return 'Tyrolean|32';
+      if (s.includes('roughcast') || s.includes('pebbledash')) return 'Roughcast|35';
+      if (s.includes('sand') && s.includes('cement')) return 'Sand & Cement Base Coat|25';
+      if (s.includes('k-rend') || s.includes('krend')) return 'K-Rend K1 — No Hack Off|38';
+      if (s.includes('silicone') || s.includes('render')) return 'Silicone Render — No Hack Off|45';
+      return '';
+    }
+
+    // ── Restore a previously saved quote from quoteData ──
+    function restoreQuote(qd) {
+      if (qd.invNumber) document.getElementById('inv-number').value = qd.invNumber;
+      if (qd.invDate)   document.getElementById('inv-date').value   = qd.invDate;
+      if (qd.invDue)    document.getElementById('inv-due').value    = qd.invDue;
+      if (qd.invRef)    document.getElementById('inv-ref').value    = qd.invRef;
+      if (qd.renderSystem) document.getElementById('render-system').value = qd.renderSystem;
+      if (qd.renderFinish) document.getElementById('render-finish').value = qd.renderFinish;
+      if (qd.clientName)   document.getElementById('client-name').value   = qd.clientName;
+      if (qd.clientAddr)   document.getElementById('client-addr').value   = qd.clientAddr;
+      if (qd.clientPhone)  document.getElementById('client-phone').value  = qd.clientPhone;
+      if (qd.startDate)    document.getElementById('start-date').value    = qd.startDate;
+      if (qd.duration)     document.getElementById('duration').value      = qd.duration;
+      if (qd.notes)        document.getElementById('notes').value         = qd.notes;
+      if (qd.vatRate)      document.getElementById('vat-rate').value      = qd.vatRate;
+      if (qd.photoCaption) document.getElementById('photo-caption').value = qd.photoCaption;
+      (qd.labourRows || []).forEach(r => {
+        addRow('labour');
+        const id = rows.labour[rows.labour.length - 1];
+        const sel = document.querySelector(`#row-${id} select`);
+        if (r.presetVal && r.presetVal !== 'custom' && r.presetVal !== '' && sel) {
+          sel.value = r.presetVal; applyPreset(id, sel);
+        } else if (r.desc && sel) {
+          sel.value = 'custom'; applyPreset(id, sel);
+          const descEl = document.querySelector(`[data-id="${id}"][data-field="desc"]`);
+          if (descEl) { descEl.style.display = ''; descEl.value = r.desc; }
+        }
+        const qtyEl  = document.querySelector(`[data-id="${id}"][data-field="qty"]`);
+        const unitEl = document.querySelector(`[data-id="${id}"][data-field="unit"]`);
+        if (qtyEl)  qtyEl.value  = r.qty  || '';
+        if (unitEl) unitEl.value = r.unit || '';
+        calcRow(id);
+      });
+      (qd.feesRows || []).forEach(r => {
+        addRow('fees');
+        const id = rows.fees[rows.fees.length - 1];
+        const d = document.querySelector(`[data-id="${id}"][data-field="desc"]`);
+        const c = document.querySelector(`[data-id="${id}"][data-field="cost"]`);
+        if (d) d.value = r.desc || '';
+        if (c) c.value = r.cost || '';
+      });
+      if (!rows.labour.length) addRow('labour');
+      if (!rows.fees.length)   addRow('fees');
+      window._quoteRestored = true;
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
       setupPhotoZones();
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('inv-date').value = today;
-      const due = new Date();
-      due.setDate(due.getDate() + 30);
+      const due = new Date(); due.setDate(due.getDate() + 30);
       document.getElementById('inv-due').value = due.toISOString().split('T')[0];
       document.getElementById('inv-number').value = '…';
-      addRow('labour');
-      addRow('fees');
-      update();
-      // Get current count (no increment) to show next number
-      let next = parseInt(localStorage.getItem('pr_qr_last') || '0', 10) + 1;
-      try {
-        const res = await fetch(API_BASE + '/', { signal: AbortSignal.timeout(4000) });
-        if (res.ok) {
-          const data = await res.json();
-          next = (data.count || 0) + 1;
-        }
-      } catch(e) {}
-      const year = new Date().getFullYear();
-      document.getElementById('inv-number').value = 'QR-' + year + '-' + String(next).padStart(3, '0');
-      update();
 
-      // ── Auto-fill from PR Jobs app URL params + saved site visit data ──
+      // ── URL params ──
       const _p = new URLSearchParams(location.search);
       if (_p.get('name'))    document.getElementById('client-name').value = _p.get('name');
       if (_p.get('address')) document.getElementById('client-addr').value = _p.get('address');
@@ -1127,6 +1183,7 @@
         window._prJobId = _jobId;
         const loadBtn = document.querySelector('[onclick="loadCurrentClient()"]');
         if (loadBtn?.parentElement) loadBtn.parentElement.style.display = 'none';
+        // Clean up address
         const addrEl = document.getElementById('client-addr');
         if (addrEl?.value) {
           const raw = addrEl.value;
@@ -1136,17 +1193,63 @@
         }
         const _jobs = JSON.parse(localStorage.getItem('pr_jobs_v1') || '[]');
         const _job  = _jobs.find(j => j.id === _jobId);
-        if (_job?.siteVisit) {
-          const sv = _job.siteVisit;
-          if (!document.getElementById('notes').value && sv.workTypes)
-            document.getElementById('notes').value = sv.workTypes;
-          if (sv.combinedM2 && sv.combinedM2 !== '—') {
-            const firstQty = document.querySelector('[data-field="qty"]');
-            if (firstQty) { firstQty.value = sv.combinedM2; calcRow(1); }
+
+        if (_job?.quoteData) {
+          // ── Restore previously saved quote ──
+          restoreQuote(_job.quoteData);
+        } else {
+          // ── Fresh quote: auto-fill from site visit ──
+          addRow('labour');
+          addRow('fees');
+          if (_job?.siteVisit) {
+            const sv   = _job.siteVisit;
+            const wt   = _p.get('workType') || sv.workTypes || '';
+            const sys  = mapToRenderSystem(wt, sv.finishType);
+            if (sys) document.getElementById('render-system').value = sys;
+            if (sv.colour) document.getElementById('render-finish').value = sv.colour;
+            const pv   = mapToPreset(wt, sv.finishType);
+            const fid  = rows.labour[0];
+            if (fid && pv) {
+              const sel = document.querySelector(`#row-${fid} select`);
+              if (sel) { sel.value = pv; applyPreset(fid, sel); }
+            }
+            const m2 = parseFloat((sv.combinedM2 || '').replace(/[^\d.]/g, ''));
+            if (m2 > 0) {
+              const qtyEl = document.querySelector(`[data-id="${fid}"][data-field="qty"]`);
+              if (qtyEl) { qtyEl.value = m2; calcRow(fid); }
+            }
+            if (!document.getElementById('notes').value && sv.workTypes)
+              document.getElementById('notes').value = sv.workTypes;
+          } else {
+            // No site visit yet — at least set render system from workType URL param
+            const wt = _p.get('workType') || '';
+            const sys = mapToRenderSystem(wt, '');
+            if (sys) document.getElementById('render-system').value = sys;
+            const pv  = mapToPreset(wt, '');
+            const fid = rows.labour[0];
+            if (fid && pv) {
+              const sel = document.querySelector(`#row-${fid} select`);
+              if (sel) { sel.value = pv; applyPreset(fid, sel); }
+            }
           }
         }
+      } else {
+        addRow('labour');
+        addRow('fees');
       }
-      if (_p.get('name') || _p.get('address') || _p.get('phone')) update();
+      update();
+
+      // ── Quote number (async) — skip if restoring saved quote ──
+      let next = parseInt(localStorage.getItem('pr_qr_last') || '0', 10) + 1;
+      try {
+        const res = await fetch(API_BASE + '/', { signal: AbortSignal.timeout(4000) });
+        if (res.ok) { const data = await res.json(); next = (data.count || 0) + 1; }
+      } catch(e) {}
+      const year = new Date().getFullYear();
+      if (!window._quoteRestored) {
+        document.getElementById('inv-number').value = 'QR-' + year + '-' + String(next).padStart(3, '0');
+        update();
+      }
     });
 
     async function saveNum() {
@@ -1317,9 +1420,29 @@
       const jobs = JSON.parse(localStorage.getItem('pr_jobs_v1') || '[]');
       const job = jobs.find(j => j.id === jobId);
       if (!job) { alert('Client not found.'); return; }
+
+      // Capture all form state so we can restore it next time
+      const labourRows = rows.labour.map(id => ({
+        presetVal: document.querySelector(`#row-${id} select`)?.value || '',
+        desc:  document.querySelector(`[data-id="${id}"][data-field="desc"]`)?.value  || '',
+        qty:   document.querySelector(`[data-id="${id}"][data-field="qty"]`)?.value   || '',
+        unit:  document.querySelector(`[data-id="${id}"][data-field="unit"]`)?.value  || '',
+      }));
+      const feesRows = rows.fees.map(id => ({
+        desc: document.querySelector(`[data-id="${id}"][data-field="desc"]`)?.value || '',
+        cost: document.querySelector(`[data-id="${id}"][data-field="cost"]`)?.value || '',
+      }));
+      job.quoteData = {
+        invNumber: v('inv-number'), invDate: v('inv-date'), invDue: v('inv-due'), invRef: v('inv-ref'),
+        renderSystem: v('render-system'), renderFinish: v('render-finish'),
+        clientName: v('client-name'), clientAddr: v('client-addr'), clientPhone: v('client-phone'),
+        startDate: v('start-date'), duration: v('duration'), notes: v('notes'),
+        vatRate: v('vat-rate'), photoCaption: v('photo-caption'),
+        labourRows, feesRows,
+      };
       job.quote = {
-        number:  document.getElementById('inv-number').value,
-        date:    document.getElementById('inv-date').value,
+        number:  v('inv-number'),
+        date:    v('inv-date'),
         total:   document.getElementById('p-total').textContent,
         savedAt: new Date().toISOString()
       };
