@@ -1265,10 +1265,10 @@
       update();
 
       // ── Quote number (async) — skip if restoring saved quote ──
-      let next = parseInt(localStorage.getItem('pr_qr_last') || '0', 10) + 1;
+      let next = 1;
       try {
-        const res = await fetch(API_BASE + '/', { signal: AbortSignal.timeout(4000) });
-        if (res.ok) { const data = await res.json(); next = (data.count || 0) + 1; }
+        const cr = await sb.from('counters').select('value').eq('id', 'qr_last').single();
+        if (!cr.error && cr.data) next = (cr.data.value || 0) + 1;
       } catch(e) {}
       const year = new Date().getFullYear();
       if (!window._quoteRestored) {
@@ -1290,12 +1290,11 @@
       window.onafterprint = () => { document.title = oldTitle; history.replaceState(null, '', originalUrl); };
 
       // Increment the shared counter on print
-      try {
-        await fetch(API_BASE + '/up', { signal: AbortSignal.timeout(4000) });
-      } catch(e) {}
       const val = document.getElementById('inv-number').value;
       const match = val.match(/(\d+)$/);
-      if (match) localStorage.setItem('pr_qr_last', parseInt(match[1], 10));
+      if (match) {
+        try { await sb.from('counters').upsert({ id: 'qr_last', value: parseInt(match[1], 10) }); } catch(e) {}
+      }
     }
 
     function switchTab(tab, el) {

@@ -807,11 +807,11 @@
       addRow('fees');
       update();
       // Get current count (no increment) to show next number
-      let next = parseInt(localStorage.getItem('pr_qt_last') || '0', 10) + 1;
+      let next = 1;
       try {
-        const res = await fetch(API_BASE + '/', { signal: AbortSignal.timeout(4000) });
-        if (res.ok) {
-          const data = await res.json();
+        const cr = await sb.from('counters').select('value').eq('id', 'qt_last').single();
+        if (!cr.error && cr.data) {
+          const data = { count: cr.data.value };
           next = (data.count || 0) + 1;
         }
       } catch(e) {}
@@ -869,12 +869,11 @@
       window.onafterprint = () => { document.title = oldTitle; history.replaceState(null, '', originalUrl); };
 
       // Increment the shared counter on print
-      try {
-        await fetch(API_BASE + '/up', { signal: AbortSignal.timeout(4000) });
-      } catch(e) {}
       const val = document.getElementById('inv-number').value;
       const match = val.match(/(\d+)$/);
-      if (match) localStorage.setItem('pr_qt_last', parseInt(match[1], 10));
+      if (match) {
+        try { await sb.from('counters').upsert({ id: 'qt_last', value: parseInt(match[1], 10) }); } catch(e) {}
+      }
     }
 
     function switchTab(tab, el) {
