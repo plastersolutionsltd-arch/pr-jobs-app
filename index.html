@@ -234,6 +234,7 @@
     .fab svg { width: 26px; height: 26px; color: #111; }
     .fab:active { transform: scale(0.94); }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 
@@ -405,20 +406,41 @@
 
 <script>
 // ══════════════════════════════════════════════════════════
-// DATA
+// DATA — Supabase
 // ══════════════════════════════════════════════════════════
-var DB_KEY = 'pr_jobs_v1';
+var SB_URL = 'https://ngakblcdnuqectjappkl.supabase.co';
+var SB_KEY = 'sb_publishable_wX0TOGQTtNWi0ex14ux6Hw_eKVge5cJ';
+var sb = supabase.createClient(SB_URL, SB_KEY);
+
 var jobs = [];
 var currentJobId = null;
 var currentTab = 'all';
 var prevScreen = 'screen-jobs';
 
-function loadJobs() {
-  try { jobs = JSON.parse(localStorage.getItem(DB_KEY)) || []; } catch(e) { jobs = []; }
+async function loadJobs() {
+  try {
+    var result = await sb.from('jobs').select('*').order('created', { ascending: false });
+    if (result.error) throw result.error;
+    jobs = (result.data || []).map(function(r) {
+      return Object.assign({}, r.data, { id: r.id, name: r.name, status: r.status, created: r.created });
+    });
+  } catch(e) {
+    console.warn('Load failed:', e);
+    jobs = [];
+  }
 }
-function saveJobs() {
-  localStorage.setItem(DB_KEY, JSON.stringify(jobs));
+
+async function upsertJob(job) {
+  var row = { id: job.id, name: job.name || '', status: job.status || 'enquiry', created: job.created || Date.now(), data: job };
+  var result = await sb.from('jobs').upsert(row);
+  if (result.error) { toast('Save failed — check connection'); console.error(result.error); }
 }
+
+async function removeJob(id) {
+  var result = await sb.from('jobs').delete().eq('id', id);
+  if (result.error) { toast('Delete failed'); console.error(result.error); }
+}
+
 function newId() { return Date.now() + Math.random().toString(36).slice(2,6); }
 
 // ══════════════════════════════════════════════════════════
@@ -464,7 +486,6 @@ function showTool(name) {
 // JOBS LIST
 // ══════════════════════════════════════════════════════════
 function renderJobs() {
-  loadJobs();
   var q = (document.getElementById('search-input').value || '').toLowerCase();
   var filtered = jobs.filter(function(j){
     if (currentTab !== 'all' && j.status !== currentTab) return false;
@@ -566,7 +587,7 @@ function setEP(id, val) {
   el.className = 'ext-val' + (val ? '' : ' none');
 }
 
-function saveJob() {
+async function saveJob() {
   var job = {
     id: newId(),
     name:         _extracted.name         || '',
@@ -584,12 +605,12 @@ function saveJob() {
     rawMsg: document.getElementById('new-msg').value
   };
   jobs.push(job);
-  saveJobs();
+  await upsertJob(job);
   toast('Job saved — ' + (job.name || 'Unknown'));
   setTimeout(function(){ navTo('jobs'); }, 400);
 }
 
-function saveJobManual() {
+async function saveJobManual() {
   var name = document.getElementById('m-name').value.trim();
   if (!name) { toast('Please enter a name'); return; }
   var job = {
@@ -604,7 +625,7 @@ function saveJobManual() {
     source: 'manual'
   };
   jobs.push(job);
-  saveJobs();
+  await upsertJob(job);
   toast('Job saved — ' + job.name);
   setTimeout(function(){ navTo('jobs'); }, 400);
 }
@@ -719,19 +740,19 @@ function openTemplate(filename) {
   window.open(base + filename + '?' + p.toString(), '_blank');
 }
 
-function setStatus(status) {
+async function setStatus(status) {
   var j = jobs.find(function(x){ return x.id === currentJobId; });
   if (!j) return;
   j.status = status;
-  saveJobs();
+  await upsertJob(j);
   openJob(currentJobId);
   toast('Status → ' + statusLabel(status));
 }
 
-function deleteJob() {
+async function deleteJob() {
   if (!confirm('Delete this job?')) return;
   jobs = jobs.filter(function(j){ return j.id !== currentJobId; });
-  saveJobs();
+  await removeJob(currentJobId);
   navTo('jobs');
 }
 
@@ -842,12 +863,17 @@ function parse(raw) {
     for (var i=0;i<trimmed.length-1;i++){
       // strip markdown asterisks/bold that Formspree adds to labels
       var key = trimmed[i].replace(/\*+/g,'').trim().toLowerCase().replace(/\s+/g,'_');
-      var val = trimmed[i+1].replace(/\*+/g,'').trim();
       var isKnown = KNOWN_LABELS.indexOf(key) > -1;
+      if (!isKnown) continue;
+      // skip blank lines between label and value (Formspree adds these)
+      var valIdx = i + 1;
+      while (valIdx < trimmed.length && trimmed[valIdx] === '') valIdx++;
+      if (valIdx >= trimmed.length) continue;
+      var val = trimmed[valIdx].replace(/\*+/g,'').trim();
       var nextIsLabel = KNOWN_LABELS.indexOf(val.toLowerCase().replace(/\s+/g,'_')) > -1;
-      if (isKnown && val && !nextIsLabel && !val.includes(':')) {
+      if (val && !nextIsLabel && !val.includes(':')) {
         data[key] = val;
-        i++; // skip value line
+        i = valIdx; // skip past the value line
       }
     }
     // Scan lines before the first label for something that looks like a person's name
@@ -1019,12 +1045,15 @@ function showEnquiryModal(url) {
 }
 
 // ── INIT ──
-loadJobs();
-renderJobs();
-// Auto-open a job when returning from site visit / quote template
-(function(){
+(async function(){
+  document.getElementById('jobs-count').textContent = 'Loading…';
+  await loadJobs();
+  renderJobs();
   var openId = new URLSearchParams(location.search).get('openJob');
-  if (openId) setTimeout(function(){ openJob(openId); }, 200);
+  if (openId) {
+    var j = jobs.find(function(x){ return x.id === openId; });
+    if (j) openJob(openId);
+  }
 })();
 </script>
 </body>
