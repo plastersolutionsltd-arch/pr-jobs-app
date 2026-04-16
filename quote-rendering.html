@@ -605,7 +605,7 @@
   <header class="app-header">
     <span class="app-title"><span>P&R</span> RENDER QUOTATION</span>
     <div style="display:flex;gap:6px;align-items:center">
-      <button class="btn-print" id="save-app-btn" onclick="saveQuoteToApp()" style="background:#1a3a1a;color:#66FF33;border:1px solid #66FF33">✓ Save</button>
+      <button class="btn-print" id="save-app-btn" onclick="saveAndReturn()" style="background:#1a3a1a;color:#66FF33;border:1px solid #66FF33">✓ Save</button>
       <button class="btn-print" onclick="addToCalendar()" style="background:#1a1a3a;color:#aa88ff;border:1px solid #aa88ff">📅</button>
       <button class="btn-print" onclick="emailClient()" style="background:#1a2a3a;color:#5599ff;border:1px solid #5599ff">✉ Send</button>
       <button class="btn-print" onclick="saveNum().then(()=>window.print())">⬇ PDF</button>
@@ -1441,6 +1441,17 @@
       update();
     }
 
+    async function saveAndReturn() {
+      const result = await saveQuoteToApp();
+      if (result && result.ok) {
+        const btn = document.getElementById('save-app-btn');
+        btn.textContent = '✓ Saved! Going back…';
+        setTimeout(() => {
+          window.location.href = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/?openJob=' + result.jobId;
+        }, 1200);
+      }
+    }
+
     async function saveQuoteToApp() {
       const jobId = window._prJobId || new URLSearchParams(location.search).get('jobId');
       if (!jobId) { alert('Open this from the PR Jobs app to save to a client.'); return; }
@@ -1477,16 +1488,15 @@
       try {
         await sbSaveJob(job);
         _cachedJob = job;
-        btn.textContent = '✓ Saved! Going back…';
+        btn.textContent = '✓ Saved!';
         btn.style.background = '#66FF33';
         btn.style.color = '#111';
-        setTimeout(() => {
-          window.location.href = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/?openJob=' + jobId;
-        }, 1200);
+        return { ok: true, jobId };
       } catch(e) {
         btn.textContent = 'Save failed — check connection';
         btn.style.background = '#c0392b';
         btn.style.color = '#fff';
+        return { ok: false };
       }
     }
 
@@ -1532,7 +1542,8 @@
     }
 
     async function emailClient() {
-      await saveQuoteToApp();
+      const result = await saveQuoteToApp();
+      if (!result || !result.ok) return;
       const job = _cachedJob || {};
 
       const qNum    = v('inv-number');
@@ -1556,6 +1567,9 @@
 
       const subject = encodeURIComponent('Your Render Quotation from P&R Solutions — ' + qNum);
       window.open('mailto:' + (job.email || '') + '?subject=' + subject + '&body=' + body);
+      setTimeout(() => {
+        window.location.href = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/?openJob=' + result.jobId;
+      }, 1500);
     }
 
     function esc(str) {
