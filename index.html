@@ -878,7 +878,7 @@ function parse(raw) {
     }
     // Scan lines before the first label for something that looks like a person's name
     if (!data['name']) {
-      var notNames = ['detached','semi','terraced','house','flat','apartment','bungalow','commercial','silicone','monocouche','render','rendering','plaster','plastering','ewi','roughcast','tyrolean','skim','bonding','sand','cement','dry','lining','coving','patch','repair','new','build','external','internal','quote','free'];
+      var notNames = ['detached','semi','terraced','house','flat','apartment','bungalow','commercial','silicone','monocouche','render','rendering','plaster','plastering','ewi','roughcast','tyrolean','skim','bonding','sand','cement','dry','lining','coving','patch','repair','new','build','external','internal','quote','free','hi','hello','dear','hey','thanks','from','contact','enquiry','submission','message','request','sheffield','leeds','bradford','manchester'];
       for (var fi = 0; fi < trimmed.length; fi++) {
         var fl = trimmed[fi].trim();
         if (!fl) continue;
@@ -886,7 +886,7 @@ function parse(raw) {
         var flNorm = fl.toLowerCase().replace(/\s+/g,'_');
         if (KNOWN_LABELS.indexOf(flNorm) > -1 || KNOWN_LABELS.indexOf(fl.toLowerCase()) > -1) break;
         var flWords = fl.split(/\s+/);
-        if (flWords.length >= 2 && flWords.length <= 3
+        if (flWords.length >= 1 && flWords.length <= 3
             && flWords.every(function(w){ return /^[a-zA-Z]{2,}$/.test(w); })
             && !flWords.some(function(w){ return notNames.indexOf(w.toLowerCase()) > -1; })) {
           data['name'] = flWords.map(function(w){ return w.charAt(0).toUpperCase()+w.slice(1).toLowerCase(); }).join(' ');
