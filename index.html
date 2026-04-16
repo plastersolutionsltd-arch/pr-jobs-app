@@ -850,6 +850,24 @@ function parse(raw) {
         i++; // skip value line
       }
     }
+    // Scan lines before the first label for something that looks like a person's name
+    if (!data['name']) {
+      var notNames = ['detached','semi','terraced','house','flat','apartment','bungalow','commercial','silicone','monocouche','render','rendering','plaster','plastering','ewi','roughcast','tyrolean','skim','bonding','sand','cement','dry','lining','coving','patch','repair','new','build','external','internal','quote','free'];
+      for (var fi = 0; fi < trimmed.length; fi++) {
+        var fl = trimmed[fi].trim();
+        if (!fl) continue;
+        // Stop as soon as we hit a known label — name must come before labels
+        var flNorm = fl.toLowerCase().replace(/\s+/g,'_');
+        if (KNOWN_LABELS.indexOf(flNorm) > -1 || KNOWN_LABELS.indexOf(fl.toLowerCase()) > -1) break;
+        var flWords = fl.split(/\s+/);
+        if (flWords.length >= 2 && flWords.length <= 3
+            && flWords.every(function(w){ return /^[a-zA-Z]{2,}$/.test(w); })
+            && !flWords.some(function(w){ return notNames.indexOf(w.toLowerCase()) > -1; })) {
+          data['name'] = flWords.map(function(w){ return w.charAt(0).toUpperCase()+w.slice(1).toLowerCase(); }).join(' ');
+          break;
+        }
+      }
+    }
     var result = parseStructured(data);
     // Fallback: if name still empty, try freetext patterns
     if (!result.name) result.name = findName(raw);
@@ -916,7 +934,7 @@ function findAddress(s, postcode) {
   return '';
 }
 function findName(s) {
-  var skip=['looking','wondering','hoping','wanting','calling','writing','ringing','contacting','regarding','could','would','please','can','just','sheffield','leeds','manchester','bradford','birmingham','good','dear','hello','hi'];
+  var skip=['looking','wondering','hoping','wanting','calling','writing','ringing','contacting','regarding','could','would','please','can','just','sheffield','leeds','manchester','bradford','birmingham','good','dear','hello','hi','detached','semi','terraced','bungalow','house','flat','apartment','commercial','silicone','monocouche','roughcast','tyrolean','plastering','rendering','new','quote','free'];
   function ok(c){ return c && !skip.some(function(w){ return c.toLowerCase().indexOf(w)===0; }); }
   var m;
   // Standalone Title Case line
