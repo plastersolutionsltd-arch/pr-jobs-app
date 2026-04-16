@@ -1566,7 +1566,7 @@
       );
 
       const subject = encodeURIComponent('Your Render Quotation from P&R Solutions — ' + qNum);
-      window.open('mailto:' + (job.email || '') + '?subject=' + subject + '&body=' + body);
+      location.href = 'mailto:' + (job.email || '') + '?subject=' + subject + '&body=' + body;
       setTimeout(() => {
         window.location.href = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/?openJob=' + result.jobId;
       }, 1500);

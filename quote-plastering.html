@@ -1135,7 +1135,7 @@
         'If you have any questions or would like to go ahead, just reply to this email or give me a call on 07595 399525.\n\n' +
         'Thanks,\nChris\nP&R Solutions\n07595 399525'
       );
-      window.open('mailto:' + (job.email || '') + '?subject=' + subject + '&body=' + body);
+      location.href = 'mailto:' + (job.email || '') + '?subject=' + subject + '&body=' + body;
       setTimeout(() => {
         window.location.href = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/?openJob=' + result.jobId;
       }, 1500);
