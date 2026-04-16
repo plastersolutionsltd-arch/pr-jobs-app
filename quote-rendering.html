@@ -1013,6 +1013,14 @@
       if (!data) return;
       photos[slot] = data;
       renderPhotoZone(slot);
+      // Auto-fill caption from available info if still empty
+      const capEl = document.getElementById('photo-caption');
+      if (capEl && !capEl.value.trim()) {
+        const sys    = v('render-system');
+        const colour = v('render-finish');
+        const parts  = [colour, sys].filter(Boolean);
+        if (parts.length) capEl.value = 'Proposed ' + parts.join(' ');
+      }
       update();
     }
 
