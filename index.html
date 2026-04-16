@@ -64,6 +64,7 @@
     .badge-booked   { background: #1a2a1a; color: var(--green); }
     .badge-inprogress { background: #2a1a2a; color: #cc77ff; }
     .badge-done     { background: #1e1e1e; color: #666; }
+    .badge-declined { background: #2a1a1a; color: #cc4444; }
 
     /* ── JOB LIST ── */
     .job-card { cursor: pointer; active: opacity 0.7; }
@@ -174,6 +175,7 @@
     .status-opt.sel-booked    { border-color: var(--green); color: var(--green); background: #0a1a0a; }
     .status-opt.sel-inprogress{ border-color: #cc77ff; color: #cc77ff; background: #1a0a1a; }
     .status-opt.sel-done      { border-color: #555; color: #aaa; background: #1a1a1a; }
+    .status-opt.sel-declined  { border-color: #cc4444; color: #cc4444; background: #1a0a0a; }
 
     .tools-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .tool-btn {
@@ -527,7 +529,7 @@ function setTab(btn) {
 }
 
 function statusLabel(s) {
-  return {enquiry:'Enquiry',quoted:'Quoted',booked:'Booked',inprogress:'In Progress',done:'Done'}[s] || s;
+  return {enquiry:'Enquiry',quoted:'Quoted',booked:'Booked',inprogress:'In Progress',done:'Done',declined:'Declined'}[s] || s;
 }
 
 function formatDate(ts) {
@@ -684,7 +686,7 @@ function openJob(id) {
   // Status
   html += '<div class="section-hdr">Status</div>';
   html += '<div class="status-grid">';
-  ['enquiry','quoted','booked','inprogress','done'].forEach(function(s){
+  ['enquiry','quoted','booked','inprogress','done','declined'].forEach(function(s){
     var sel = j.status === s ? ' sel-'+s : '';
     html += '<button class="status-opt'+sel+'" onclick="setStatus(\''+s+'\')">'
       + statusLabel(s).replace(' ','<br>') + '</button>';
