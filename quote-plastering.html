@@ -862,7 +862,7 @@
       const client   = (document.getElementById('client-name').value || '').trim().replace(/[/\\?%*:|"<>]/g, '');
       const date     = document.getElementById('inv-date').value || new Date().toISOString().split('T')[0];
       const oldTitle = document.title;
-      document.title = 'Quote - ' + (client || quoteNum);
+      document.title = quoteNum + (client ? ' - ' + client : '');
       // Strip URL params before printing so iOS Safari footer shows clean URL (not long GitHub params)
       const originalUrl = window.location.href;
       history.replaceState(null, '', window.location.pathname);
