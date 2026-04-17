@@ -581,8 +581,8 @@
     // Fallback: no quoteData (quote saved before quoteData was implemented)
     // Pull description from siteVisit and total from quote summary
     if (!qd) {
-      if (job.siteVisit && job.siteVisit.workTypes)
-        document.getElementById('works-desc').value = job.siteVisit.workTypes;
+      if (job.siteVisit)
+        document.getElementById('works-desc').value = job.siteVisit.scopeOfWorks || job.siteVisit.workTypes || '';
       if (job.quote && job.quote.total) {
         addRow('works');
         var fb = rows.works[rows.works.length - 1];
