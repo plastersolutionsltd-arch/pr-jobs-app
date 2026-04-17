@@ -1458,16 +1458,11 @@ function parseFreetextMessage(raw) {
     function calcGrandTotal() {
       let grand = 0;
       document.querySelectorAll('[id^="ptotal-"]').forEach(el => {
-        // Inputs: read .value — skip cells (ptotal-skip uses textContent)
-        const v = parseFloat(el.value !== undefined ? el.value : el.textContent.replace('£', ''));
+        // Inputs use .value; the skip row td uses textContent
+        const raw = el.tagName === 'INPUT' ? el.value : el.textContent.replace('£', '');
+        const v = parseFloat(raw);
         if (!isNaN(v) && v > 0) grand += v;
       });
-      // Also add skip cell if present
-      const skipEl = document.getElementById('ptotal-skip');
-      if (skipEl && skipEl.tagName !== 'INPUT') {
-        const v = parseFloat(skipEl.textContent.replace('£', ''));
-        if (!isNaN(v)) grand += v;
-      }
       document.getElementById('grand-total').textContent = '£' + grand.toFixed(2);
     }
 
