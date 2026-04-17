@@ -1099,6 +1099,24 @@
       if (!jobId) { alert('Open this from the PR Jobs app to save to a client.'); return; }
       const job = _cachedJob || await sbGetJob(jobId);
       if (!job) { alert('Client not found.'); return; }
+
+      const labourRows = rows.labour.map(id => ({
+        presetVal: document.querySelector(`#row-${id} select`)?.value || '',
+        desc:  document.querySelector(`[data-id="${id}"][data-field="desc"]`)?.value  || '',
+        qty:   document.querySelector(`[data-id="${id}"][data-field="qty"]`)?.value   || '',
+        unit:  document.querySelector(`[data-id="${id}"][data-field="unit"]`)?.value  || '',
+      }));
+      const feesRows = rows.fees.map(id => ({
+        desc: document.querySelector(`[data-id="${id}"][data-field="desc"]`)?.value || '',
+        cost: document.querySelector(`[data-id="${id}"][data-field="cost"]`)?.value || '',
+      }));
+      job.quoteData = {
+        invNumber: v('inv-number'), invDate: v('inv-date'), invDue: v('inv-due'), invRef: v('inv-ref'),
+        clientName: v('client-name'), clientAddr: v('client-addr'), clientPhone: v('client-phone'),
+        startDate: v('start-date'), endDate: v('end-date'), notes: v('notes'),
+        vatRate: v('vat-rate'),
+        labourRows, feesRows,
+      };
       job.quote = {
         number:  document.getElementById('inv-number').value,
         date:    document.getElementById('inv-date').value,

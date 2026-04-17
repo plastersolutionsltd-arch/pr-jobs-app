@@ -269,6 +269,10 @@
 
     <div class="form-section">
       <div class="form-section-title">Works Completed</div>
+      <div class="field" style="margin-bottom:8px">
+        <label>Description of Works <span style="font-size:10px;letter-spacing:0;text-transform:none;color:#ccc">(copied from quote)</span></label>
+        <textarea id="works-desc" placeholder="Brief summary of the works carried out…" oninput="update()" style="min-height:80px"></textarea>
+      </div>
       <div class="col-labels works">
         <span class="col-label">Description</span>
         <span class="col-label">Qty / m²</span>
@@ -408,6 +412,7 @@
       <div class="inv-due-banner">AMOUNT DUE: <span id="p-due-total">£0.00</span> &nbsp;·&nbsp; PAYMENT DUE BY <span id="p-due-date-banner">—</span></div>
 
       <div class="inv-section-label">WORKS COMPLETED</div>
+      <div id="p-works-desc-wrap" style="display:none"><div id="p-works-desc" style="font-size:8pt;color:#444;line-height:1.6;padding:2mm 0 3mm;white-space:pre-line"></div></div>
       <table class="inv-table">
         <thead>
           <tr>
@@ -541,9 +546,10 @@
     if (id.clientAddr)  document.getElementById('client-addr').value  = id.clientAddr;
     if (id.clientPhone) document.getElementById('client-phone').value = id.clientPhone;
     if (id.clientEmail) document.getElementById('client-email').value = id.clientEmail;
-    if (id.vatRate)  document.getElementById('vat-rate').value = id.vatRate;
-    if (id.deposit)  document.getElementById('deposit').value  = id.deposit;
-    if (id.notes)    document.getElementById('notes').value    = id.notes;
+    if (id.vatRate)   document.getElementById('vat-rate').value   = id.vatRate;
+    if (id.deposit)   document.getElementById('deposit').value    = id.deposit;
+    if (id.worksDesc) document.getElementById('works-desc').value = id.worksDesc;
+    if (id.notes)     document.getElementById('notes').value      = id.notes;
     (id.worksRows || []).forEach(function(r) {
       addRow('works');
       var id2 = rows.works[rows.works.length - 1];
@@ -576,6 +582,9 @@
     // Reference from quote
     if (!v('inv-ref') && qd.invRef) document.getElementById('inv-ref').value = qd.invRef;
 
+    // Scope of works description from quote
+    if (qd.notes) document.getElementById('works-desc').value = qd.notes;
+
     // Works items from quote labour rows
     (qd.labourRows || []).forEach(function(r) {
       addRow('works');
@@ -595,6 +604,7 @@
 
     if (!rows.works.length) addRow('works');
     if (!rows.items.length) addRow('items');
+    update();
   }
 
   function setRowVal(id, type, desc, qty, unit) {
@@ -637,14 +647,17 @@
         } else {
           // Fresh invoice — pre-fill from quote if one exists, else from job
           prefillFromQuote(job);
+          document.getElementById('notes').value = 'Thank you for choosing P&R Solutions. It was a pleasure working on your property and we hope you are delighted with the finished result.\n\nIf you have any questions regarding this invoice, please don\'t hesitate to get in touch.\n\nWe would love to hear your feedback — a Google review is always greatly appreciated.\n\nKind regards,\nChris\nP&R Solutions\n07595 399525';
         }
       } else {
         addRow('works');
         addRow('items');
+        document.getElementById('notes').value = 'Thank you for choosing P&R Solutions. It was a pleasure working on your property and we hope you are delighted with the finished result.\n\nIf you have any questions regarding this invoice, please don\'t hesitate to get in touch.\n\nWe would love to hear your feedback — a Google review is always greatly appreciated.\n\nKind regards,\nChris\nP&R Solutions\n07595 399525';
       }
     } else {
       addRow('works');
       addRow('items');
+      document.getElementById('notes').value = 'Thank you for choosing P&R Solutions. It was a pleasure working on your property and we hope you are delighted with the finished result.\n\nIf you have any questions regarding this invoice, please don\'t hesitate to get in touch.\n\nWe would love to hear your feedback — a Google review is always greatly appreciated.\n\nKind regards,\nChris\nP&R Solutions\n07595 399525';
     }
 
     update();
@@ -749,7 +762,7 @@
       invNumber: v('inv-number'), invDate: v('inv-date'), invDue: v('inv-due'), invRef: v('inv-ref'),
       clientName: v('client-name'), clientAddr: v('client-addr'),
       clientPhone: v('client-phone'), clientEmail: v('client-email'),
-      vatRate: v('vat-rate'), deposit: v('deposit'), notes: v('notes'),
+      vatRate: v('vat-rate'), deposit: v('deposit'), worksDesc: v('works-desc'), notes: v('notes'),
       worksRows: worksRows, itemsRows: itemsRows
     };
     job.invoice = {
@@ -954,6 +967,10 @@
       var ref = v('inv-number') + (v('client-name') ? ' - ' + v('client-name') : '');
       setText('p-bank-ref', ref);
     }
+
+    var worksDesc = v('works-desc');
+    document.getElementById('p-works-desc').textContent = worksDesc;
+    document.getElementById('p-works-desc-wrap').style.display = worksDesc ? 'block' : 'none';
 
     var notes = v('notes');
     document.getElementById('p-notes').textContent = notes;
