@@ -593,12 +593,10 @@
             <select onchange="if(this.value){insertScopeTemplate(this.value);this.value=''}" style="font-size:11px;padding:3px 8px;background:#111;color:#66FF33;border:1px solid #333;border-radius:2px;cursor:pointer;font-family:inherit;max-width:200px">
               <option value="">— Load template —</option>
               <option value="board_skim">Board &amp; Skim</option>
-              <option value="full_replaster">Full Re-plaster</option>
-              <option value="skim_only">Skim Coat Only</option>
-              <option value="dot_dab">Dot &amp; Dab Dry Lining</option>
-              <option value="sand_cement">Sand &amp; Cement Backing</option>
-              <option value="patch_repair">Patching &amp; Repair</option>
-              <option value="coving">Coving — Supply &amp; Fix</option>
+              <option value="dot_dab_skim">Dot &amp; Dab &amp; Skim</option>
+              <option value="skim_coat">Skim Coat</option>
+              <option value="bond_skim">Bond &amp; Skim</option>
+              <option value="plaster_repair">Plaster Repair</option>
             </select>
           </label>
           <textarea id="notes" placeholder="Brief description of the works included in this quote..." oninput="update()"></textarea>
@@ -1193,45 +1191,33 @@
     const SCOPE_TEMPLATES = {
       board_skim: `Scope of Works — Board & Skim
 
-Supply and fix 12.5mm plasterboard to all walls and/or ceilings as specified, ensuring all boards are securely fixed to studwork or existing substrate. All joints taped with scrim and finished with a 2–3mm bonding skim coat throughout. Final finish to be a smooth, flat, paint-ready surface.
+Supply and fix 12.5mm plasterboard to all walls and/or ceilings as specified. Boards secured to studwork or existing substrate using appropriate fixing method (screws or dot and dab adhesive as required). All joints taped with scrim mesh and a full 2–3mm multi-finish skim coat applied throughout to achieve a smooth, flat, paint-ready surface.
 
-All dust sheets and protection provided. Area will be left clean and tidy upon completion.`,
+All areas protected with dust sheets prior to works commencing. Debris cleared and site left clean and tidy upon completion.`,
 
-      full_replaster: `Scope of Works — Full Re-Plaster
+      dot_dab_skim: `Scope of Works — Dot & Dab & Skim
 
-Hack off all existing plaster to bare masonry. Prepare background, treat with PVA bonding agent as required. Apply sand and cement backing coat (scratch coat), followed by a finish coat of hardwall or multi-finish plaster. Final skim coat applied to achieve a smooth, flat, paint-ready surface throughout.
+Supply and fix 12.5mm plasterboard to all walls as specified using the dot and dab adhesive method. Boards set plumb and level, all edges and joints filled and taped with scrim mesh. A 2–3mm multi-finish skim coat applied over the entire surface throughout to produce a smooth, flat, paint-ready finish.
 
-All debris cleared and area left clean and tidy upon completion.`,
+All areas protected with dust sheets prior to works commencing. Debris cleared and site left clean and tidy upon completion.`,
 
-      skim_only: `Scope of Works — Skim Coat
+      skim_coat: `Scope of Works — Skim Coat
 
-Apply 2–3mm finishing skim coat over existing prepared surface. Surface to be checked for soundness, any loose areas secured and primed prior to skimming. Final finish to be smooth, flat, and fully paint-ready.
+Apply a 2–3mm multi-finish skim coat to all surfaces as specified. Existing surface checked for soundness — any loose, blown or defective areas secured and primed prior to skimming. Final finish to be smooth, flat and fully paint-ready throughout.
 
-All dust sheets and protection provided. Area left clean and tidy upon completion.`,
+All areas protected with dust sheets prior to works commencing. Site left clean and tidy upon completion.`,
 
-      dot_dab: `Scope of Works — Dot & Dab Dry Lining
+      bond_skim: `Scope of Works — Bond & Skim
 
-Supply and fix 12.5mm plasterboard using the dot and dab adhesive method to all walls as specified. Boards to be set plumb and level, with all edges and joints filled and taped with scrim. A 2–3mm skim coat will be applied over the entire surface to produce a smooth, flat, paint-ready finish.
+Apply a bonding coat to all walls and/or ceilings as specified, scratched and keyed to provide a suitable base for finishing. Once set, a 2–3mm multi-finish skim coat applied throughout to achieve a smooth, flat, paint-ready surface.
 
-All dust sheets and protection provided. Area left clean and tidy upon completion.`,
+All areas protected with dust sheets prior to works commencing. Debris cleared and site left clean and tidy upon completion.`,
 
-      sand_cement: `Scope of Works — Sand & Cement Backing Coat
+      plaster_repair: `Scope of Works — Plaster Repair
 
-Apply a sand and cement scratch coat (backing coat) to all surfaces as specified. Mix to be applied at appropriate thickness and keyed for subsequent finish coat. Suitable for external-facing, damp-resistant, or high-impact areas. Final surface to be left level and ready for finishing plaster or tile adhesive as required.
+Cut out and remove all damaged, blown or defective plaster from affected areas. Background prepared and bonding agent applied as required. Bonding coat applied to build up to correct depth, scratched and left to set. Areas then finished with a 2–3mm multi-finish skim coat, feathered and blended to match surrounding surfaces. Final finish to be smooth, flat and paint-ready.
 
-All debris cleared and area left clean and tidy upon completion.`,
-
-      patch_repair: `Scope of Works — Patching & Repair
-
-Cut out and remove all damaged, blown, or defective plaster. Prepare background and apply bonding agent as required. Re-plaster affected areas to match existing depth and profile. Feather edges and apply finish skim to blend repairs seamlessly with surrounding surface. Final finish to be smooth and paint-ready.
-
-All dust sheets and protection provided. Area left clean and tidy upon completion.`,
-
-      coving: `Scope of Works — Coving — Supply & Fix
-
-Supply and fix decorative coving to wall/ceiling junctions as specified. All mitred corners cut and fitted neatly. Coving secured with appropriate adhesive and all joints filled, smoothed, and finished flush. Ready for decoration upon completion.
-
-All dust sheets and protection provided. Area left clean and tidy upon completion.`,
+All areas protected with dust sheets prior to works commencing. Debris cleared and site left clean and tidy upon completion.`,
     };
 
     function insertScopeTemplate(key) {
