@@ -581,7 +581,7 @@
       </div>
       <div class="f">
         <label>Visit Ref</label>
-        <input type="text" placeholder="SV-001">
+        <input type="text" id="visit-ref" placeholder="SV-…">
       </div>
     </div>
 
@@ -846,7 +846,25 @@
     <!-- Scope of Works -->
     <div class="sec">Scope of Works</div>
     <div class="f">
-      <label>Description of Works <span style="font-size:10px;font-weight:normal;color:#888">(transfers to quote &amp; invoice)</span></label>
+      <label style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+        <span>Description of Works <span style="font-size:10px;font-weight:normal;color:#888">(transfers to quote &amp; invoice)</span></span>
+        <select onchange="if(this.value){insertScopeTemplate(this.value);this.value=''}" style="font-size:11px;padding:4px 8px;background:#111;color:#66FF33;border:1px solid #333;border-radius:2px;cursor:pointer;font-family:'Lato',sans-serif">
+          <option value="">— Load template —</option>
+          <optgroup label="── Plastering ──">
+            <option value="board_skim">Board &amp; Skim</option>
+            <option value="dot_dab_skim">Dot &amp; Dab &amp; Skim</option>
+            <option value="skim_coat">Skim Coat</option>
+            <option value="bond_skim">Bond &amp; Skim</option>
+            <option value="plaster_repair">Plaster Repair</option>
+          </optgroup>
+          <optgroup label="── Rendering ──">
+            <option value="silicone_pebbledash">Silicone over Pebble Dash</option>
+            <option value="silicone_brick_block">Full Silicone — Brick &amp; Block</option>
+            <option value="monocouche_brick_block">Monocouche — Brick &amp; Block</option>
+            <option value="ewi_brick_block">EWI — Brick &amp; Block</option>
+          </optgroup>
+        </select>
+      </label>
       <textarea id="scope-of-works" placeholder="Describe exactly what's being done — this will pre-fill the quote and invoice..." style="min-height:100px"></textarea>
     </div>
 
@@ -1083,8 +1101,18 @@ function parseFreetextMessage(raw) {
       document.title = original;
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('visit-date').value = new Date().toISOString().split('T')[0];
+
+      // Auto-generate Visit Ref from sv_last counter
+      try {
+        const cr = await sb.from('counters').select('value').eq('id', 'sv_last').single();
+        const last = (!cr.error && cr.data) ? (cr.data.value || 0) : 0;
+        const year = new Date().getFullYear();
+        document.getElementById('visit-ref').value = 'SV-' + year + '-' + String(last + 1).padStart(3, '0');
+      } catch(e) {
+        document.getElementById('visit-ref').value = 'SV-' + new Date().getFullYear() + '-001';
+      }
       addRoom('Living Room');
       addRoom('');
       addRoom('');
@@ -1361,7 +1389,10 @@ function parseFreetextMessage(raw) {
       const skipVal  = document.getElementById('skip-size')?.value || '';
       const [skipTons, skipCost] = skipVal ? skipVal.split('|') : ['', ''];
 
+      const svRef = document.getElementById('visit-ref')?.value.trim() || '';
+
       job.siteVisit = {
+        ref:           svRef,
         date:          document.getElementById('visit-date').value,
         wallM2:        document.getElementById('total-wall').textContent.replace('—','').trim(),
         ceilM2:        document.getElementById('total-ceil').textContent.replace('—','').trim(),
@@ -1388,6 +1419,13 @@ function parseFreetextMessage(raw) {
 
       const btn = document.getElementById('save-app-btn');
       try {
+        // Increment sv_last counter if ref looks auto-generated
+        if (svRef && /^SV-\d{4}-\d+$/.test(svRef)) {
+          const match = svRef.match(/SV-\d{4}-(\d+)/);
+          if (match) {
+            try { await sb.from('counters').upsert({ id: 'sv_last', value: parseInt(match[1], 10) }); } catch(e) {}
+          }
+        }
         await sbSaveJob(job);
         _svJob = job;
         btn.textContent = '✓ Saved! Going back…';
@@ -1454,6 +1492,115 @@ function parseFreetextMessage(raw) {
         renderGrp.style.display  = '';
         plasterGrp.style.display = '';
       }
+    }
+
+    /* ===== SCOPE TEMPLATES ===== */
+    const SCOPE_TEMPLATES = {
+      board_skim: `Scope of Works — Board & Skim
+
+Supply and fix 12.5mm plasterboard to all walls and/or ceilings as specified. Boards secured to studwork or existing substrate using appropriate fixing method (screws or dot and dab adhesive as required). All joints taped with scrim mesh and a full 2–3mm multi-finish skim coat applied throughout to achieve a smooth, flat, paint-ready surface.
+
+All areas protected with dust sheets prior to works commencing. Debris cleared and site left clean and tidy upon completion.`,
+
+      dot_dab_skim: `Scope of Works — Dot & Dab & Skim
+
+Supply and fix 12.5mm plasterboard to all walls as specified using the dot and dab adhesive method. Boards set plumb and level, all edges and joints filled and taped with scrim mesh. A 2–3mm multi-finish skim coat applied over the entire surface throughout to produce a smooth, flat, paint-ready finish.
+
+All areas protected with dust sheets prior to works commencing. Debris cleared and site left clean and tidy upon completion.`,
+
+      skim_coat: `Scope of Works — Skim Coat
+
+Apply a 2–3mm multi-finish skim coat to all surfaces as specified. Existing surface checked for soundness — any loose, blown or defective areas secured and primed prior to skimming. Final finish to be smooth, flat and fully paint-ready throughout.
+
+All areas protected with dust sheets prior to works commencing. Site left clean and tidy upon completion.`,
+
+      bond_skim: `Scope of Works — Bond & Skim
+
+Apply a bonding coat to all walls and/or ceilings as specified, scratched and keyed to provide a suitable base for finishing. Once set, a 2–3mm multi-finish skim coat applied throughout to achieve a smooth, flat, paint-ready surface.
+
+All areas protected with dust sheets prior to works commencing. Debris cleared and site left clean and tidy upon completion.`,
+
+      plaster_repair: `Scope of Works — Plaster Repair
+
+Cut out and remove all damaged, blown or defective plaster from affected areas. Background prepared and bonding agent applied as required. Bonding coat applied to build up to correct depth, scratched and left to set. Areas then finished with a 2–3mm multi-finish skim coat, feathered and blended to match surrounding surfaces. Final finish to be smooth, flat and paint-ready.
+
+All areas protected with dust sheets prior to works commencing. Debris cleared and site left clean and tidy upon completion.`,
+
+      silicone_pebbledash: `Following inspection, the existing render substrate has been assessed as suitable to receive a full silicone render system.
+
+Works to include:
+
+• Supply and fit new stop beads to all door and window reveals
+• Apply 10mm EcoRend basecoat with reinforcement mesh (EWI Net) fully embedded throughout to prevent cracking
+• Finished with EcoRend silicone topcoat in client's choice of colour
+
+All works carried out to manufacturer's specification and come with a full guarantee.`,
+
+      silicone_brick_block: `Supply of all labour, materials, plant and equipment to carry out a full silicone render system (10mm basecoat / 1.5mm silicone topcoat) to brick and block substrate. No hack-off required.
+
+Works to include:
+
+• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works.
+
+• Thorough preparation of the existing brick and block substrate; removal of all loose material, surface contamination, organic growth, moss, algae and efflorescence. All existing pointing inspected and any failed joints re-pointed prior to render application to ensure a sound, stable base.
+
+• Application of a suitable bonding agent / primer to the prepared substrate to promote adhesion and ensure full compatibility with the render system.
+
+• All stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points prior to application, ensuring clean, true and straight arrises throughout.
+
+• Application of a 10mm polymer-modified base coat, reinforced throughout with alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints in accordance with manufacturer's specification. Base coat to be left to fully cure before topcoat application.
+
+• Application of a 1.5mm premium silicone topcoat in the client's choice of colour, applied uniformly to a consistent texture and finish across all treated elevations.
+
+• Upon completion, all masking, tape and protective materials removed and all working areas left clean and tidy.
+
+All works carried out in full accordance with manufacturer's specification. Full guarantee applies to materials and workmanship.`,
+
+      monocouche_brick_block: `Supply of all labour, materials, plant and equipment to carry out a full monocouche render system to brick and block substrate. No hack-off required.
+
+Works to include:
+
+• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works.
+
+• Thorough preparation of the existing brick and block substrate; removal of all loose material, surface contamination, organic growth, moss, algae and efflorescence. All existing pointing inspected and any failed joints re-pointed prior to render application to ensure a sound, stable base.
+
+• Application of a suitable bonding agent / primer to the prepared substrate to promote adhesion and ensure full compatibility with the render system.
+
+• All stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points prior to application, ensuring clean, true and straight arrises throughout.
+
+• Application of monocouche render in a single through-coloured coat, applied to a uniform thickness and finished to a consistent scratch texture across all treated elevations. Being a through-colour product, no painting or topcoat is required — colour is integral throughout.
+
+• Upon completion, all masking, tape and protective materials removed and all working areas left clean and tidy.
+
+All works carried out in full accordance with manufacturer's specification. Full guarantee applies to materials and workmanship.`,
+
+      ewi_brick_block: `Supply of all labour, materials, plant and equipment to carry out a full External Wall Insulation (EWI) system to brick and block substrate. No hack-off required.
+
+Works to include:
+
+• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works.
+
+• Thorough preparation of the existing brick and block substrate; removal of all loose material, surface contamination, organic growth, moss, algae and efflorescence. All existing pointing inspected and any failed joints re-pointed prior to insulation board installation to ensure a sound, stable base.
+
+• Supply and mechanical fixing of insulation boards to the prepared substrate, fixed in a staggered brick-bond pattern using a combination of adhesive and mechanical fixings in accordance with manufacturer's specification. Board thickness as agreed and specified.
+
+• All starter tracks, stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points prior to render application, ensuring clean, true and straight arrises throughout.
+
+• Application of a polymer-modified basecoat adhesive over the full insulation board surface, reinforced throughout with alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints. All corners and reveals to be double-meshed for additional strength. Basecoat to be left to fully cure in accordance with manufacturer's guidelines.
+
+• Application of primer coat to the cured basecoat to promote adhesion and ensure an even absorption across all treated areas.
+
+• Application of 1.5mm premium silicone topcoat in the client's choice of colour, applied uniformly to a consistent texture and finish across all treated elevations.
+
+• Upon completion, all masking, tape and protective materials removed and all working areas left clean and tidy.
+
+All works carried out in full accordance with manufacturer's specification. Full guarantee applies to materials and workmanship.`,
+    };
+
+    function insertScopeTemplate(key) {
+      const ta = document.getElementById('scope-of-works');
+      if (!ta) return;
+      ta.value = SCOPE_TEMPLATES[key] || '';
     }
 
     function removePhoto(pc) {
