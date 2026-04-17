@@ -696,7 +696,7 @@ function openJob(id) {
   html += '</div>';
 
   // Info
-  html += '<div class="section-hdr">Details</div>';
+  html += '<div class="section-hdr" style="display:flex;justify-content:space-between;align-items:center"><span>Details</span><button onclick="editJob()" style="background:none;border:none;color:var(--green);font-size:13px;font-weight:600;cursor:pointer;letter-spacing:0">✏️ Edit</button></div>';
   html += '<div class="card">';
   html += infoRow('Phone',    j.phone   || '—');
   html += infoRow('Address',  j.address || '—');
@@ -1234,6 +1234,60 @@ function confirmDatesToCustomer() {
   location.href = 'mailto:' + j.email
     + '?subject=' + encodeURIComponent(subject)
     + '&body='    + encodeURIComponent(body);
+}
+
+// ══════════════════════════════════════════════════════════
+// EDIT JOB DETAILS
+// ══════════════════════════════════════════════════════════
+function editJob() {
+  var j = jobs.find(function(x){ return x.id === currentJobId; });
+  if (!j) return;
+
+  var existing = document.getElementById('edit-modal');
+  if (existing) existing.remove();
+
+  var modal = document.createElement('div');
+  modal.id = 'edit-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;display:flex;align-items:flex-end;padding:0';
+  modal.innerHTML =
+    '<div style="background:#1a1a1a;border-radius:16px 16px 0 0;padding:24px 20px 44px;width:100%;border-top:1px solid #2a2a2a;max-height:90vh;overflow-y:auto">'
+      + '<div style="font-size:17px;font-weight:700;margin-bottom:20px">Edit Details</div>'
+      + '<div class="lbl">Name</div>'
+      + '<input class="inp" type="text" id="edit-name" value="' + esc(j.name||'') + '" autocomplete="off">'
+      + '<div class="lbl">Phone</div>'
+      + '<input class="inp" type="tel" id="edit-phone" value="' + esc(j.phone||'') + '">'
+      + '<div class="lbl">Address</div>'
+      + '<input class="inp" type="text" id="edit-addr" value="' + esc(j.address||'') + '" autocomplete="off">'
+      + '<div class="lbl">Email</div>'
+      + '<input class="inp" type="email" id="edit-email" value="' + esc(j.email||'') + '">'
+      + '<div class="lbl">Notes / Job</div>'
+      + '<input class="inp" type="text" id="edit-notes" value="' + esc(j.notes||j.description||'') + '">'
+      + '<button class="btn btn-green" onclick="saveEdit()" style="margin-top:20px">Save Changes</button>'
+      + '<button onclick="document.getElementById(\'edit-modal\').remove()" style="width:100%;background:none;border:none;color:#555;font-size:14px;padding:14px;cursor:pointer;margin-top:4px">Cancel</button>'
+    + '</div>';
+
+  modal.addEventListener('click', function(e){ if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+async function saveEdit() {
+  var j = jobs.find(function(x){ return x.id === currentJobId; });
+  if (!j) return;
+
+  var name = document.getElementById('edit-name').value.trim();
+  if (!name) { toast('Name is required'); return; }
+
+  j.name    = name;
+  j.phone   = document.getElementById('edit-phone').value.trim();
+  j.address = document.getElementById('edit-addr').value.trim();
+  j.email   = document.getElementById('edit-email').value.trim();
+  j.notes   = document.getElementById('edit-notes').value.trim();
+  if (j.description !== undefined) j.description = j.notes;
+
+  await upsertJob(j);
+  document.getElementById('edit-modal').remove();
+  toast('Details updated');
+  openJob(currentJobId);
 }
 
 // ── INIT ──
