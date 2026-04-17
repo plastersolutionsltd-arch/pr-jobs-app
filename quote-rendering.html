@@ -780,10 +780,18 @@
             Scope of Works / Notes
             <select onchange="if(this.value){insertScopeTemplate(this.value);this.value=''}" style="font-size:11px;padding:3px 8px;background:#111;color:#66FF33;border:1px solid #333;border-radius:2px;cursor:pointer;font-family:inherit;max-width:200px">
               <option value="">— Load template —</option>
-              <option value="silicone_pebbledash">Silicone over Pebble Dash</option>
-              <option value="silicone_brick_block">Full Silicone — Brick &amp; Block</option>
-              <option value="monocouche_brick_block">Monocouche — Brick &amp; Block</option>
-              <option value="ewi_brick_block">EWI — Brick &amp; Block</option>
+              <optgroup label="── Silicone (EcoRend) ──">
+                <option value="silicone_pebbledash">Silicone over Pebble Dash — EcoRend</option>
+                <option value="silicone_brick_block">Full Silicone — Brick &amp; Block — No Hack Off</option>
+                <option value="silicone_hackoff">Full Silicone — Brick &amp; Block — Hack Off</option>
+              </optgroup>
+              <optgroup label="── Monocouche ──">
+                <option value="monocouche_brick_block">Monocouche — Brick &amp; Block — No Hack Off</option>
+                <option value="monocouche_hackoff">Monocouche — Brick &amp; Block — Hack Off</option>
+              </optgroup>
+              <optgroup label="── EWI ──">
+                <option value="ewi_brick_block">EWI — Brick &amp; Block</option>
+              </optgroup>
             </select>
           </label>
           <textarea id="notes" placeholder="Brief description of the works included in this quote..." oninput="update()"></textarea>
@@ -932,27 +940,75 @@
           </div>
         </div>
 
-        <!-- Terms / Why us -->
-        <div class="inv-terms">
-          <h4>OUR COMMITMENT TO YOU</h4>
+        <!-- Warranty & Guarantee -->
+        <div class="inv-terms" style="background:#f5fbf2;border-color:#c8e6c0">
+          <h4 style="color:#4a7a40">WARRANTY &amp; GUARANTEE</h4>
           <div class="inv-terms-grid">
             <div class="inv-terms-col">
-              <strong>25-Year Manufacturer Guarantee</strong>
-              All materials carry a 25-year guarantee (K-Rend, Ecorend, Baumit). Covers material defects. Transferable to future property owners.
+              <strong>25-Year Manufacturer Product Warranty</strong>
+              All silicone render systems installed by P&R Solutions — EcoRend, K Rend, and Baumit — carry a 25-year manufacturer product warranty against material failure, provided the system is installed strictly to the manufacturer's published specification. Documentary evidence available on request.
             </div>
             <div class="inv-terms-col">
               <strong>5-Year Workmanship Guarantee</strong>
-              All installations guaranteed for 5 years. Free repairs if issues arise from our work. Requires normal surface maintenance.
+              P&R Solutions provides a 5-year workmanship guarantee covering all defects directly attributable to our installation method — including system delamination, substrate debonding, and render failure arising from our workmanship. Internal plastering works carry a 12-month workmanship guarantee.
             </div>
             <div class="inv-terms-col">
-              <strong>No Deposit Required</strong>
-              We do not require payment upfront. Payment is only due upon completion and when you are fully satisfied with the work. No risk to you.
+              <strong>What Is Covered</strong>
+              Defects in the installed system arising from our application: delamination from a sound substrate, significant cracking in thin-coat render systems attributable to installation, and colour inconsistency arising from product application.
             </div>
             <div class="inv-terms-col">
-              <strong>Quote Terms</strong>
-              This quote is valid for 30 days. Quotes are based on the site survey. Significant changes to scope may require a revised quote. All prices include materials and labour unless stated.
+              <strong>What Is Not Covered</strong>
+              Damage caused by structural movement or subsidence; dampness penetrating from an independent source; physical impact or vandalism; modifications by a third party; pre-existing substrate conditions not identified at survey; failure to maintain per manufacturer guidance; or normal weathering and surface soiling.
             </div>
           </div>
+          <div style="margin-top:4mm;padding-top:3mm;border-top:1px solid #c8e6c0;font-size:6.5pt;color:#888">
+            <strong style="color:#666">Guarantee Conditions:</strong> All guarantees run from the date of practical completion. Any repair or modification carried out by a third party without written consent from P&R Solutions will render the workmanship guarantee void. To make a claim, contact us in writing at Plastersolutionsltd@gmail.com — we will attend site within 10 working days of a valid claim.
+          </div>
+        </div>
+
+        <!-- Acceptance -->
+        <div class="inv-acceptance">
+          <h4>ACCEPTANCE OF QUOTATION</h4>
+          <div>
+            <div class="sig-line"></div>
+            <div class="sig-label">CUSTOMER SIGNATURE</div>
+          </div>
+          <div>
+            <div class="sig-line"></div>
+            <div class="sig-label">DATE ACCEPTED</div>
+          </div>
+        </div>
+
+        <!-- Terms & Conditions -->
+        <div class="inv-terms" style="margin-top:5mm">
+          <h4>TERMS &amp; CONDITIONS</h4>
+          <div class="inv-terms-grid">
+            <div class="inv-terms-col">
+              <strong>1. Quotation</strong>
+              Valid for 30 days from date of issue. Based on scope, measurements, and property condition as assessed at survey. P&R Solutions reserves the right to revise if substrate condition or extent of remedial works required differs materially from that observed.
+            </div>
+            <div class="inv-terms-col">
+              <strong>2. Payment Terms</strong>
+              Full payment due upon satisfactory completion. Strict no-deposit policy on all standard residential projects. For projects over £5,000, staged payments aligned to agreed milestones may be arranged in writing before works commence. The final payment is always held until you have personally inspected and approved the completed works.
+            </div>
+            <div class="inv-terms-col">
+              <strong>3. Variations to Scope</strong>
+              Any variation to the agreed scope must be authorised in writing before additional works commence. Verbal instructions cannot be accepted as authorisation. Varied works will be quoted separately and are subject to the same terms.
+            </div>
+            <div class="inv-terms-col">
+              <strong>4. Access &amp; Site Facilities</strong>
+              Customer is responsible for clear, safe access on the agreed start date and throughout works. Mains water and electricity must be available at no charge. Additional costs arising from undisclosed access restrictions or parking difficulties may be charged as a variation.
+            </div>
+            <div class="inv-terms-col">
+              <strong>5. Customer Preparation</strong>
+              Customer responsible for removal of fixtures, fittings, hanging baskets, satellite dishes, external lights, and any items that may obstruct works or be at risk of damage, unless expressly agreed otherwise. P&R Solutions will protect all surrounding areas with professional-grade masking, tape, and sheeting.
+            </div>
+            <div class="inv-terms-col">
+              <strong>6. Liability &amp; Cancellation</strong>
+              P&R Solutions Ltd carries full public liability insurance. Liability is limited to the value of the contract works. Cancellation with less than 48 hours' notice may incur a charge to cover mobilisation and lost scheduled resource. Non-returnable materials ordered specifically for the project will be invoiced at cost.
+            </div>
+          </div>
+          <div style="margin-top:3mm;color:#bbb;font-size:6pt">These terms are governed by the laws of England and Wales. In the event of a dispute, both parties agree to seek resolution through direct discussion in the first instance before referring to an independent mediator or recognised industry body.</div>
         </div>
 
         <!-- Footer -->
@@ -1619,75 +1675,130 @@
     }
 
     const SCOPE_TEMPLATES = {
-      silicone_pebbledash: `Following inspection, the existing render substrate has been assessed as suitable to receive a full silicone render system.
+
+      silicone_pebbledash: `Supply of all labour, materials, plant and equipment to carry out a full EcoRend silicone render system over existing pebbledash substrate. No full hack-off required.
 
 Works to include:
 
-• Supply and fit new stop beads to all door and window reveals
-• Apply 10mm EcoRend basecoat with reinforcement mesh (EWI Net) fully embedded throughout to prevent cracking
-• Finished with EcoRend silicone topcoat in client's choice of colour
+• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works. All paving and ground areas beneath the elevations covered with dust sheets and ground protection.
 
-All works carried out to manufacturer's specification and come with a full guarantee.`,
+• Full inspection of existing pebbledash substrate; any hollow, blown or debonded sections identified, cut out, and made good with compatible mortar prior to overlay application. Any failed or corroded stop beads removed and replaced with proprietary stainless steel beads where required.
+
+• Application of EcoRend EWI-Pro 40 reinforcing base coat over the full pebbledash surface, reinforced throughout with EcoRend alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints. All corners and reveals to be double-meshed for additional strength and impact resistance. Base coat left to fully cure prior to topcoat application.
+
+• Application of EcoRend 1.5mm silicone topcoat in the client's choice of colour from the EcoRend colour range, applied uniformly in a single coat to a consistent texture and finish across all treated elevations.
+
+EcoRend silicone is self-cleaning, hydrophobic, breathable, and UV-stable — through-coloured throughout, with nothing to peel, chip, or repaint for 25+ years.
+
+• Upon completion, all masking, tape and protective materials removed, gutters checked and cleared of debris, and all working areas left clean and tidy.
+
+All works carried out in full accordance with EcoRend manufacturer specification. 25-year manufacturer product warranty applies to materials. 5-year P&R Solutions workmanship guarantee on installation.`,
+
+      silicone_brick_block: `Supply of all labour, materials, plant and equipment to carry out a full EcoRend silicone render system (EWI-Pro 40 base coat / 1.5mm silicone topcoat) to brick and block substrate. No hack-off required.
+
+Works to include:
+
+• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works. All paving and ground areas beneath the elevations covered with dust sheets and ground protection.
+
+• Thorough preparation of the existing brick and block substrate; removal of all loose material, surface contamination, organic growth, moss, algae and efflorescence. All existing pointing inspected — any failed or open joints raked out and re-pointed with suitable mortar prior to render application to ensure a sound, stable base.
+
+• Application of a suitable bonding agent / primer to the prepared substrate to promote adhesion and ensure full compatibility with the EcoRend system.
+
+• All stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points, ensuring clean, true and straight arrises throughout.
+
+• Application of EcoRend EWI-Pro 40 base coat, reinforced throughout with EcoRend alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints in accordance with manufacturer's specification. All corners and reveals to be double-meshed for additional strength and impact resistance. Base coat left to fully cure before topcoat application.
+
+• Application of EcoRend 1.5mm silicone topcoat in the client's choice of colour, applied uniformly to a consistent texture and finish across all treated elevations.
+
+EcoRend silicone is self-cleaning, hydrophobic, breathable, and UV-stable — through-coloured throughout, with nothing to peel, chip, or repaint for 25+ years.
+
+• Upon completion, all masking, tape and protective materials removed, gutters checked and cleared, and all working areas left clean and tidy.
+
+All works carried out in full accordance with EcoRend manufacturer specification. 25-year manufacturer product warranty applies to materials. 5-year P&R Solutions workmanship guarantee on installation.`,
+
+      silicone_hackoff: `Supply of all labour, materials, plant and equipment to carry out a full EcoRend silicone render system to brick and block substrate, following complete removal of all existing failed render.
+
+Works to include:
+
+• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works. All paving, paths and garden areas beneath the elevations covered with heavy-duty dust sheets and ground protection boards.
+
+• Full mechanical hack-off and removal of all existing render from all treated elevations. All arisings and debris cleared from site progressively throughout the works. No debris left on site upon completion.
+
+• Thorough inspection of the fully exposed brick and block substrate following hack-off. Identification and treatment of all areas of failed pointing, salt crystallisation, organic growth, moss, algae and efflorescence. All open or failed joints raked out and re-pointed with suitable mortar to restore a sound, stable base prior to application of the new render system.
+
+• Application of a suitable bonding agent / primer to the prepared substrate to promote full adhesion and compatibility with the EcoRend system.
+
+• All new stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points, ensuring clean, true and straight arrises throughout.
+
+• Application of EcoRend EWI-Pro 40 base coat, reinforced throughout with EcoRend alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints. All corners and reveals to be double-meshed for additional impact resistance. Base coat left to fully cure before topcoat application.
+
+• Application of EcoRend 1.5mm silicone topcoat in the client's choice of colour from the EcoRend colour range, applied uniformly to a consistent texture and finish across all treated elevations.
+
+EcoRend silicone is self-cleaning, hydrophobic, breathable, and UV-stable — through-coloured throughout, with nothing to peel, chip, or repaint for 25+ years.
+
+• Upon completion, all masking, tape and protective materials removed, gutters inspected and cleared of debris, all hack-off arisings removed from site, and all working areas left clean and tidy.
+
+All works carried out in full accordance with EcoRend manufacturer specification. 25-year manufacturer product warranty applies to materials. 5-year P&R Solutions workmanship guarantee on installation.`,
 
       monocouche_brick_block: `Supply of all labour, materials, plant and equipment to carry out a full monocouche render system to brick and block substrate. No hack-off required.
 
 Works to include:
 
-• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works.
+• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works. All paving and ground areas beneath the elevations covered with dust sheets and ground protection.
 
-• Thorough preparation of the existing brick and block substrate; removal of all loose material, surface contamination, organic growth, moss, algae and efflorescence. All existing pointing inspected and any failed joints re-pointed prior to render application to ensure a sound, stable base.
+• Thorough preparation of the existing brick and block substrate; removal of all loose material, surface contamination, organic growth, moss, algae and efflorescence. All existing pointing inspected — any failed or open joints raked out and re-pointed prior to render application to ensure a sound, stable base.
 
 • Application of a suitable bonding agent / primer to the prepared substrate to promote adhesion and ensure full compatibility with the render system.
 
-• All stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points prior to application, ensuring clean, true and straight arrises throughout.
+• All stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points, ensuring clean, true and straight arrises throughout.
+
+• Application of monocouche render in a single through-coloured coat, applied to a uniform thickness and finished to a consistent scratch texture across all treated elevations. Being a through-colour cement-based product, no painting or topcoat is required — colour is integral throughout.
+
+• Upon completion, all masking, tape and protective materials removed, gutters checked and cleared, and all working areas left clean and tidy.
+
+All works carried out in full accordance with manufacturer's specification. Full manufacturer guarantee applies to materials. 5-year P&R Solutions workmanship guarantee on installation.`,
+
+      monocouche_hackoff: `Supply of all labour, materials, plant and equipment to carry out a full monocouche render system to brick and block substrate, following complete removal of all existing failed render.
+
+Works to include:
+
+• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works. All paving, paths and garden areas beneath the elevations covered with heavy-duty dust sheets and ground protection boards.
+
+• Full mechanical hack-off and removal of all existing render from all treated elevations. All arisings and debris cleared from site progressively. No debris left on site upon completion.
+
+• Thorough inspection of the fully exposed substrate following hack-off; treatment of all failed pointing, salt crystallisation, organic growth and efflorescence. All open joints raked out and re-pointed with suitable mortar to restore a sound, stable base.
+
+• Application of a suitable bonding agent to the prepared substrate to promote adhesion and system compatibility.
+
+• All stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points, ensuring clean, true and straight arrises throughout.
 
 • Application of monocouche render in a single through-coloured coat, applied to a uniform thickness and finished to a consistent scratch texture across all treated elevations. Being a through-colour product, no painting or topcoat is required — colour is integral throughout.
 
-• Upon completion, all masking, tape and protective materials removed and all working areas left clean and tidy.
+• Upon completion, all masking, tape and protective materials removed, gutters inspected and cleared, all hack-off arisings removed from site, and all working areas left clean and tidy.
 
-All works carried out in full accordance with manufacturer's specification. Full guarantee applies to materials and workmanship.`,
+All works carried out in full accordance with manufacturer's specification. Full manufacturer guarantee applies to materials. 5-year P&R Solutions workmanship guarantee on installation.`,
 
       ewi_brick_block: `Supply of all labour, materials, plant and equipment to carry out a full External Wall Insulation (EWI) system to brick and block substrate. No hack-off required.
 
 Works to include:
 
-• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works.
+• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works. All paving and ground areas beneath the elevations covered with dust sheets and ground protection.
 
-• Thorough preparation of the existing brick and block substrate; removal of all loose material, surface contamination, organic growth, moss, algae and efflorescence. All existing pointing inspected and any failed joints re-pointed prior to insulation board installation to ensure a sound, stable base.
+• Thorough preparation of the existing brick and block substrate; removal of all loose material, surface contamination, organic growth, moss, algae and efflorescence. All existing pointing inspected — any failed joints raked out and re-pointed prior to board installation to ensure a sound, stable base.
 
 • Supply and mechanical fixing of insulation boards to the prepared substrate, fixed in a staggered brick-bond pattern using a combination of adhesive and mechanical fixings in accordance with manufacturer's specification. Board thickness as agreed and specified.
 
-• All starter tracks, stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points prior to render application, ensuring clean, true and straight arrises throughout.
+• All starter tracks, stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points, ensuring clean, true and straight arrises throughout.
 
-• Application of a polymer-modified basecoat adhesive over the full insulation board surface, reinforced throughout with alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints. All corners and reveals to be double-meshed for additional strength. Basecoat to be left to fully cure in accordance with manufacturer's guidelines.
+• Application of a polymer-modified basecoat adhesive over the full insulation board surface, reinforced throughout with alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints. All corners and reveals to be double-meshed for additional strength. Basecoat left to fully cure per manufacturer's guidelines.
 
-• Application of primer coat to the cured basecoat to promote adhesion and ensure an even absorption across all treated areas.
+• Application of primer coat to the cured basecoat to promote adhesion and ensure even absorption across all treated areas.
 
 • Application of 1.5mm premium silicone topcoat in the client's choice of colour, applied uniformly to a consistent texture and finish across all treated elevations.
 
-• Upon completion, all masking, tape and protective materials removed and all working areas left clean and tidy.
+• Upon completion, all masking, tape and protective materials removed, gutters checked and cleared, and all working areas left clean and tidy.
 
-All works carried out in full accordance with manufacturer's specification. Full guarantee applies to materials and workmanship.`,
-
-      silicone_brick_block: `Supply of all labour, materials, plant and equipment to carry out a full silicone render system (10mm basecoat / 1.5mm silicone topcoat) to brick and block substrate. No hack-off required.
-
-Works to include:
-
-• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works.
-
-• Thorough preparation of the existing brick and block substrate; removal of all loose material, surface contamination, organic growth, moss, algae and efflorescence. All existing pointing inspected and any failed joints re-pointed prior to render application to ensure a sound, stable base.
-
-• Application of a suitable bonding agent / primer to the prepared substrate to promote adhesion and ensure full compatibility with the render system.
-
-• All stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points prior to application, ensuring clean, true and straight arrises throughout.
-
-• Application of a 10mm polymer-modified base coat, reinforced throughout with alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints in accordance with manufacturer's specification. Base coat to be left to fully cure before topcoat application.
-
-• Application of a 1.5mm premium silicone topcoat in the client's choice of colour, applied uniformly to a consistent texture and finish across all treated elevations.
-
-• Upon completion, all masking, tape and protective materials removed and all working areas left clean and tidy.
-
-All works carried out in full accordance with manufacturer's specification. Full guarantee applies to materials and workmanship.`
+All works carried out in full accordance with manufacturer's specification. Full manufacturer guarantee applies to materials. 5-year P&R Solutions workmanship guarantee on installation.`,
     };
 
     /* ===== CLIENT IMPORT & LOAD ===== */
