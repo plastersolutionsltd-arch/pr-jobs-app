@@ -857,11 +857,29 @@
           const sv = _job.siteVisit;
           if (!document.getElementById('notes').value)
             document.getElementById('notes').value = sv.scopeOfWorks || sv.workTypes || '';
-          const m2 = parseFloat((sv.combinedM2 || '').replace(/[^\d.]/g, ''));
-          if (m2 > 0) {
-            const fid = rows.labour[0];
-            const qtyEl = document.querySelector(`[data-id="${fid}"][data-field="qty"]`);
-            if (qtyEl) { qtyEl.value = m2; calcRow(fid); }
+
+          if (sv.priceRows && sv.priceRows.length > 0 && !_job.quoteData) {
+            // Pre-fill labour rows from site visit pricing calculator
+            sv.priceRows.forEach((pr, i) => {
+              if (i >= rows.labour.length) addRow('labour');
+              const fid = rows.labour[i];
+              const sel = document.querySelector(`#row-${fid} select`);
+              const descEl = document.querySelector(`[data-id="${fid}"][data-field="desc"]`);
+              const qtyEl  = document.querySelector(`[data-id="${fid}"][data-field="qty"]`);
+              const unitEl = document.querySelector(`[data-id="${fid}"][data-field="unit"]`);
+              if (sel) sel.value = 'custom';
+              if (descEl) { descEl.style.display = ''; descEl.value = pr.desc || ''; }
+              if (qtyEl && pr.m2 > 0) qtyEl.value = pr.m2;
+              if (unitEl && pr.rate > 0) { unitEl.value = pr.rate; calcRow(fid); }
+            });
+          } else {
+            // Fallback — just fill m² into first row
+            const m2 = parseFloat((sv.combinedM2 || '').replace(/[^\d.]/g, ''));
+            if (m2 > 0) {
+              const fid = rows.labour[0];
+              const qtyEl = document.querySelector(`[data-id="${fid}"][data-field="qty"]`);
+              if (qtyEl) { qtyEl.value = m2; calcRow(fid); }
+            }
           }
         }
       }

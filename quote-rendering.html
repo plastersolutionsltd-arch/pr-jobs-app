@@ -1238,10 +1238,33 @@
               const sel = document.querySelector(`#row-${fid} select`);
               if (sel) { sel.value = pv; applyPreset(fid, sel); }
             }
-            const m2 = parseFloat((sv.combinedM2 || '').replace(/[^\d.]/g, ''));
-            if (m2 > 0) {
-              const qtyEl = document.querySelector(`[data-id="${fid}"][data-field="qty"]`);
-              if (qtyEl) { qtyEl.value = m2; calcRow(fid); }
+            if (sv.priceRows && sv.priceRows.length > 0 && !_job.quoteData) {
+              // Pre-fill labour rows from site visit pricing calculator
+              sv.priceRows.forEach((pr, i) => {
+                if (i >= rows.labour.length) addRow('labour');
+                const rfid = rows.labour[i];
+                const rsel = document.querySelector(`#row-${rfid} select`);
+                const descEl = document.querySelector(`[data-id="${rfid}"][data-field="desc"]`);
+                const qtyEl  = document.querySelector(`[data-id="${rfid}"][data-field="qty"]`);
+                const unitEl = document.querySelector(`[data-id="${rfid}"][data-field="unit"]`);
+                if (i === 0 && fid && pv) {
+                  // First row already has preset set — just update m² and rate from priceRow
+                  if (qtyEl && pr.m2 > 0) { qtyEl.value = pr.m2; calcRow(rfid); }
+                  if (unitEl && pr.rate > 0) { unitEl.value = pr.rate; calcRow(rfid); }
+                } else {
+                  if (rsel) rsel.value = 'custom';
+                  if (descEl) { descEl.style.display = ''; descEl.value = pr.desc || ''; }
+                  if (qtyEl && pr.m2 > 0) qtyEl.value = pr.m2;
+                  if (unitEl && pr.rate > 0) { unitEl.value = pr.rate; calcRow(rfid); }
+                }
+              });
+            } else {
+              // Fallback — fill m² into first row
+              const m2 = parseFloat((sv.combinedM2 || '').replace(/[^\d.]/g, ''));
+              if (m2 > 0) {
+                const qtyEl = document.querySelector(`[data-id="${fid}"][data-field="qty"]`);
+                if (qtyEl) { qtyEl.value = m2; calcRow(fid); }
+              }
             }
             if (!document.getElementById('notes').value)
               document.getElementById('notes').value = sv.scopeOfWorks || sv.workTypes || '';
