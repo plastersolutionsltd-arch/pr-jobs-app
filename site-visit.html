@@ -905,8 +905,8 @@
       if (r.error) throw r.error;
     }
 
-    // Pre-load job from Supabase on page open
-    (async function() {
+    // Pre-load job from Supabase — returns a Promise so DOMContentLoaded can await it
+    var _svJobLoaded = (async function() {
       var jobId = new URLSearchParams(location.search).get('jobId');
       if (jobId) _svJob = await sbGetJob(jobId);
     })();
@@ -1102,21 +1102,45 @@ function parseFreetextMessage(raw) {
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
-      document.getElementById('visit-date').value = new Date().toISOString().split('T')[0];
+      // Wait for Supabase job to load before filling form
+      await _svJobLoaded;
+      const sv = _svJob?.siteVisit;
+      const isRestore = !!sv;
 
-      // Auto-generate Visit Ref from sv_last counter
-      try {
-        const cr = await sb.from('counters').select('value').eq('id', 'sv_last').single();
-        const last = (!cr.error && cr.data) ? (cr.data.value || 0) : 0;
-        const year = new Date().getFullYear();
-        document.getElementById('visit-ref').value = 'SV-' + year + '-' + String(last + 1).padStart(3, '0');
-      } catch(e) {
-        document.getElementById('visit-ref').value = 'SV-' + new Date().getFullYear() + '-001';
+      // Date — restore or default to today
+      document.getElementById('visit-date').value = sv?.date || new Date().toISOString().split('T')[0];
+
+      // Visit Ref — restore or generate next SV number
+      if (sv?.ref) {
+        document.getElementById('visit-ref').value = sv.ref;
+      } else {
+        try {
+          const cr = await sb.from('counters').select('value').eq('id', 'sv_last').single();
+          const last = (!cr.error && cr.data) ? (cr.data.value || 0) : 0;
+          const year = new Date().getFullYear();
+          document.getElementById('visit-ref').value = 'SV-' + year + '-' + String(last + 1).padStart(3, '0');
+        } catch(e) {
+          document.getElementById('visit-ref').value = 'SV-' + new Date().getFullYear() + '-001';
+        }
       }
+
+      // Restore saved pricing rows, or add blank defaults
+      if (isRestore && sv.priceRows && sv.priceRows.length) {
+        sv.priceRows.forEach(pr => {
+          addPriceRow('');
+          const pc = priceCount;
+          if (pr.desc) document.getElementById('pdesc-' + pc).value = pr.desc;
+          if (pr.m2 > 0) { document.getElementById('pm2-' + pc).value = pr.m2; calcPriceRow(pc); }
+          if (pr.rate > 0) { document.getElementById('prate-' + pc).value = pr.rate; calcPriceRow(pc); }
+        });
+      } else {
+        addPriceRow('');
+      }
+
+      // Rooms — always blank (re-measure on site)
       addRoom('Living Room');
       addRoom('');
       addRoom('');
-      addPriceRow('');
 
       // ── Work type → finish type & price lookup ──
       const WORK_PRICE_MAP = {
@@ -1177,6 +1201,34 @@ function parseFreetextMessage(raw) {
           const rateEl = document.getElementById('prate-1');
           if (descEl) descEl.value = preset.label;
           if (rateEl) { rateEl.value = preset.price; calcPriceRow(1); }
+        }
+      }
+
+      // ── Restore saved site visit fields (scope, finish, colour, work types) ──
+      if (isRestore) {
+        if (sv.scopeOfWorks) {
+          const soEl = document.getElementById('scope-of-works');
+          if (soEl) soEl.value = sv.scopeOfWorks;
+        }
+        if (sv.finishType) {
+          const finSel = document.getElementById('finish-type-sel');
+          if (finSel) {
+            for (const opt of finSel.options) {
+              if (opt.text === sv.finishType || opt.value === sv.finishType) { finSel.value = opt.value; break; }
+            }
+          }
+        }
+        if (sv.colour) {
+          const colSel = document.getElementById('colour-render');
+          if (colSel) colSel.value = sv.colour;
+        }
+        if (sv.workTypes) {
+          const types = sv.workTypes.split(',').map(s => s.trim().toLowerCase());
+          document.querySelectorAll('.checks input[type="checkbox"]').forEach(cb => {
+            const label = cb.parentElement.textContent.trim().toLowerCase();
+            if (types.some(t => label.includes(t) || t.includes(label))) cb.checked = true;
+          });
+          filterFinish();
         }
       }
 
@@ -1404,7 +1456,19 @@ function parseFreetextMessage(raw) {
         colour:        document.getElementById('colour-render')?.value || '',
         skipTons:      skipTons || '',
         skipCost:      skipCost ? '£' + parseFloat(skipCost).toFixed(2) : '',
-        savedAt:       new Date().toISOString()
+        savedAt:       new Date().toISOString(),
+        priceRows:     (function() {
+          const rows = [];
+          for (let i = 1; i <= priceCount; i++) {
+            const row = document.getElementById('price-row-' + i);
+            if (!row) continue;
+            const desc = document.getElementById('pdesc-' + i)?.value?.trim() || '';
+            const m2   = parseFloat(document.getElementById('pm2-' + i)?.value) || 0;
+            const rate = parseFloat(document.getElementById('prate-' + i)?.value) || 0;
+            if (desc || m2 || rate) rows.push({ desc, m2, rate });
+          }
+          return rows;
+        })()
       };
 
       // Also update top-level client details in case they were edited on site
