@@ -328,6 +328,16 @@
           <div style="padding:11px 0;font-size:13px;color:#aaa">Leave 0 if not VAT registered</div>
         </div>
       </div>
+      <div class="field-row-2">
+        <div class="field">
+          <label>Deposit Received <span style="font-size:10px;letter-spacing:0;text-transform:none;color:#ccc">(optional)</span></label>
+          <input type="number" id="deposit" placeholder="0.00" min="0" step="0.01" oninput="update()">
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <div style="padding:11px 0;font-size:13px;color:#aaa">Deducted from balance due</div>
+        </div>
+      </div>
       <div class="field">
         <label>Notes <span style="font-size:10px;letter-spacing:0;text-transform:none;color:#ccc">(optional)</span></label>
         <textarea id="notes" placeholder="e.g. Thank you for your custom." oninput="update()"></textarea>
@@ -434,8 +444,12 @@
             <span class="tl" id="p-vat-label">VAT (0%)</span>
             <span class="tv" id="p-vat-amount">£0.00</span>
           </div>
+          <div class="inv-total-row" id="p-deposit-row" style="display:none">
+            <span class="tl">Deposit Received</span>
+            <span class="tv" id="p-deposit-amount" style="color:#2a7a2a">—£0.00</span>
+          </div>
           <div class="inv-total-grand">
-            <span class="tl">TOTAL DUE</span>
+            <span class="tl" id="p-total-label">TOTAL DUE</span>
             <span class="tv" id="p-total">£0.00</span>
           </div>
         </div>
@@ -527,8 +541,9 @@
     if (id.clientAddr)  document.getElementById('client-addr').value  = id.clientAddr;
     if (id.clientPhone) document.getElementById('client-phone').value = id.clientPhone;
     if (id.clientEmail) document.getElementById('client-email').value = id.clientEmail;
-    if (id.vatRate)     document.getElementById('vat-rate').value     = id.vatRate;
-    if (id.notes)       document.getElementById('notes').value        = id.notes;
+    if (id.vatRate)  document.getElementById('vat-rate').value = id.vatRate;
+    if (id.deposit)  document.getElementById('deposit').value  = id.deposit;
+    if (id.notes)    document.getElementById('notes').value    = id.notes;
     (id.worksRows || []).forEach(function(r) {
       addRow('works');
       var id2 = rows.works[rows.works.length - 1];
@@ -734,7 +749,7 @@
       invNumber: v('inv-number'), invDate: v('inv-date'), invDue: v('inv-due'), invRef: v('inv-ref'),
       clientName: v('client-name'), clientAddr: v('client-addr'),
       clientPhone: v('client-phone'), clientEmail: v('client-email'),
-      vatRate: v('vat-rate'), notes: v('notes'),
+      vatRate: v('vat-rate'), deposit: v('deposit'), notes: v('notes'),
       worksRows: worksRows, itemsRows: itemsRows
     };
     job.invoice = {
@@ -798,11 +813,16 @@
       paymentLines += 'Reference:     ' + invNum + ' - ' + (job.name || v('client-name')) + '\n';
     }
 
+    var deposit    = parseFloat(v('deposit')) || 0;
+    var depositLine = deposit > 0 ? 'Deposit Paid:  —' + fmt(deposit) + '\n' : '';
+
     var body = encodeURIComponent(
       'Hi ' + firstName + ',\n\n' +
       'Please find attached invoice ' + invNum + ' for the works recently completed at your property.\n\n' +
       '━━━━━━━━━━━━━━━━━━━━━━\n' +
-      'INVOICE TOTAL: ' + total + '\n' +
+      (deposit > 0 ? 'INVOICE TOTAL: ' + fmt(parseFloat(total.replace(/[^0-9.]/g,'')) + deposit) + '\n' : '') +
+      depositLine +
+      (deposit > 0 ? 'BALANCE DUE:   ' : 'INVOICE TOTAL: ') + total + '\n' +
       'Invoice Date:  ' + invDate + '\n' +
       'Payment Due:   ' + invDue + '\n' +
       '━━━━━━━━━━━━━━━━━━━━━━\n' +
@@ -904,15 +924,20 @@
     var subtotal   = worksTotal + itemsTotal;
     var vatRate    = parseFloat(v('vat-rate')) || 0;
     var vatAmt     = subtotal * (vatRate / 100);
-    var total      = subtotal + vatAmt;
+    var grossTotal = subtotal + vatAmt;
+    var deposit    = parseFloat(v('deposit')) || 0;
+    var balance    = grossTotal - deposit;
 
     setText('p-subtotal',   fmt(subtotal));
     setText('p-vat-label',  'VAT (' + vatRate + '%)');
     setText('p-vat-amount', fmt(vatAmt));
-    setText('p-total',      fmt(total));
-    setText('p-due-total',  fmt(total));
+    setText('p-deposit-amount', '—' + fmt(deposit));
+    setText('p-total',      fmt(balance));
+    setText('p-due-total',  fmt(balance));
     setText('p-due-date-banner', fmtDate(v('inv-due')));
-    document.getElementById('p-vat-row').style.display = vatRate > 0 ? 'flex' : 'none';
+    document.getElementById('p-vat-row').style.display     = vatRate > 0 ? 'flex' : 'none';
+    document.getElementById('p-deposit-row').style.display = deposit > 0 ? 'flex' : 'none';
+    setText('p-total-label', deposit > 0 ? 'BALANCE DUE' : 'TOTAL DUE');
 
     // Bank details
     var bn = v('bank-name'), bs = v('bank-sort'), ba = v('bank-acc'), bb = v('bank-bank');
