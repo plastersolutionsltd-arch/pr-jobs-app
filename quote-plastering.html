@@ -870,7 +870,15 @@
               if (sel) sel.value = 'custom';
               if (descEl) { descEl.style.display = ''; descEl.value = pr.desc || ''; }
               if (qtyEl && pr.m2 > 0) qtyEl.value = pr.m2;
-              if (unitEl && pr.rate > 0) { unitEl.value = pr.rate; calcRow(fid); }
+              if (unitEl && pr.rate > 0) unitEl.value = pr.rate;
+              // If a flat total was entered directly, put it in the total field
+              if (pr.total > 0 && !(pr.m2 > 0 && pr.rate > 0)) {
+                const totalEl = document.getElementById('row-total-' + fid);
+                if (totalEl) totalEl.value = pr.total.toFixed(2);
+                update();
+              } else {
+                calcRow(fid);
+              }
             });
           } else {
             // Fallback — just fill m² into first row

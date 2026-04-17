@@ -1255,7 +1255,14 @@
                   if (rsel) rsel.value = 'custom';
                   if (descEl) { descEl.style.display = ''; descEl.value = pr.desc || ''; }
                   if (qtyEl && pr.m2 > 0) qtyEl.value = pr.m2;
-                  if (unitEl && pr.rate > 0) { unitEl.value = pr.rate; calcRow(rfid); }
+                  if (unitEl && pr.rate > 0) unitEl.value = pr.rate;
+                  if (pr.total > 0 && !(pr.m2 > 0 && pr.rate > 0)) {
+                    const totalEl = document.getElementById('row-total-' + rfid);
+                    if (totalEl) totalEl.value = pr.total.toFixed(2);
+                    update();
+                  } else {
+                    calcRow(rfid);
+                  }
                 }
               });
             } else {
