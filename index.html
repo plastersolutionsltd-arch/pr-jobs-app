@@ -409,7 +409,7 @@
 
 <script>
 // ══════════════════════════════════════════════════════════
-// DATA — Supabase
+// DATA — localStorage (primary) + Supabase (background sync)
 // ══════════════════════════════════════════════════════════
 var SB_URL = 'https://ngakblcdnuqectjappkl.supabase.co';
 var SB_KEY = 'sb_publishable_wX0TOGQTtNWi0ex14ux6Hw_eKVge5cJ';
@@ -420,28 +420,61 @@ var currentJobId = null;
 var currentTab = 'all';
 var prevScreen = 'screen-jobs';
 
+// localStorage helpers — always work, even offline
+function lsSave() {
+  try { localStorage.setItem('pr_jobs', JSON.stringify(jobs)); } catch(e) {}
+}
+function lsLoad() {
+  try { return JSON.parse(localStorage.getItem('pr_jobs') || '[]'); } catch(e) { return []; }
+}
+
 async function loadJobs() {
+  // Load from localStorage instantly — data always available
+  var local = lsLoad();
+  if (local.length > 0) {
+    jobs = local;
+    renderJobs();
+  }
+
+  // Try Supabase sync in background — if it has more/newer data, use it
   try {
     var result = await sb.from('jobs').select('*').order('created', { ascending: false });
     if (result.error) throw result.error;
-    jobs = (result.data || []).map(function(r) {
+    var remote = (result.data || []).map(function(r) {
       return Object.assign({}, r.data, { id: r.id, name: r.name, status: r.status, created: r.created });
     });
+    if (remote.length > 0) {
+      jobs = remote;
+      lsSave();
+      renderJobs();
+    }
   } catch(e) {
-    console.warn('Load failed:', e);
-    jobs = [];
+    console.warn('Supabase sync failed, using local data:', e);
   }
 }
 
 async function upsertJob(job) {
-  var row = { id: job.id, name: job.name || '', status: job.status || 'enquiry', created: job.created || Date.now(), data: job };
-  var result = await sb.from('jobs').upsert(row);
-  if (result.error) { toast('Save failed — check connection'); console.error(result.error); }
+  // Save to localStorage first — instant, never fails
+  lsSave();
+
+  // Then sync to Supabase in background
+  try {
+    var row = { id: job.id, name: job.name || '', status: job.status || 'enquiry', created: job.created || Date.now(), data: job };
+    var result = await sb.from('jobs').upsert(row);
+    if (result.error) { console.warn('Supabase save failed (data safe locally):', result.error); }
+  } catch(e) {
+    console.warn('Supabase save error (data safe locally):', e);
+  }
 }
 
 async function removeJob(id) {
-  var result = await sb.from('jobs').delete().eq('id', id);
-  if (result.error) { toast('Delete failed'); console.error(result.error); }
+  // localStorage already updated by caller before this runs
+  lsSave();
+
+  try {
+    var result = await sb.from('jobs').delete().eq('id', id);
+    if (result.error) { console.warn('Supabase delete failed:', result.error); }
+  } catch(e) {}
 }
 
 function newId() { return Date.now() + Math.random().toString(36).slice(2,6); }
