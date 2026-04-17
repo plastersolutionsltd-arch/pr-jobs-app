@@ -65,6 +65,8 @@
     .badge-inprogress { background: #2a1a2a; color: #cc77ff; }
     .badge-done     { background: #1e1e1e; color: #666; }
     .badge-declined { background: #2a1a1a; color: #cc4444; }
+    .badge-invoiced { background: #1a1a2a; color: #7788ff; }
+    .badge-paid     { background: #0f2a0f; color: var(--green); }
 
     /* ── JOB LIST ── */
     .job-card { cursor: pointer; active: opacity 0.7; }
@@ -164,7 +166,7 @@
     .info-lbl { font-size: 12px; color: var(--muted); width: 70px; flex-shrink: 0; }
     .info-val { font-size: 15px; flex: 1; }
 
-    .status-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 4px; }
+    .status-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 4px; }
     .status-opt {
       padding: 8px 4px; border-radius: 8px; border: 1.5px solid var(--border);
       font-size: 11px; text-align: center; cursor: pointer; color: var(--muted); background: none;
@@ -176,6 +178,8 @@
     .status-opt.sel-inprogress{ border-color: #cc77ff; color: #cc77ff; background: #1a0a1a; }
     .status-opt.sel-done      { border-color: #555; color: #aaa; background: #1a1a1a; }
     .status-opt.sel-declined  { border-color: #cc4444; color: #cc4444; background: #1a0a0a; }
+    .status-opt.sel-invoiced  { border-color: #7788ff; color: #7788ff; background: #0a0a1a; }
+    .status-opt.sel-paid      { border-color: var(--green); color: var(--green); background: #0a1a0a; }
 
     .tools-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .tool-btn {
@@ -261,6 +265,8 @@
       <button class="tab" data-status="inprogress" onclick="setTab(this)">In Progress</button>
       <button class="tab" data-status="done" onclick="setTab(this)">Done</button>
       <button class="tab" data-status="declined" onclick="setTab(this)">Declined</button>
+      <button class="tab" data-status="invoiced" onclick="setTab(this)">Invoiced</button>
+      <button class="tab" data-status="paid" onclick="setTab(this)">Paid</button>
     </div>
     <div id="jobs-list"></div>
   </div>
@@ -564,7 +570,7 @@ function setTab(btn) {
 }
 
 function statusLabel(s) {
-  return {enquiry:'Enquiry',quoted:'Quoted',booked:'Booked',inprogress:'In Progress',done:'Done',declined:'Declined'}[s] || s;
+  return {enquiry:'Enquiry',quoted:'Quoted',booked:'Booked',inprogress:'In Progress',done:'Done',declined:'Declined',invoiced:'Invoiced',paid:'Paid'}[s] || s;
 }
 
 function formatDate(ts) {
@@ -731,7 +737,7 @@ function openJob(id) {
   // Status
   html += '<div class="section-hdr">Status</div>';
   html += '<div class="status-grid">';
-  ['enquiry','quoted','booked','inprogress','done','declined'].forEach(function(s){
+  ['enquiry','quoted','booked','inprogress','done','declined','invoiced','paid'].forEach(function(s){
     var sel = j.status === s ? ' sel-'+s : '';
     html += '<button class="status-opt'+sel+'" onclick="setStatus(\''+s+'\')">'
       + statusLabel(s).replace(' ','<br>') + '</button>';
@@ -741,10 +747,14 @@ function openJob(id) {
   // Workflow templates
   html += '<div class="section-hdr">Workflow</div>';
   html += '<div class="tools-grid">';
-  html += toolBtn(noteSVG(),  'Site Visit',      "openTemplate('site-visit.html')");
-  html += toolBtn(quoteSVG(), 'Quote Plaster',   "openTemplate('quote-plastering.html')");
-  html += toolBtn(quoteSVG(), 'Quote Render',    "openTemplate('quote-rendering.html')");
-  html += toolBtn(calSVG(),   'Book Date',       'scheduleJob()');
+  html += toolBtn(noteSVG(),    'Site Visit',    "openTemplate('site-visit.html')");
+  html += toolBtn(quoteSVG(),   'Quote Plaster', "openTemplate('quote-plastering.html')");
+  html += toolBtn(quoteSVG(),   'Quote Render',  "openTemplate('quote-rendering.html')");
+  html += toolBtn(calSVG(),     'Book Date',     'scheduleJob()');
+  html += toolBtn(invoiceSVG(), 'Invoice',       "openTemplate('invoice.html')");
+  if (j.status === 'invoiced') {
+    html += toolBtn(paidSVG(), 'Mark Paid', 'setStatus(\'paid\')');
+  }
   html += '</div>';
 
   // Tools shortcut
@@ -1052,7 +1062,9 @@ function ruleSVG(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="current
 function noteSVG(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>'; }
 function imgSVG(){  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>'; }
 function quoteSVG(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>'; }
-function calSVG(){  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/></svg>'; }
+function calSVG(){     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/></svg>'; }
+function invoiceSVG(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="13" y2="16"/><path d="M17 16l1.5 1.5L21 15" stroke-linecap="round" stroke-linejoin="round"/></svg>'; }
+function paidSVG(){    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M8 12l3 3 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>'; }
 
 // ══════════════════════════════════════════════════════════
 // SHARE ENQUIRY FORM
