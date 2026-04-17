@@ -985,7 +985,9 @@ function findAddress(s, postcode) {
   // Stop at newline or at known Formspree field label words
   var stopWords = 'postcode|property|work_type|work type|description|timescale|phone|email|name';
   var re = new RegExp('(\\d+[a-zA-Z]?[,\\s]+[\\w\\s,\\.\\-]{0,50}?(?:'+types+')(?:[\\w\\s,]{0,20})?)', 'i');
-  var singleLine = s.replace(new RegExp('\\s+(?:'+stopWords+')\\b.*','i'),' ').split('\n')[0];
+  // Strip postcode from singleLine first so e.g. "S35 4HF, 9 Holland Road" doesn't grab "35" as house number
+  var pcPattern = /\b[A-Za-z]{1,2}\d{1,2}[A-Za-z]?\s*\d[A-Za-z]{2}\b/g;
+  var singleLine = s.replace(new RegExp('\\s+(?:'+stopWords+')\\b.*','i'),' ').split('\n')[0].replace(pcPattern, '');
   var m = singleLine.match(re) || s.split('\n').reduce(function(found, line){
     return found || line.match(re);
   }, null);
@@ -1017,7 +1019,7 @@ function findAddress(s, postcode) {
   return '';
 }
 function findName(s) {
-  var skip=['looking','wondering','hoping','wanting','calling','writing','ringing','contacting','regarding','could','would','please','can','just','sheffield','leeds','manchester','bradford','birmingham','good','dear','hello','hi','detached','semi','terraced','bungalow','house','flat','apartment','commercial','silicone','monocouche','roughcast','tyrolean','plastering','rendering','new','quote','free'];
+  var skip=['looking','wondering','hoping','wanting','calling','writing','ringing','contacting','regarding','could','would','please','can','just','sheffield','leeds','manchester','bradford','birmingham','good','dear','hello','hi','detached','semi','terraced','bungalow','house','flat','apartment','commercial','silicone','monocouche','roughcast','tyrolean','plastering','rendering','new','quote','free','whatsapp','message','pictures','photos','address','road','street','avenue','close','drive'];
   function ok(c){ return c && !skip.some(function(w){ return c.toLowerCase().indexOf(w)===0; }); }
   var m;
   // Standalone Title Case line
@@ -1026,8 +1028,11 @@ function findName(s) {
     var line=lines[i].trim();
     if (/^[A-Z][a-z]{1,25}(\s+[A-Z][a-z]{1,25}){1,2}$/.test(line) && ok(line)) return line;
   }
-  // Sign-off
+  // Sign-off with keyword (thanks, regards, cheers etc)
   m=s.match(/(?:thanks|thank\s+you|regards|cheers|kind\s+regards)[,\s!]+([A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})?)\s*$/im);
+  if(m&&ok(m[1])) return m[1].trim();
+  // Sign-off at end of message — name alone after a sentence (e.g. "...on WhatsApp. Greg")
+  m=s.match(/[.!?]\s+([A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})?)\s*$/m);
   if(m&&ok(m[1])) return m[1].trim();
   // Explicit
   m=s.match(/(?:my name(?:'s|\s+is)?|i['']m|i am|it['']s|this is|name[:\s]+)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})/i);
