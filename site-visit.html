@@ -608,17 +608,36 @@
 
     <!-- Type of Work -->
     <div class="sec">Type of Work</div>
-    <div class="checks">
-      <label><input type="checkbox" id="wt-plastering" onchange="filterFinish()"> Plastering</label>
-      <label><input type="checkbox" id="wt-rendering" onchange="filterFinish()"> Rendering</label>
-      <label><input type="checkbox"> Dry Lining</label>
-      <label><input type="checkbox"> Patching / Repair</label>
-      <label><input type="checkbox"> Coving</label>
-      <label><input type="checkbox"> Sand &amp; Cement</label>
-      <label><input type="checkbox"> K-Rend</label>
-      <label><input type="checkbox"> Monocouche</label>
-      <label><input type="checkbox"> Tyrolean</label>
-      <label><input type="checkbox"> External Render</label>
+    <div class="grid-2">
+      <div class="f">
+        <label>Render Type</label>
+        <select id="wt-rendering" onchange="filterFinish()">
+          <option value="">— None —</option>
+          <option>Silicone Render</option>
+          <option>Monocouche</option>
+          <option>K-Rend</option>
+          <option>EWI System</option>
+          <option>Sand &amp; Cement Render</option>
+          <option>Roughcast / Pebbledash</option>
+          <option>Tyrolean</option>
+          <option>External Render</option>
+        </select>
+      </div>
+      <div class="f">
+        <label>Plaster Type</label>
+        <select id="wt-plastering" onchange="filterFinish()">
+          <option value="">— None —</option>
+          <option>Smooth Skim</option>
+          <option>Board &amp; Skim</option>
+          <option>Dot &amp; Dab &amp; Skim</option>
+          <option>Bond &amp; Skim</option>
+          <option>Patching &amp; Repair</option>
+          <option>Dry Lining</option>
+          <option>Coving</option>
+          <option>Sand &amp; Cement (internal)</option>
+          <option>Artex Removal</option>
+        </select>
+      </div>
     </div>
 
     <!-- Rooms & Measurements -->
@@ -1129,9 +1148,12 @@ function parseFreetextMessage(raw) {
         sv.priceRows.forEach(pr => {
           addPriceRow('');
           const pc = priceCount;
-          if (pr.desc) document.getElementById('pdesc-' + pc).value = pr.desc;
-          if (pr.m2 > 0) { document.getElementById('pm2-' + pc).value = pr.m2; calcPriceRow(pc); }
-          if (pr.rate > 0) { document.getElementById('prate-' + pc).value = pr.rate; calcPriceRow(pc); }
+          if (pr.desc)    document.getElementById('pdesc-'  + pc).value = pr.desc;
+          if (pr.m2   > 0) document.getElementById('pm2-'   + pc).value = pr.m2;
+          if (pr.rate > 0) document.getElementById('prate-' + pc).value = pr.rate;
+          if (pr.total > 0) document.getElementById('ptotal-'+ pc).value = pr.total;
+          else if (pr.m2 > 0 && pr.rate > 0) calcPriceRow(pc);
+          calcGrandTotal();
         });
       } else {
         addPriceRow('');
@@ -1223,10 +1245,20 @@ function parseFreetextMessage(raw) {
           if (colSel) colSel.value = sv.colour;
         }
         if (sv.workTypes) {
-          const types = sv.workTypes.split(',').map(s => s.trim().toLowerCase());
-          document.querySelectorAll('.checks input[type="checkbox"]').forEach(cb => {
-            const label = cb.parentElement.textContent.trim().toLowerCase();
-            if (types.some(t => label.includes(t) || t.includes(label))) cb.checked = true;
+          const types = sv.workTypes.split(',').map(s => s.trim());
+          const renderSel  = document.getElementById('wt-rendering');
+          const plasterSel = document.getElementById('wt-plastering');
+          types.forEach(t => {
+            if (renderSel) {
+              for (const opt of renderSel.options) {
+                if (opt.text === t) { renderSel.value = opt.value || opt.text; break; }
+              }
+            }
+            if (plasterSel) {
+              for (const opt of plasterSel.options) {
+                if (opt.text === t) { plasterSel.value = opt.value || opt.text; break; }
+              }
+            }
           });
           filterFinish();
         }
@@ -1400,10 +1432,10 @@ function parseFreetextMessage(raw) {
       const tr = document.createElement('tr');
       tr.id = 'price-row-' + pc;
       tr.innerHTML = `
-        <td><input type="text" id="pdesc-${pc}" placeholder="e.g. K-Rend scratch coat" value="${defaultName || ''}"></td>
+        <td><input type="text" id="pdesc-${pc}" placeholder="e.g. Lounge skim" value="${defaultName || ''}"></td>
         <td><input type="number" placeholder="0.0" step="0.1" min="0" id="pm2-${pc}"></td>
         <td><input type="number" placeholder="0.00" step="0.01" min="0" id="prate-${pc}"></td>
-        <td class="price-total-cell" id="ptotal-${pc}">—</td>
+        <td><input type="number" placeholder="0.00" step="0.01" min="0" id="ptotal-${pc}" oninput="calcGrandTotal()" style="text-align:right;font-weight:700;font-size:13px;color:#111;background:#fafafa;border:1px solid #e0e0e0;border-radius:2px;padding:6px 7px;width:100%"></td>
         <td><button class="btn-remove-row" type="button" title="Remove">×</button></td>
       `;
       tbody.appendChild(tr);
@@ -1415,17 +1447,27 @@ function parseFreetextMessage(raw) {
     function calcPriceRow(pc) {
       const m2 = parseFloat(document.getElementById('pm2-' + pc).value) || 0;
       const rate = parseFloat(document.getElementById('prate-' + pc).value) || 0;
-      const totalEl = document.getElementById('ptotal-' + pc);
-      totalEl.textContent = (m2 > 0 && rate > 0) ? '£' + (m2 * rate).toFixed(2) : '—';
+      // Only auto-fill total if both m² and rate are filled
+      if (m2 > 0 && rate > 0) {
+        const totalEl = document.getElementById('ptotal-' + pc);
+        if (totalEl) totalEl.value = (m2 * rate).toFixed(2);
+      }
       calcGrandTotal();
     }
 
     function calcGrandTotal() {
       let grand = 0;
       document.querySelectorAll('[id^="ptotal-"]').forEach(el => {
-        const v = parseFloat(el.textContent.replace('£', ''));
-        if (!isNaN(v)) grand += v;
+        // Inputs: read .value — skip cells (ptotal-skip uses textContent)
+        const v = parseFloat(el.value !== undefined ? el.value : el.textContent.replace('£', ''));
+        if (!isNaN(v) && v > 0) grand += v;
       });
+      // Also add skip cell if present
+      const skipEl = document.getElementById('ptotal-skip');
+      if (skipEl && skipEl.tagName !== 'INPUT') {
+        const v = parseFloat(skipEl.textContent.replace('£', ''));
+        if (!isNaN(v)) grand += v;
+      }
       document.getElementById('grand-total').textContent = '£' + grand.toFixed(2);
     }
 
@@ -1435,8 +1477,9 @@ function parseFreetextMessage(raw) {
       const job = _svJob || await sbGetJob(jobId);
       if (!job) { alert('Client not found — make sure you opened this from the PR Jobs app.'); return; }
 
-      const workTypes = [...document.querySelectorAll('.checks input[type="checkbox"]:checked')]
-        .map(cb => cb.parentElement.textContent.trim()).join(', ');
+      const _renderType  = document.getElementById('wt-rendering')?.value  || '';
+      const _plasterType = document.getElementById('wt-plastering')?.value || '';
+      const workTypes = [_renderType, _plasterType].filter(Boolean).join(', ');
 
       const skipVal  = document.getElementById('skip-size')?.value || '';
       const [skipTons, skipCost] = skipVal ? skipVal.split('|') : ['', ''];
@@ -1462,10 +1505,11 @@ function parseFreetextMessage(raw) {
           for (let i = 1; i <= priceCount; i++) {
             const row = document.getElementById('price-row-' + i);
             if (!row) continue;
-            const desc = document.getElementById('pdesc-' + i)?.value?.trim() || '';
-            const m2   = parseFloat(document.getElementById('pm2-' + i)?.value) || 0;
-            const rate = parseFloat(document.getElementById('prate-' + i)?.value) || 0;
-            if (desc || m2 || rate) rows.push({ desc, m2, rate });
+            const desc  = document.getElementById('pdesc-'  + i)?.value?.trim() || '';
+            const m2    = parseFloat(document.getElementById('pm2-'   + i)?.value) || 0;
+            const rate  = parseFloat(document.getElementById('prate-' + i)?.value) || 0;
+            const total = parseFloat(document.getElementById('ptotal-'+ i)?.value) || 0;
+            if (desc || total) rows.push({ desc, m2, rate, total });
           }
           return rows;
         })()
@@ -1539,10 +1583,10 @@ function parseFreetextMessage(raw) {
       calcGrandTotal();
     }
 
-    // ── Smart finish filter: show render or plaster options based on work type ticked ──
+    // ── Smart finish filter: show render or plaster options based on work type selected ──
     function filterFinish() {
-      const isRender   = document.getElementById('wt-rendering')?.checked;
-      const isPlaster  = document.getElementById('wt-plastering')?.checked;
+      const isRender  = !!document.getElementById('wt-rendering')?.value;
+      const isPlaster = !!document.getElementById('wt-plastering')?.value;
       const renderGrp  = document.getElementById('finish-render-group');
       const plasterGrp = document.getElementById('finish-plaster-group');
       if (!renderGrp || !plasterGrp) return;
