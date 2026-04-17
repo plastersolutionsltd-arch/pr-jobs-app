@@ -843,6 +843,13 @@
       <input type="text" placeholder="Any cost considerations, difficult access uplift, disposal etc.">
     </div>
 
+    <!-- Scope of Works -->
+    <div class="sec">Scope of Works</div>
+    <div class="f">
+      <label>Description of Works <span style="font-size:10px;font-weight:normal;color:#888">(transfers to quote &amp; invoice)</span></label>
+      <textarea id="scope-of-works" placeholder="Describe exactly what's being done — this will pre-fill the quote and invoice..." style="min-height:100px"></textarea>
+    </div>
+
     <!-- General Notes -->
     <div class="sec">General Notes</div>
     <div class="f">
@@ -1361,6 +1368,7 @@ function parseFreetextMessage(raw) {
         combinedM2:    document.getElementById('total-combined').textContent.replace('— combined','').replace('combined','').trim(),
         estTotal:      document.getElementById('grand-total').textContent,
         workTypes:     workTypes,
+        scopeOfWorks:  document.getElementById('scope-of-works')?.value.trim() || '',
         finishType:    document.getElementById('finish-type-sel')?.value || '',
         colour:        document.getElementById('colour-render')?.value || '',
         skipTons:      skipTons || '',
