@@ -574,7 +574,7 @@
 
     <!-- Visit Info -->
     <div class="sec">Visit Details</div>
-    <div class="grid-3">
+    <div class="grid-2">
       <div class="f">
         <label>Visit Date</label>
         <input type="date" id="visit-date">
@@ -582,17 +582,6 @@
       <div class="f">
         <label>Visit Ref</label>
         <input type="text" placeholder="SV-001">
-      </div>
-      <div class="f">
-        <label>Weather</label>
-        <select>
-          <option value="">— select —</option>
-          <option>Dry</option>
-          <option>Overcast</option>
-          <option>Wet / Rain</option>
-          <option>Cold</option>
-          <option>Hot / Sun</option>
-        </select>
       </div>
     </div>
 
@@ -608,23 +597,9 @@
         <input type="tel" placeholder="07xxx xxxxxx">
       </div>
     </div>
-    <div class="grid-2">
-      <div class="f">
-        <label>Email</label>
-        <input type="email" placeholder="email@example.com">
-      </div>
-      <div class="f">
-        <label>How Did They Find Us?</label>
-        <select>
-          <option value="">— select —</option>
-          <option>Word of mouth</option>
-          <option>Checkatrade</option>
-          <option>Google</option>
-          <option>Facebook</option>
-          <option>Returning customer</option>
-          <option>Other</option>
-        </select>
-      </div>
+    <div class="f">
+      <label>Email</label>
+      <input type="email" placeholder="email@example.com">
     </div>
     <div class="f">
       <label>Site Address</label>
@@ -647,7 +622,10 @@
     </div>
 
     <!-- Rooms & Measurements -->
-    <div class="sec">Rooms &amp; Measurements</div>
+    <div class="sec" style="display:flex;justify-content:space-between;align-items:center">
+      <span>Rooms &amp; Measurements</span>
+      <button onclick="addRoom('')" style="background:var(--green);color:#111;border:none;padding:3px 12px;font-family:'Fjalla One',sans-serif;font-size:12px;letter-spacing:1px;cursor:pointer;border-radius:2px">+ ADD</button>
+    </div>
     <table class="rooms-table" id="rooms-table">
       <thead>
         <tr>
@@ -673,8 +651,6 @@
         </tr>
       </tfoot>
     </table>
-    <button class="btn-add-row" onclick="addRoom()">+ Add room / area</button>
-
     <!-- Surface Condition -->
     <div class="sec">Surface Condition</div>
     <div class="grid-2">
