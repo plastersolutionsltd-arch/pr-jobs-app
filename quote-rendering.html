@@ -1243,8 +1243,8 @@
               const qtyEl = document.querySelector(`[data-id="${fid}"][data-field="qty"]`);
               if (qtyEl) { qtyEl.value = m2; calcRow(fid); }
             }
-            if (!document.getElementById('notes').value && sv.workTypes)
-              document.getElementById('notes').value = sv.workTypes;
+            if (!document.getElementById('notes').value)
+              document.getElementById('notes').value = sv.scopeOfWorks || sv.workTypes || '';
           } else {
             // No site visit yet — at least set render system from workType URL param
             const wt = _p.get('workType') || '';

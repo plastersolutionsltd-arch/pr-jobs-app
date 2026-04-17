@@ -855,8 +855,8 @@
         _cachedJob = _job;
         if (_job?.siteVisit) {
           const sv = _job.siteVisit;
-          if (!document.getElementById('notes').value && sv.workTypes)
-            document.getElementById('notes').value = sv.workTypes;
+          if (!document.getElementById('notes').value)
+            document.getElementById('notes').value = sv.scopeOfWorks || sv.workTypes || '';
           const m2 = parseFloat((sv.combinedM2 || '').replace(/[^\d.]/g, ''));
           if (m2 > 0) {
             const fid = rows.labour[0];
