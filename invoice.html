@@ -577,7 +577,28 @@
     if (job.email)   document.getElementById('client-email').value = job.email;
 
     var qd = job.quoteData;
-    if (!qd) return;
+
+    // Fallback: no quoteData (quote saved before quoteData was implemented)
+    // Pull description from siteVisit and total from quote summary
+    if (!qd) {
+      if (job.siteVisit && job.siteVisit.workTypes)
+        document.getElementById('works-desc').value = job.siteVisit.workTypes;
+      if (job.quote && job.quote.total) {
+        addRow('works');
+        var fb = rows.works[rows.works.length - 1];
+        var fd = document.querySelector('[data-id="'+fb+'"][data-field="desc"]');
+        var fc = document.querySelector('[data-id="'+fb+'"][data-field="unit"]');
+        var fq = document.querySelector('[data-id="'+fb+'"][data-field="qty"]');
+        if (fd) fd.value = 'Works as quoted';
+        if (fq) fq.value = '1';
+        if (fc) fc.value = (job.quote.total || '').replace(/[^0-9.]/g, '');
+        calcRow(fb);
+      }
+      if (!rows.works.length) addRow('works');
+      if (!rows.items.length) addRow('items');
+      update();
+      return;
+    }
 
     // Reference from quote
     if (!v('inv-ref') && qd.invRef) document.getElementById('inv-ref').value = qd.invRef;
@@ -644,6 +665,25 @@
         if (job.invoiceData) {
           // Re-opening a saved invoice — restore it
           restoreInvoice(job.invoiceData);
+          // Supplement any fields missing from older saves — fill from quoteData if needed
+          var qd = job.quoteData;
+          if (qd) {
+            if (!v('works-desc') && qd.notes)
+              document.getElementById('works-desc').value = qd.notes;
+            // If all works rows are empty (old save had no line items), reload from quote
+            var hasItems = rows.works.some(function(id) {
+              return parseFloat(document.querySelector('[data-id="'+id+'"][data-field="qty"]')?.value) > 0;
+            });
+            if (!hasItems && qd.labourRows && qd.labourRows.length) {
+              rows.works.forEach(function(id) { document.getElementById('row-'+id)?.remove(); });
+              rows.works = [];
+              qd.labourRows.forEach(function(r) {
+                addRow('works');
+                var id2 = rows.works[rows.works.length - 1];
+                setRowVal(id2, 'works', r.desc || '', r.qty || '', r.unit || '');
+              });
+            }
+          }
         } else {
           // Fresh invoice — pre-fill from quote if one exists, else from job
           prefillFromQuote(job);
