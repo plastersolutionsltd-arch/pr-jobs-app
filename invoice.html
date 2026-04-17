@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P&R Solutions — Invoice Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fjalla+One&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --green: #66FF33; --dark: #111; --border: #ddd; }
+    body { font-family: 'Lato', Arial, sans-serif; background: #f0f0f0; color: var(--dark); }
+
+    .app-header {
+      background: #111; color: white; padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 200;
+    }
+    .app-title { font-family: 'Fjalla One', Impact, sans-serif; font-size: 17px; letter-spacing: 2px; }
+    .app-title span { color: var(--green); }
+    .btn-print {
+      background: var(--green); color: #111; border: none; padding: 9px 18px;
+      font-family: 'Fjalla One', sans-serif; font-size: 13px; letter-spacing: 1px;
+      cursor: pointer; border-radius: 2px;
+    }
+    .btn-print:active { opacity: 0.8; }
+
+    .tab-bar {
+      display: flex; background: #1a1a1a; border-bottom: 2px solid var(--green);
+      position: sticky; top: 49px; z-index: 100;
+    }
+    .tab {
+      flex: 1; text-align: center; padding: 13px; color: #666;
+      font-family: 'Fjalla One', sans-serif; letter-spacing: 2px; font-size: 13px; cursor: pointer;
+    }
+    .tab.active { color: var(--green); border-bottom: 3px solid var(--green); margin-bottom: -2px; }
+
+    .app-body { display: flex; height: calc(100vh - 97px); }
+    .panel { flex: 1; overflow-y: auto; }
+    .panel-form { background: white; max-width: 480px; border-right: 1px solid #ddd; }
+    .panel-preview { background: #ddd; padding: 24px; display: flex; flex-direction: column; align-items: center; }
+
+    @media (max-width: 900px) {
+      .app-body { height: auto; flex-direction: column; }
+      .panel { display: none; }
+      .panel.active { display: block; }
+      .panel-form { max-width: 100%; border-right: none; }
+      .panel-preview { padding: 12px; }
+    }
+    @media (min-width: 901px) {
+      .tab-bar { display: none; }
+      .panel { display: block !important; }
+    }
+
+    .form-section { border-bottom: 1px solid #f0f0f0; padding: 20px 16px; }
+    .form-section-title {
+      font-family: 'Fjalla One', sans-serif; font-size: 10px; letter-spacing: 3px;
+      color: #aaa; text-transform: uppercase; margin-bottom: 14px;
+    }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 10px; letter-spacing: 1px; color: #999; text-transform: uppercase; margin-bottom: 5px; }
+    .field input, .field textarea, .field select {
+      width: 100%; padding: 11px 12px; border: 1px solid var(--border);
+      border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 15px;
+      color: var(--dark); background: white; -webkit-appearance: none; appearance: none;
+    }
+    .field input:focus, .field textarea:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 2px rgba(102,255,51,0.15); }
+    .field textarea { resize: vertical; min-height: 72px; }
+    .field-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .col-labels { display: grid; gap: 8px; margin-bottom: 6px; }
+    .col-labels.works { grid-template-columns: 1fr 70px 70px 70px 34px; }
+    .col-labels.items { grid-template-columns: 1fr 90px 34px; }
+    .col-label { font-size: 9px; letter-spacing: 1px; color: #bbb; text-transform: uppercase; }
+
+    .line-item { display: grid; gap: 6px; margin-bottom: 6px; align-items: center; }
+    .line-item-works { grid-template-columns: 1fr 70px 70px 70px 34px; }
+    .line-item-items { grid-template-columns: 1fr 90px 34px; }
+    .line-item input {
+      width: 100%; padding: 9px 10px; border: 1px solid var(--border);
+      border-radius: 2px; font-size: 14px; font-family: 'Lato', sans-serif;
+    }
+    .line-item input:focus { outline: none; border-color: var(--green); }
+
+    .btn-remove {
+      background: #f8f8f8; border: 1px solid #e8e8e8; border-radius: 2px;
+      width: 34px; height: 36px; cursor: pointer; color: #bbb; font-size: 20px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .btn-remove:hover { background: #fff0f0; border-color: #f99; color: #c33; }
+    .btn-add {
+      background: none; border: 1px dashed #ddd; border-radius: 2px; width: 100%;
+      padding: 9px 12px; color: #aaa; font-family: 'Lato', sans-serif; font-size: 13px;
+      cursor: pointer; margin-top: 6px; text-align: left;
+    }
+    .btn-add:hover { border-color: var(--green); color: #5cc; }
+
+    /* ===== INVOICE PREVIEW ===== */
+    .invoice {
+      background: white; width: 210mm; min-height: 297mm; padding: 14mm 15mm;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+      font-family: 'Lato', Arial, sans-serif; font-size: 9pt; color: #111;
+    }
+    .inv-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding-bottom: 7mm; border-bottom: 3px solid var(--green); margin-bottom: 7mm;
+    }
+    .inv-logo { width: 110px; }
+    .inv-company { text-align: right; }
+    .inv-company-name { font-family: 'Fjalla One', Impact, sans-serif; font-size: 15pt; letter-spacing: 2px; }
+    .inv-company-name .g { color: var(--green); }
+    .inv-company-tag { font-size: 6.5pt; letter-spacing: 3.5px; color: #999; margin: 3px 0 6px; }
+    .inv-company-contact { font-size: 8pt; color: #666; line-height: 1.65; }
+
+    .inv-meta { display: flex; justify-content: space-between; margin-bottom: 8mm; gap: 10mm; }
+    .inv-bill-to { flex: 1; }
+    .inv-bill-to h3 {
+      font-family: 'Fjalla One', sans-serif; font-size: 7.5pt;
+      letter-spacing: 2.5px; color: #bbb; margin-bottom: 5px;
+    }
+    .inv-client-name { font-size: 11pt; font-weight: 700; margin-bottom: 3px; }
+    .inv-client-addr { font-size: 8.5pt; color: #666; white-space: pre-line; line-height: 1.6; }
+    .inv-client-phone { font-size: 8pt; color: #888; margin-top: 3px; }
+    .inv-details { text-align: right; flex-shrink: 0; }
+    .inv-title {
+      font-family: 'Fjalla One', sans-serif; font-size: 26pt;
+      letter-spacing: 4px; color: #111; margin-bottom: 5mm;
+    }
+    .inv-detail-row { display: flex; justify-content: flex-end; gap: 14px; font-size: 8pt; margin-bottom: 4px; }
+    .inv-detail-label { color: #bbb; letter-spacing: 1px; text-transform: uppercase; }
+    .inv-detail-value { font-weight: 700; min-width: 110px; text-align: right; }
+
+    .inv-due-banner {
+      background: #111; color: white; text-align: center;
+      padding: 5px 10px; font-family: 'Fjalla One', sans-serif;
+      font-size: 8pt; letter-spacing: 2px; margin-bottom: 6mm;
+    }
+    .inv-due-banner span { color: var(--green); }
+
+    .inv-section-label {
+      font-family: 'Fjalla One', sans-serif; font-size: 7.5pt;
+      letter-spacing: 2.5px; color: #999; margin: 5mm 0 2mm;
+      padding-bottom: 3px; border-bottom: 1px solid #eee;
+    }
+    .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 2mm; font-size: 8.5pt; }
+    .inv-table thead tr { background: #111; color: white; }
+    .inv-table th {
+      padding: 5px 8px; text-align: left; font-family: 'Fjalla One', sans-serif;
+      font-size: 7pt; letter-spacing: 2px; font-weight: normal;
+    }
+    .inv-table th.r { text-align: right; }
+    .inv-table td { padding: 5px 8px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+    .inv-table td.r { text-align: right; }
+    .inv-table td.muted { color: #999; font-size: 7.5pt; }
+    .inv-table tbody tr:nth-child(even) td { background: #fafafa; }
+    .inv-empty td { color: #ccc; text-align: center; padding: 10px; }
+
+    .inv-totals { margin-top: 5mm; display: flex; justify-content: flex-end; }
+    .inv-totals-inner { width: 210px; }
+    .inv-total-row { display: flex; justify-content: space-between; padding: 4px 8px; font-size: 8.5pt; border-bottom: 1px solid #f0f0f0; }
+    .inv-total-row .tl { color: #888; }
+    .inv-total-row .tv { font-weight: 700; }
+    .inv-total-grand { display: flex; justify-content: space-between; padding: 7px 8px; background: #111; color: white; margin-top: 3px; }
+    .inv-total-grand .tl { font-family: 'Fjalla One', sans-serif; letter-spacing: 1px; font-size: 9pt; }
+    .inv-total-grand .tv { font-weight: 700; font-size: 10pt; }
+
+    .inv-payment-box {
+      margin-top: 7mm; padding: 4mm 5mm;
+      background: #f9fdf9; border: 1.5px solid #c0e8b0;
+      font-size: 8pt; line-height: 1.8;
+    }
+    .inv-payment-box h4 {
+      font-family: 'Fjalla One', sans-serif; font-size: 8pt;
+      letter-spacing: 2.5px; color: #5a8a4a; margin-bottom: 6px;
+    }
+    .inv-payment-grid { display: grid; grid-template-columns: 100px 1fr; gap: 1mm 4mm; }
+    .inv-payment-label { color: #888; }
+    .inv-payment-value { font-weight: 700; color: #333; }
+
+    .inv-terms-note {
+      margin-top: 5mm; font-size: 7pt; color: #aaa; line-height: 1.6;
+      border-top: 1px solid #eee; padding-top: 4mm;
+    }
+
+    .inv-footer {
+      margin-top: 7mm; padding-top: 5mm; border-top: 1px solid #eee;
+      display: flex; justify-content: space-between; align-items: flex-end;
+    }
+    .inv-signature { font-size: 10pt; font-weight: 700; margin-bottom: 2px; }
+    .inv-sig-company { font-size: 8pt; color: #888; }
+
+    @page { margin: 0; size: A4; }
+    @media print {
+      body { background: white; }
+      .app-header, .tab-bar, .panel-form { display: none !important; }
+      .app-body { height: auto; }
+      .panel-preview { background: white; padding: 0; display: block; }
+      .invoice { box-shadow: none; width: 100%; min-height: auto; padding: 10mm; }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+
+<header class="app-header">
+  <span class="app-title"><span>P&R</span> INVOICE</span>
+  <div style="display:flex;gap:6px;align-items:center">
+    <button class="btn-print" id="save-app-btn" onclick="saveAndReturn()" style="background:#1a3a1a;color:#66FF33;border:1px solid #66FF33">✓ Save</button>
+    <button class="btn-print" onclick="emailClient()" style="background:#1a2a3a;color:#5599ff;border:1px solid #5599ff">✉ Send</button>
+    <button class="btn-print" onclick="saveNum().then(()=>window.print())">⬇ PDF</button>
+  </div>
+</header>
+
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab('form',this)">✏ FORM</div>
+  <div class="tab" onclick="switchTab('preview',this)">👁 PREVIEW</div>
+</div>
+
+<div class="app-body">
+
+  <!-- ===== FORM PANEL ===== -->
+  <div class="panel panel-form active" id="panel-form">
+
+    <div class="form-section">
+      <div class="form-section-title">Invoice Details</div>
+      <div class="field-row-2">
+        <div class="field">
+          <label>Invoice Number</label>
+          <input type="text" id="inv-number" placeholder="INV-2026-001" oninput="update()">
+        </div>
+        <div class="field">
+          <label>Invoice Date</label>
+          <input type="date" id="inv-date" oninput="update()">
+        </div>
+      </div>
+      <div class="field-row-2">
+        <div class="field">
+          <label>Payment Due</label>
+          <input type="date" id="inv-due" oninput="update()">
+        </div>
+        <div class="field">
+          <label>Reference</label>
+          <input type="text" id="inv-ref" placeholder="e.g. Smith — Silicone Render" oninput="update()">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Client</div>
+      <div class="field">
+        <label>Name</label>
+        <input type="text" id="client-name" placeholder="Full name" oninput="update()">
+      </div>
+      <div class="field">
+        <label>Address</label>
+        <textarea id="client-addr" placeholder="Street&#10;City&#10;Postcode" oninput="update()"></textarea>
+      </div>
+      <div class="field-row-2">
+        <div class="field">
+          <label>Phone</label>
+          <input type="tel" id="client-phone" placeholder="07xxx xxxxxx" oninput="update()">
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="client-email" placeholder="For sending" oninput="update()">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Works Completed</div>
+      <div class="col-labels works">
+        <span class="col-label">Description</span>
+        <span class="col-label">Qty / m²</span>
+        <span class="col-label">Unit £</span>
+        <span class="col-label">Total</span>
+        <span></span>
+      </div>
+      <div id="works-rows"></div>
+      <button class="btn-add" onclick="addRow('works')">+ Add works item</button>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Additional Items</div>
+      <div class="col-labels items">
+        <span class="col-label">Description</span>
+        <span class="col-label">Amount £</span>
+        <span></span>
+      </div>
+      <div id="items-rows"></div>
+      <button class="btn-add" onclick="addRow('items')">+ Add item</button>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title" style="display:flex;justify-content:space-between;align-items:center">
+        Payment / Bank Details
+        <span style="font-size:10px;color:#aaa;font-family:Lato,sans-serif;letter-spacing:0;text-transform:none">Saved automatically</span>
+      </div>
+      <div class="field">
+        <label>Account Name</label>
+        <input type="text" id="bank-name" placeholder="P & R Solutions" oninput="saveBankDetails();update()">
+      </div>
+      <div class="field-row-2">
+        <div class="field">
+          <label>Sort Code</label>
+          <input type="text" id="bank-sort" placeholder="00-00-00" oninput="saveBankDetails();update()">
+        </div>
+        <div class="field">
+          <label>Account Number</label>
+          <input type="text" id="bank-acc" placeholder="00000000" oninput="saveBankDetails();update()">
+        </div>
+      </div>
+      <div class="field">
+        <label>Bank Name <span style="font-size:10px;letter-spacing:0;text-transform:none;color:#ccc">(optional)</span></label>
+        <input type="text" id="bank-bank" placeholder="e.g. NatWest" oninput="saveBankDetails();update()">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">VAT & Notes</div>
+      <div class="field-row-2">
+        <div class="field">
+          <label>VAT %</label>
+          <input type="number" id="vat-rate" placeholder="0" value="0" min="0" max="100" oninput="update()">
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <div style="padding:11px 0;font-size:13px;color:#aaa">Leave 0 if not VAT registered</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Notes <span style="font-size:10px;letter-spacing:0;text-transform:none;color:#ccc">(optional)</span></label>
+        <textarea id="notes" placeholder="e.g. Thank you for your custom." oninput="update()"></textarea>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== PREVIEW PANEL ===== -->
+  <div class="panel panel-preview" id="panel-preview">
+    <div class="invoice" id="invoice">
+
+      <div class="inv-header">
+        <div class="inv-logo">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" style="width:110px;display:block">
+            <rect width="600" height="360" fill="#FFFFFF"/>
+            <g transform="translate(167.5, 60)">
+              <path fill="#66FF33" d="M 0,0 L 0,160 L 35,160 L 35,95 L 80,95 C 115,95 140,70 140,40 C 140,10 115,-10 80,-10 L 0,-10 Z M 35,20 L 80,20 C 95,20 105,30 105,45 C 105,60 95,70 80,70 L 35,70 Z"/>
+              <path fill="#000000" d="M 120,0 L 120,160 L 155,160 L 155,100 L 185,100 L 225,160 L 265,160 L 220,95 C 245,90 265,70 265,40 C 265,10 240,-10 205,-10 L 120,-10 Z M 155,20 L 205,20 C 220,20 230,30 230,45 C 230,60 220,70 205,70 L 155,70 Z"/>
+            </g>
+            <line x1="190" y1="245" x2="410" y2="245" stroke="#66FF33" stroke-width="2"/>
+            <text x="300" y="280" font-family="'Fjalla One', Impact, Arial, sans-serif" font-size="36" letter-spacing="4" text-anchor="middle">
+              <tspan fill="#66FF33">P&amp;R</tspan><tspan fill="#000000"> SOLUTIONS</tspan>
+            </text>
+            <text x="300" y="311" font-family="'Lato', Arial, sans-serif" font-size="11" font-weight="300" fill="#666666" letter-spacing="6" text-anchor="middle">PLASTER · RENDER · SPECIALISTS</text>
+          </svg>
+        </div>
+        <div class="inv-company">
+          <div class="inv-company-name"><span class="g">P&R</span> SOLUTIONS</div>
+          <div class="inv-company-tag">PLASTER · RENDER · SPECIALISTS</div>
+          <div class="inv-company-contact">
+            3 Rocher Close, Grenoside<br>
+            Sheffield, S35 8QP<br>
+            07595 399525<br>
+            Plastersolutionsltd@gmail.com
+          </div>
+        </div>
+      </div>
+
+      <div class="inv-meta">
+        <div class="inv-bill-to">
+          <h3>Invoice To</h3>
+          <div class="inv-client-name" id="p-client-name">—</div>
+          <div class="inv-client-addr" id="p-client-addr"></div>
+          <div class="inv-client-phone" id="p-client-phone"></div>
+        </div>
+        <div class="inv-details">
+          <div class="inv-title">INVOICE</div>
+          <div class="inv-detail-row">
+            <span class="inv-detail-label">Invoice No.</span>
+            <span class="inv-detail-value" id="p-inv-number">—</span>
+          </div>
+          <div class="inv-detail-row">
+            <span class="inv-detail-label">Date</span>
+            <span class="inv-detail-value" id="p-inv-date">—</span>
+          </div>
+          <div class="inv-detail-row">
+            <span class="inv-detail-label">Payment Due</span>
+            <span class="inv-detail-value" id="p-inv-due">—</span>
+          </div>
+          <div class="inv-detail-row" id="p-ref-row" style="display:none">
+            <span class="inv-detail-label">Reference</span>
+            <span class="inv-detail-value" id="p-inv-ref">—</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="inv-due-banner">AMOUNT DUE: <span id="p-due-total">£0.00</span> &nbsp;·&nbsp; PAYMENT DUE BY <span id="p-due-date-banner">—</span></div>
+
+      <div class="inv-section-label">WORKS COMPLETED</div>
+      <table class="inv-table">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th class="r" style="width:55px">Qty</th>
+            <th class="r" style="width:55px">Unit</th>
+            <th class="r" style="width:65px">Total</th>
+          </tr>
+        </thead>
+        <tbody id="p-works-rows">
+          <tr class="inv-empty"><td colspan="4">No works items added</td></tr>
+        </tbody>
+      </table>
+
+      <div id="p-items-section" style="display:none">
+        <div class="inv-section-label">ADDITIONAL ITEMS</div>
+        <table class="inv-table">
+          <thead>
+            <tr><th colspan="2">Description</th><th class="r">Amount</th></tr>
+          </thead>
+          <tbody id="p-items-rows">
+            <tr class="inv-empty"><td colspan="3">No additional items</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="inv-totals">
+        <div class="inv-totals-inner">
+          <div class="inv-total-row">
+            <span class="tl">Subtotal</span>
+            <span class="tv" id="p-subtotal">£0.00</span>
+          </div>
+          <div class="inv-total-row" id="p-vat-row" style="display:none">
+            <span class="tl" id="p-vat-label">VAT (0%)</span>
+            <span class="tv" id="p-vat-amount">£0.00</span>
+          </div>
+          <div class="inv-total-grand">
+            <span class="tl">TOTAL DUE</span>
+            <span class="tv" id="p-total">£0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="inv-payment-box" id="p-payment-box" style="display:none">
+        <h4>PAYMENT — BANK TRANSFER</h4>
+        <div class="inv-payment-grid">
+          <span class="inv-payment-label">Account Name</span><span class="inv-payment-value" id="p-bank-name">—</span>
+          <span class="inv-payment-label" id="p-bank-lbl">Bank</span><span class="inv-payment-value" id="p-bank-bank"></span>
+          <span class="inv-payment-label">Sort Code</span><span class="inv-payment-value" id="p-bank-sort">—</span>
+          <span class="inv-payment-label">Account No.</span><span class="inv-payment-value" id="p-bank-acc">—</span>
+          <span class="inv-payment-label">Reference</span><span class="inv-payment-value" id="p-bank-ref">—</span>
+        </div>
+      </div>
+
+      <div id="p-notes-wrap" style="display:none;margin-top:5mm">
+        <div class="inv-section-label">NOTES</div>
+        <div id="p-notes" style="font-size:8.5pt;color:#555;line-height:1.7;padding:2mm 0;white-space:pre-line"></div>
+      </div>
+
+      <div class="inv-terms-note">
+        Payment is due within 14 days of invoice date. Please use the invoice number as your payment reference.
+        Thank you for choosing P&amp;R Solutions — we look forward to working with you again.
+      </div>
+
+      <div class="inv-footer">
+        <div>
+          <div class="inv-signature">Chris Glover</div>
+          <div class="inv-sig-company">Plaster and Rendering Solutions</div>
+          <div style="font-size:7.5pt;color:#aaa;margin-top:3px">07595 399525 · Plastersolutionsltd@gmail.com</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:'Fjalla One',sans-serif;font-size:9pt;letter-spacing:1px;color:#66FF33">THANK YOU</div>
+          <div style="font-size:7pt;color:#aaa;letter-spacing:1px;margin-top:2px">for your business</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  var SB_URL = 'https://ngakblcdnuqectjappkl.supabase.co';
+  var SB_KEY = 'sb_publishable_wX0TOGQTtNWi0ex14ux6Hw_eKVge5cJ';
+  var sb = supabase.createClient(SB_URL, SB_KEY);
+  var _cachedJob = null;
+
+  async function sbGetJob(jobId) {
+    var r = await sb.from('jobs').select('*').eq('id', jobId).single();
+    if (r.error || !r.data) return null;
+    return Object.assign({}, r.data.data, { id: r.data.id, name: r.data.name, status: r.data.status, created: r.data.created });
+  }
+  async function sbSaveJob(job) {
+    var row = { id: job.id, name: job.name || '', status: job.status || 'enquiry', created: job.created || Date.now(), data: job };
+    var r = await sb.from('jobs').upsert(row);
+    if (r.error) throw r.error;
+  }
+
+  var rows = { works: [], items: [] };
+  var rowId = 0;
+
+  // ── Bank details (saved to localStorage, fill once) ──
+  function loadBankDetails() {
+    try {
+      var b = JSON.parse(localStorage.getItem('pr_bank_details') || '{}');
+      if (b.name) document.getElementById('bank-name').value = b.name;
+      if (b.sort) document.getElementById('bank-sort').value = b.sort;
+      if (b.acc)  document.getElementById('bank-acc').value  = b.acc;
+      if (b.bank) document.getElementById('bank-bank').value = b.bank;
+    } catch(e) {}
+  }
+  function saveBankDetails() {
+    try {
+      localStorage.setItem('pr_bank_details', JSON.stringify({
+        name: v('bank-name'), sort: v('bank-sort'), acc: v('bank-acc'), bank: v('bank-bank')
+      }));
+    } catch(e) {}
+  }
+
+  // ── Restore a saved invoiceData ──
+  function restoreInvoice(id) {
+    if (id.invNumber) document.getElementById('inv-number').value = id.invNumber;
+    if (id.invDate)   document.getElementById('inv-date').value   = id.invDate;
+    if (id.invDue)    document.getElementById('inv-due').value    = id.invDue;
+    if (id.invRef)    document.getElementById('inv-ref').value    = id.invRef;
+    if (id.clientName)  document.getElementById('client-name').value  = id.clientName;
+    if (id.clientAddr)  document.getElementById('client-addr').value  = id.clientAddr;
+    if (id.clientPhone) document.getElementById('client-phone').value = id.clientPhone;
+    if (id.clientEmail) document.getElementById('client-email').value = id.clientEmail;
+    if (id.vatRate)     document.getElementById('vat-rate').value     = id.vatRate;
+    if (id.notes)       document.getElementById('notes').value        = id.notes;
+    (id.worksRows || []).forEach(function(r) {
+      addRow('works');
+      var id2 = rows.works[rows.works.length - 1];
+      setRowVal(id2, 'works', r.desc || '', r.qty || '', r.unit || '');
+    });
+    (id.itemsRows || []).forEach(function(r) {
+      addRow('items');
+      var id2 = rows.items[rows.items.length - 1];
+      var d = document.querySelector('[data-id="'+id2+'"][data-field="desc"]');
+      var c = document.querySelector('[data-id="'+id2+'"][data-field="cost"]');
+      if (d) d.value = r.desc || '';
+      if (c) c.value = r.cost || '';
+    });
+    if (!rows.works.length) addRow('works');
+    if (!rows.items.length) addRow('items');
+    window._invRestored = true;
+  }
+
+  // ── Pre-fill works from quote data ──
+  function prefillFromQuote(job) {
+    // Client from job
+    if (job.name)    document.getElementById('client-name').value  = job.name;
+    if (job.address) document.getElementById('client-addr').value  = job.address;
+    if (job.phone)   document.getElementById('client-phone').value = job.phone;
+    if (job.email)   document.getElementById('client-email').value = job.email;
+
+    var qd = job.quoteData;
+    if (!qd) return;
+
+    // Reference from quote
+    if (!v('inv-ref') && qd.invRef) document.getElementById('inv-ref').value = qd.invRef;
+
+    // Works items from quote labour rows
+    (qd.labourRows || []).forEach(function(r) {
+      addRow('works');
+      var id2 = rows.works[rows.works.length - 1];
+      setRowVal(id2, 'works', r.desc || '', r.qty || '', r.unit || '');
+    });
+
+    // Additional items from quote fees rows
+    (qd.feesRows || []).forEach(function(r) {
+      addRow('items');
+      var id2 = rows.items[rows.items.length - 1];
+      var d = document.querySelector('[data-id="'+id2+'"][data-field="desc"]');
+      var c = document.querySelector('[data-id="'+id2+'"][data-field="cost"]');
+      if (d) d.value = r.desc || '';
+      if (c) c.value = r.cost || '';
+    });
+
+    if (!rows.works.length) addRow('works');
+    if (!rows.items.length) addRow('items');
+  }
+
+  function setRowVal(id, type, desc, qty, unit) {
+    var d = document.querySelector('[data-id="'+id+'"][data-field="desc"]');
+    var q = document.querySelector('[data-id="'+id+'"][data-field="qty"]');
+    var u = document.querySelector('[data-id="'+id+'"][data-field="unit"]');
+    if (d) d.value = desc;
+    if (q) q.value = qty;
+    if (u) u.value = unit;
+    calcRow(id);
+  }
+
+  document.addEventListener('DOMContentLoaded', async function() {
+    var today = new Date().toISOString().split('T')[0];
+    document.getElementById('inv-date').value = today;
+    var due = new Date(); due.setDate(due.getDate() + 14);
+    document.getElementById('inv-due').value = due.toISOString().split('T')[0];
+    document.getElementById('inv-number').value = '…';
+
+    loadBankDetails();
+
+    var _p = new URLSearchParams(location.search);
+
+    // Fill from URL params (fallback if no Supabase job)
+    if (_p.get('name'))    document.getElementById('client-name').value  = _p.get('name');
+    if (_p.get('address')) document.getElementById('client-addr').value  = _p.get('address');
+    if (_p.get('phone'))   document.getElementById('client-phone').value = _p.get('phone');
+    if (_p.get('email'))   document.getElementById('client-email').value = _p.get('email');
+    if (_p.get('ref'))     document.getElementById('inv-ref').value      = _p.get('ref');
+
+    var _jobId = _p.get('jobId');
+    if (_jobId) {
+      window._prJobId = _jobId;
+      var job = await sbGetJob(_jobId);
+      _cachedJob = job;
+      if (job) {
+        if (job.invoiceData) {
+          // Re-opening a saved invoice — restore it
+          restoreInvoice(job.invoiceData);
+        } else {
+          // Fresh invoice — pre-fill from quote if one exists, else from job
+          prefillFromQuote(job);
+        }
+      } else {
+        addRow('works');
+        addRow('items');
+      }
+    } else {
+      addRow('works');
+      addRow('items');
+    }
+
+    update();
+
+    // Get invoice number (async)
+    try {
+      var cr = await sb.from('counters').select('value').eq('id', 'inv_last').single();
+      var next = 1;
+      if (!cr.error && cr.data) next = (cr.data.value || 0) + 1;
+      if (!window._invRestored) {
+        var year = new Date().getFullYear();
+        document.getElementById('inv-number').value = 'INV-' + year + '-' + String(next).padStart(3, '0');
+        update();
+      }
+    } catch(e) {
+      if (!window._invRestored) {
+        document.getElementById('inv-number').value = 'INV-' + new Date().getFullYear() + '-001';
+        update();
+      }
+    }
+  });
+
+  async function saveNum() {
+    var invNum  = v('inv-number') || 'Invoice';
+    var client  = v('client-name').trim().replace(/[/\\?%*:|"<>]/g, '');
+    var oldTitle = document.title;
+    document.title = invNum + (client ? ' - ' + client : '');
+    var originalUrl = window.location.href;
+    history.replaceState(null, '', window.location.pathname);
+    window.onafterprint = function() { document.title = oldTitle; history.replaceState(null, '', originalUrl); };
+
+    var val   = v('inv-number');
+    var match = val.match(/(\d+)$/);
+    if (match) {
+      try { await sb.from('counters').upsert({ id: 'inv_last', value: parseInt(match[1], 10) }); } catch(e) {}
+    }
+  }
+
+  function switchTab(tab, el) {
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    el.classList.add('active');
+    document.getElementById('panel-form').classList.toggle('active', tab === 'form');
+    document.getElementById('panel-preview').classList.toggle('active', tab === 'preview');
+  }
+
+  function addRow(type) {
+    var id = ++rowId;
+    rows[type].push(id);
+    var container = document.getElementById(type + '-rows');
+    var div = document.createElement('div');
+    div.className = 'line-item line-item-' + type;
+    div.id = 'row-' + id;
+
+    if (type === 'works') {
+      div.innerHTML =
+        '<input type="text"   placeholder="e.g. Silicone render — no hack off" data-id="'+id+'" data-field="desc" oninput="update()">' +
+        '<input type="number" placeholder="0"    data-id="'+id+'" data-field="qty"  step="0.1"  oninput="calcRow('+id+')">' +
+        '<input type="number" placeholder="0.00" data-id="'+id+'" data-field="unit" step="0.01" oninput="calcRow('+id+')">' +
+        '<input type="text"   id="row-total-'+id+'" placeholder="£0.00" readonly style="background:#f8f8f8;color:#888">' +
+        '<button class="btn-remove" onclick="removeRow(\'works\','+id+')" title="Remove">×</button>';
+    } else {
+      div.innerHTML =
+        '<input type="text"   placeholder="e.g. Scaffolding hire" data-id="'+id+'" data-field="desc" oninput="update()">' +
+        '<input type="number" placeholder="0.00" data-id="'+id+'" data-field="cost" step="0.01" oninput="update()">' +
+        '<button class="btn-remove" onclick="removeRow(\'items\','+id+')" title="Remove">×</button>';
+    }
+    container.appendChild(div);
+  }
+
+  function removeRow(type, id) {
+    rows[type] = rows[type].filter(function(r) { return r !== id; });
+    var el = document.getElementById('row-' + id);
+    if (el) el.remove();
+    update();
+  }
+
+  function calcRow(id) {
+    var qty  = parseFloat(document.querySelector('[data-id="'+id+'"][data-field="qty"]')?.value)  || 0;
+    var unit = parseFloat(document.querySelector('[data-id="'+id+'"][data-field="unit"]')?.value) || 0;
+    var el   = document.getElementById('row-total-' + id);
+    if (el) el.value = (qty && unit) ? '£' + (qty * unit).toFixed(2) : '£0.00';
+    update();
+  }
+
+  async function saveInvoiceToApp() {
+    var jobId = window._prJobId || new URLSearchParams(location.search).get('jobId');
+    if (!jobId) { alert('Open this from the P&R Jobs app to save to a client.'); return null; }
+    var job = _cachedJob || await sbGetJob(jobId);
+    if (!job) { alert('Client not found.'); return null; }
+
+    var worksRows = rows.works.map(function(id) { return {
+      desc: (document.querySelector('[data-id="'+id+'"][data-field="desc"]')?.value || '').trim(),
+      qty:  document.querySelector('[data-id="'+id+'"][data-field="qty"]')?.value  || '',
+      unit: document.querySelector('[data-id="'+id+'"][data-field="unit"]')?.value || ''
+    }; });
+    var itemsRows = rows.items.map(function(id) { return {
+      desc: (document.querySelector('[data-id="'+id+'"][data-field="desc"]')?.value || '').trim(),
+      cost: document.querySelector('[data-id="'+id+'"][data-field="cost"]')?.value || ''
+    }; });
+
+    job.invoiceData = {
+      invNumber: v('inv-number'), invDate: v('inv-date'), invDue: v('inv-due'), invRef: v('inv-ref'),
+      clientName: v('client-name'), clientAddr: v('client-addr'),
+      clientPhone: v('client-phone'), clientEmail: v('client-email'),
+      vatRate: v('vat-rate'), notes: v('notes'),
+      worksRows: worksRows, itemsRows: itemsRows
+    };
+    job.invoice = {
+      number:  v('inv-number'),
+      date:    v('inv-date'),
+      due:     v('inv-due'),
+      total:   document.getElementById('p-total').textContent,
+      sentAt:  new Date().toISOString()
+    };
+    job.status = 'invoiced';
+
+    var btn = document.getElementById('save-app-btn');
+    try {
+      await sbSaveJob(job);
+      _cachedJob = job;
+      btn.textContent = '✓ Saved!';
+      btn.style.background = '#66FF33';
+      btn.style.color = '#111';
+      return { ok: true, jobId: jobId };
+    } catch(e) {
+      btn.textContent = 'Save failed';
+      btn.style.background = '#c0392b';
+      btn.style.color = '#fff';
+      return null;
+    }
+  }
+
+  async function saveAndReturn() {
+    var result = await saveInvoiceToApp();
+    if (result && result.ok) {
+      var btn = document.getElementById('save-app-btn');
+      btn.textContent = '✓ Saved! Going back…';
+      setTimeout(function() {
+        window.location.href = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/?openJob=' + result.jobId;
+      }, 1200);
+    }
+  }
+
+  async function emailClient() {
+    var result = await saveInvoiceToApp();
+    if (!result || !result.ok) return;
+    var job = _cachedJob || {};
+
+    var invNum    = v('inv-number');
+    var invDate   = fmtDate(v('inv-date'));
+    var invDue    = fmtDate(v('inv-due'));
+    var total     = document.getElementById('p-total').textContent;
+    var bankName  = v('bank-name');
+    var bankSort  = v('bank-sort');
+    var bankAcc   = v('bank-acc');
+    var bankBank  = v('bank-bank');
+    var firstName = (job.name || v('client-name') || '').split(' ')[0] || 'there';
+
+    var paymentLines = '';
+    if (bankName || bankSort || bankAcc) {
+      paymentLines = '\n━━━━━━━━━━━━━━━━━━━━━━\nPAYMENT DETAILS (BACS Transfer)\n';
+      if (bankName) paymentLines += 'Account Name:  ' + bankName + '\n';
+      if (bankBank) paymentLines += 'Bank:          ' + bankBank + '\n';
+      if (bankSort) paymentLines += 'Sort Code:     ' + bankSort + '\n';
+      if (bankAcc)  paymentLines += 'Account No:    ' + bankAcc  + '\n';
+      paymentLines += 'Reference:     ' + invNum + ' - ' + (job.name || v('client-name')) + '\n';
+    }
+
+    var body = encodeURIComponent(
+      'Hi ' + firstName + ',\n\n' +
+      'Please find attached invoice ' + invNum + ' for the works recently completed at your property.\n\n' +
+      '━━━━━━━━━━━━━━━━━━━━━━\n' +
+      'INVOICE TOTAL: ' + total + '\n' +
+      'Invoice Date:  ' + invDate + '\n' +
+      'Payment Due:   ' + invDue + '\n' +
+      '━━━━━━━━━━━━━━━━━━━━━━\n' +
+      paymentLines +
+      '\nPlease use your invoice number as the payment reference.\n\n' +
+      'If you have any questions, please call or WhatsApp Chris on 07595 399525.\n\n' +
+      'Many thanks for choosing P&R Solutions — it was a pleasure working with you.\n\n' +
+      'Chris\nP&R Solutions\n07595 399525'
+    );
+
+    var subject = encodeURIComponent('Invoice from P&R Solutions — ' + invNum);
+    var emailAddr = v('client-email') || (job.email || '');
+    location.href = 'mailto:' + emailAddr + '?subject=' + subject + '&body=' + body;
+    setTimeout(function() {
+      window.location.href = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/?openJob=' + result.jobId;
+    }, 1500);
+  }
+
+  function v(id)    { var el = document.getElementById(id); return el ? el.value || '' : ''; }
+  function fmt(n)   { return '£' + Number(n).toFixed(2); }
+  function esc(s)   { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function setText(id, text) { var el = document.getElementById(id); if (el) el.textContent = text; }
+  function fmtDate(d) {
+    if (!d) return '—';
+    var parts = d.split('-');
+    return parts[2] + '/' + parts[1] + '/' + parts[0];
+  }
+
+  function buildWorksRows() {
+    var tbody = document.getElementById('p-works-rows');
+    tbody.innerHTML = '';
+    var total = 0;
+    var hasRows = false;
+    rows.works.forEach(function(id) {
+      var desc = (document.querySelector('[data-id="'+id+'"][data-field="desc"]')?.value || '').trim();
+      var qty  = parseFloat(document.querySelector('[data-id="'+id+'"][data-field="qty"]')?.value)  || 0;
+      var unit = parseFloat(document.querySelector('[data-id="'+id+'"][data-field="unit"]')?.value) || 0;
+      var amt  = qty * unit;
+      if (desc || amt > 0) {
+        hasRows = true;
+        total += amt;
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' + esc(desc) + '</td>' +
+          '<td class="r muted">' + (qty  ? qty  : '—') + '</td>' +
+          '<td class="r muted">' + (unit ? fmt(unit) : '—') + '</td>' +
+          '<td class="r">' + fmt(amt) + '</td>';
+        tbody.appendChild(tr);
+      }
+    });
+    if (!hasRows) {
+      var tr = document.createElement('tr');
+      tr.className = 'inv-empty';
+      tr.innerHTML = '<td colspan="4">No works items added</td>';
+      tbody.appendChild(tr);
+    }
+    return total;
+  }
+
+  function buildItemsRows() {
+    var tbody = document.getElementById('p-items-rows');
+    tbody.innerHTML = '';
+    var total = 0;
+    var hasRows = false;
+    rows.items.forEach(function(id) {
+      var desc = (document.querySelector('[data-id="'+id+'"][data-field="desc"]')?.value || '').trim();
+      var cost = parseFloat(document.querySelector('[data-id="'+id+'"][data-field="cost"]')?.value) || 0;
+      if (desc || cost > 0) {
+        hasRows = true;
+        total += cost;
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td colspan="2">' + esc(desc) + '</td><td class="r">' + fmt(cost) + '</td>';
+        tbody.appendChild(tr);
+      }
+    });
+    if (!hasRows) {
+      var tr = document.createElement('tr');
+      tr.className = 'inv-empty';
+      tr.innerHTML = '<td colspan="3">No additional items</td>';
+      tbody.appendChild(tr);
+    }
+    document.getElementById('p-items-section').style.display = hasRows ? 'block' : 'none';
+    return total;
+  }
+
+  function update() {
+    setText('p-inv-number', v('inv-number') || '—');
+    setText('p-inv-date', fmtDate(v('inv-date')));
+    setText('p-inv-due', fmtDate(v('inv-due')));
+    setText('p-inv-ref', v('inv-ref') || '—');
+    document.getElementById('p-ref-row').style.display = v('inv-ref') ? 'flex' : 'none';
+
+    setText('p-client-name', v('client-name') || '—');
+    document.getElementById('p-client-addr').textContent  = v('client-addr');
+    document.getElementById('p-client-phone').textContent = v('client-phone');
+
+    var worksTotal = buildWorksRows();
+    var itemsTotal = buildItemsRows();
+    var subtotal   = worksTotal + itemsTotal;
+    var vatRate    = parseFloat(v('vat-rate')) || 0;
+    var vatAmt     = subtotal * (vatRate / 100);
+    var total      = subtotal + vatAmt;
+
+    setText('p-subtotal',   fmt(subtotal));
+    setText('p-vat-label',  'VAT (' + vatRate + '%)');
+    setText('p-vat-amount', fmt(vatAmt));
+    setText('p-total',      fmt(total));
+    setText('p-due-total',  fmt(total));
+    setText('p-due-date-banner', fmtDate(v('inv-due')));
+    document.getElementById('p-vat-row').style.display = vatRate > 0 ? 'flex' : 'none';
+
+    // Bank details
+    var bn = v('bank-name'), bs = v('bank-sort'), ba = v('bank-acc'), bb = v('bank-bank');
+    var hasBankDetails = bn || bs || ba;
+    document.getElementById('p-payment-box').style.display = hasBankDetails ? 'block' : 'none';
+    if (hasBankDetails) {
+      setText('p-bank-name', bn || '—');
+      setText('p-bank-sort', bs || '—');
+      setText('p-bank-acc',  ba || '—');
+      var bankEl = document.getElementById('p-bank-bank');
+      var bankLbl = document.getElementById('p-bank-lbl');
+      if (bb) { bankEl.textContent = bb; bankLbl.style.display = ''; bankEl.style.display = ''; }
+      else    { bankEl.textContent = ''; bankLbl.style.display = 'none'; bankEl.style.display = 'none'; }
+      var ref = v('inv-number') + (v('client-name') ? ' - ' + v('client-name') : '');
+      setText('p-bank-ref', ref);
+    }
+
+    var notes = v('notes');
+    document.getElementById('p-notes').textContent = notes;
+    document.getElementById('p-notes-wrap').style.display = notes ? 'block' : 'none';
+  }
+</script>
+</body>
+</html>
