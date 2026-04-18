@@ -1384,26 +1384,18 @@
         const base = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/quote-response.html';
         const acceptUrl  = base + '?action=accept&jobId='  + encodeURIComponent(jobId) + '&ref=' + encodeURIComponent(quoteNum) + '&name=' + encodeURIComponent(job.name || '');
         const declineUrl = base + '?action=decline&jobId=' + encodeURIComponent(jobId) + '&ref=' + encodeURIComponent(quoteNum) + '&name=' + encodeURIComponent(job.name || '');
-        const qr = 'https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=';
         linksEl.innerHTML =
-          '<p style="font-size:7pt;color:#666;margin:0 0 3mm">Scan a QR code with your phone, or tap the link to respond to this quote:</p>' +
+          '<p style="font-size:7pt;color:#666;margin:0 0 3mm">Tap a button below to respond to this quote:</p>' +
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5mm">' +
-            '<div style="border:1.5px solid #2d7a2d;border-radius:3px;padding:3mm;text-align:center">' +
-              '<img src="' + qr + encodeURIComponent(acceptUrl)  + '" width="90" height="90" style="display:block;margin:0 auto 2mm">' +
-              '<div style="font-size:8pt;font-weight:700;color:#1a5c1a;margin-bottom:1mm">&#10003; ACCEPT THIS QUOTE</div>' +
-              '<a href="' + acceptUrl  + '" style="font-size:5.5pt;color:#2d7a2d;word-break:break-all;text-decoration:none">' + acceptUrl  + '</a>' +
-            '</div>' +
-            '<div style="border:1.5px solid #ccc;border-radius:3px;padding:3mm;text-align:center">' +
-              '<img src="' + qr + encodeURIComponent(declineUrl) + '" width="90" height="90" style="display:block;margin:0 auto 2mm">' +
-              '<div style="font-size:8pt;font-weight:700;color:#c33;margin-bottom:1mm">&#10007; DECLINE THIS QUOTE</div>' +
-              '<a href="' + declineUrl + '" style="font-size:5.5pt;color:#c33;word-break:break-all;text-decoration:none">' + declineUrl + '</a>' +
-            '</div>' +
+            '<a href="' + acceptUrl + '" style="display:block;background:#1a5c1a;color:#fff;text-decoration:none;border-radius:4px;padding:5mm 4mm;text-align:center">' +
+              '<div style="font-size:14pt;margin-bottom:2mm">&#10003;</div>' +
+              '<div style="font-size:9pt;font-weight:700;letter-spacing:0.5px">ACCEPT THIS QUOTE</div>' +
+            '</a>' +
+            '<a href="' + declineUrl + '" style="display:block;background:#fff;color:#c33;text-decoration:none;border:2px solid #c33;border-radius:4px;padding:5mm 4mm;text-align:center">' +
+              '<div style="font-size:14pt;margin-bottom:2mm">&#10007;</div>' +
+              '<div style="font-size:9pt;font-weight:700;letter-spacing:0.5px">DECLINE THIS QUOTE</div>' +
+            '</a>' +
           '</div>';
-        // Wait for QR code images to load before printing
-        const imgs = linksEl.querySelectorAll('img');
-        await Promise.all(Array.from(imgs).map(img =>
-          new Promise(r => { if (img.complete) r(); else { img.onload = r; img.onerror = r; } })
-        ));
       }
 
       window.onafterprint = () => {
