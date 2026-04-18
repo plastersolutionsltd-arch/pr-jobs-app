@@ -405,28 +405,16 @@
       margin-top: 6mm;
       border: 1px solid #ddd;
       padding: 4mm 5mm;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 4mm;
       font-size: 8pt;
     }
 
     .inv-acceptance h4 {
-      grid-column: 1 / -1;
       font-family: 'Fjalla One', sans-serif;
       font-size: 7.5pt;
       letter-spacing: 2.5px;
       color: #aaa;
-      margin-bottom: 2px;
+      margin-bottom: 3mm;
     }
-
-    .sig-line {
-      border-bottom: 1px solid #ccc;
-      margin-top: 8mm;
-      margin-bottom: 2px;
-    }
-
-    .sig-label { font-size: 7pt; color: #bbb; letter-spacing: 1px; }
 
     /* Footer */
     .inv-footer {
@@ -770,13 +758,8 @@
         <!-- Acceptance -->
         <div class="inv-acceptance">
           <h4>ACCEPTANCE OF QUOTATION</h4>
-          <div>
-            <div class="sig-line"></div>
-            <div class="sig-label">CUSTOMER SIGNATURE</div>
-          </div>
-          <div>
-            <div class="sig-line"></div>
-            <div class="sig-label">DATE ACCEPTED</div>
+          <div id="quote-response-links">
+            <span style="font-size:7.5pt;color:#bbb;font-style:italic">Save as PDF from the app — your customer's Accept &amp; Decline links will appear here automatically.</span>
           </div>
         </div>
 
@@ -947,13 +930,34 @@
       // Set document title → becomes the PDF filename in browser Save dialog
       const quoteNum = document.getElementById('inv-number').value || 'Quote';
       const client   = (document.getElementById('client-name').value || '').trim().replace(/[/\\?%*:|"<>]/g, '');
-      const date     = document.getElementById('inv-date').value || new Date().toISOString().split('T')[0];
       const oldTitle = document.title;
       document.title = quoteNum + (client ? ' - ' + client : '');
       // Strip URL params before printing so iOS Safari footer shows clean URL (not long GitHub params)
       const originalUrl = window.location.href;
       history.replaceState(null, '', window.location.pathname);
-      window.onafterprint = () => { document.title = oldTitle; history.replaceState(null, '', originalUrl); };
+
+      // Inject accept/decline links into PDF acceptance section
+      const jobId = window._prJobId;
+      const job = _cachedJob || {};
+      const linksEl = document.getElementById('quote-response-links');
+      const originalLinks = linksEl.innerHTML;
+      if (jobId) {
+        const base = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/quote-response.html';
+        const acceptUrl = base + '?action=accept&jobId=' + encodeURIComponent(jobId) + '&ref=' + encodeURIComponent(quoteNum) + '&name=' + encodeURIComponent(job.name || '');
+        const declineUrl = base + '?action=decline&jobId=' + encodeURIComponent(jobId) + '&ref=' + encodeURIComponent(quoteNum) + '&name=' + encodeURIComponent(job.name || '');
+        linksEl.innerHTML =
+          '<p style="font-size:7.5pt;color:#444;margin:0 0 3mm">To respond to this quotation, use the links below:</p>' +
+          '<div style="display:flex;gap:6mm;align-items:center">' +
+          '<a href="' + acceptUrl + '" style="display:inline-block;padding:5px 14px;background:#1a5c1a;color:#fff;text-decoration:none;font-size:8.5pt;font-weight:700;border-radius:2px;letter-spacing:0.5px">&#10003; ACCEPT THIS QUOTE</a>' +
+          '<a href="' + declineUrl + '" style="display:inline-block;padding:5px 14px;background:#fff;color:#c33;text-decoration:none;font-size:8.5pt;font-weight:700;border-radius:2px;letter-spacing:0.5px;border:1px solid #c33">&#10007; DECLINE THIS QUOTE</a>' +
+          '</div>';
+      }
+
+      window.onafterprint = () => {
+        document.title = oldTitle;
+        history.replaceState(null, '', originalUrl);
+        linksEl.innerHTML = originalLinks;
+      };
 
       // Increment the shared counter on print
       const val = document.getElementById('inv-number').value;
