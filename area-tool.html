@@ -867,6 +867,30 @@ let tapStartX = 0, tapStartY = 0;
 let didDrag   = false;
 let panStartX = 0, panStartY = 0;
 
+// ── Point dragging ──
+let draggingType = null; // 'calib' | 'poly'
+let draggingIdx  = -1;
+const DRAG_RADIUS = 22; // screen-px hit radius
+
+function findNearestPoint(e) {
+  const rect = canvas.getBoundingClientRect();
+  const sx = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const sy = (e.clientY - rect.top)  * (canvas.height / rect.height);
+  // Calib points — draggable once both are placed
+  if (calibPts.length === 2) {
+    for (let i = 0; i < calibPts.length; i++) {
+      const s = imgToScreen(calibPts[i]);
+      if (Math.hypot(sx - s.x, sy - s.y) < DRAG_RADIUS) return { type: 'calib', idx: i };
+    }
+  }
+  // Poly points
+  for (let i = 0; i < polyPts.length; i++) {
+    const s = imgToScreen(polyPts[i]);
+    if (Math.hypot(sx - s.x, sy - s.y) < DRAG_RADIUS) return { type: 'poly', idx: i };
+  }
+  return null;
+}
+
 function setMode(mode) {
   panMode = (mode === 'pan');
   document.getElementById('btn-draw').className = 'mode-btn' + (!panMode ? ' active-draw' : '');
@@ -992,10 +1016,15 @@ function onPtrDown(e) {
     tapStartX = e.clientX; tapStartY = e.clientY;
     panStartX = viewPanX;  panStartY = viewPanY;
     didDrag   = false;
+    // Check if tapping near an existing point to drag it
+    const hit = findNearestPoint(e);
+    if (hit) { draggingType = hit.type; draggingIdx = hit.idx; }
+    else      { draggingType = null;    draggingIdx = -1; }
   } else if (count === 2) {
+    draggingType = null; draggingIdx = -1;
     const pts = Object.values(activePointers);
     lastPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-    didDrag = true; // two-finger: never fire a tap
+    didDrag = true;
   }
 }
 
@@ -1016,10 +1045,26 @@ function onPtrMove(e) {
     const dx = e.clientX - tapStartX;
     const dy = e.clientY - tapStartY;
     const moved = Math.hypot(dx, dy);
-    // Mark as drag after 6px movement
-    if (!didDrag && moved > 6) didDrag = true;
-    // Pan: in PAN mode always pan; in DRAW mode only pan when zoomed in
-    if (didDrag && (panMode || viewZoom > 1)) {
+    if (!didDrag && moved > 4) didDrag = true;
+
+    if (draggingType && didDrag) {
+      // Dragging an existing point
+      const pt = tapToImg(e);
+      if (draggingType === 'calib') {
+        calibPts[draggingIdx] = pt;
+        if (calibPts.length === 2) {
+          // Recalculate scale live as point is moved
+          const ddx = calibPts[1].x - calibPts[0].x, ddy = calibPts[1].y - calibPts[0].y;
+          pixPerMM = Math.hypot(ddx, ddy) / photoRefMM;
+          updateScaleBadge();
+          updateInstrBar();
+        }
+      } else if (draggingType === 'poly') {
+        polyPts[draggingIdx] = pt;
+      }
+      redraw();
+    } else if (didDrag && (panMode || viewZoom > 1)) {
+      // Pan
       viewPanX = panStartX + dx;
       viewPanY = panStartY + dy;
       clampPan(); redraw();
@@ -1031,11 +1076,13 @@ function onPtrMove(e) {
 function onPtrUp(e) {
   e.preventDefault();
   const wasSingle = Object.keys(activePointers).length === 1;
+  const wasDraggingPoint = draggingType !== null && didDrag;
   delete activePointers[e.pointerId];
   lastPinchDist = null;
+  draggingType = null; draggingIdx = -1;
   if (panMode) canvas.style.cursor = 'grab';
-  // Only place a point if single finger, barely moved, and in draw mode
-  if (wasSingle && !didDrag && !panMode) handleTap(e);
+  // Only place a new point if single finger, barely moved, not pan mode, not dragging existing point
+  if (wasSingle && !didDrag && !panMode && !wasDraggingPoint) handleTap(e);
 }
 
 function onPtrCancel(e) {
@@ -1124,12 +1171,13 @@ function redraw() {
   // Draw all overlays in screen space
   // Calibration points
   calibPts.forEach((pt, i) => {
+    const isDragged = draggingType === 'calib' && draggingIdx === i;
     const s = imgToScreen(pt);
-    ctx.beginPath(); ctx.arc(s.x, s.y, 9, 0, Math.PI*2);
-    ctx.fillStyle = i === 0 ? '#66FF33' : '#ff4466';
+    if (isDragged) { ctx.beginPath(); ctx.arc(s.x, s.y, 18, 0, Math.PI*2); ctx.fillStyle = 'rgba(255,170,0,0.25)'; ctx.fill(); }
+    ctx.beginPath(); ctx.arc(s.x, s.y, isDragged ? 12 : 9, 0, Math.PI*2);
+    ctx.fillStyle = isDragged ? '#ffaa00' : (i === 0 ? '#66FF33' : '#ff4466');
     ctx.fill();
     ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.stroke();
-    // Label
     ctx.fillStyle = '#111'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(i === 0 ? 'A' : 'B', s.x, s.y);
   });
@@ -1159,9 +1207,11 @@ function redraw() {
       ctx.strokeStyle = '#66FF33'; ctx.lineWidth = 2.5; ctx.stroke();
     }
     ss.forEach((s, i) => {
-      ctx.beginPath(); ctx.arc(s.x, s.y, i === 0 ? 11 : 7, 0, Math.PI*2);
-      ctx.fillStyle = i === 0 ? '#66FF33' : '#fff'; ctx.fill();
-      ctx.strokeStyle = '#66FF33'; ctx.lineWidth = 2; ctx.stroke();
+      const isDragged = draggingType === 'poly' && draggingIdx === i;
+      if (isDragged) { ctx.beginPath(); ctx.arc(s.x, s.y, 22, 0, Math.PI*2); ctx.fillStyle = 'rgba(255,170,0,0.25)'; ctx.fill(); }
+      ctx.beginPath(); ctx.arc(s.x, s.y, isDragged ? 13 : (i === 0 ? 11 : 7), 0, Math.PI*2);
+      ctx.fillStyle = isDragged ? '#ffaa00' : (i === 0 ? '#66FF33' : '#fff'); ctx.fill();
+      ctx.strokeStyle = isDragged ? '#ffaa00' : '#66FF33'; ctx.lineWidth = isDragged ? 3 : 2; ctx.stroke();
     });
     // Closing guide ring on first point
     if (polyPts.length >= 3 && canvasState === 'outline') {
