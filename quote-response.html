@@ -61,97 +61,77 @@
 <body>
 
   <div class="logo">P&amp;<span>R</span> Solutions</div>
-  <div id="content" class="loading">Just a moment…</div>
+  <div id="content"></div>
 
   <script>
     var SB_URL = 'https://ngakblcdnuqectjappkl.supabase.co';
     var SB_KEY = 'sb_publishable_wX0TOGQTtNWi0ex14ux6Hw_eKVge5cJ';
     var sb = supabase.createClient(SB_URL, SB_KEY);
 
-    var p       = new URLSearchParams(location.search);
-    var action  = p.get('action');   // 'accept' or 'decline'
-    var jobId   = p.get('jobId');
-    var ref     = p.get('ref') || 'your quote';
-    var name    = p.get('name') || '';
+    var p         = new URLSearchParams(location.search);
+    var action    = p.get('action');
+    var jobId     = p.get('jobId');
+    var ref       = p.get('ref') || 'your quote';
+    var name      = p.get('name') || '';
     var firstName = name.split(' ')[0] || 'there';
 
-    (async function() {
-      var el = document.getElementById('content');
+    // Show result immediately — no waiting
+    if (!jobId || (action !== 'accept' && action !== 'decline')) {
+      document.getElementById('content').innerHTML =
+        '<div class="card"><div class="icon">⚠️</div><h1>Invalid link</h1><p>This link doesn\'t look right. Please contact Chris directly.</p><a href="tel:07595399525" class="btn-call">📞 Call Chris</a></div>';
+    } else if (action === 'accept') {
+      showAccepted(ref, firstName);
+    } else {
+      showDeclined(firstName);
+    }
 
-      if (!jobId || (action !== 'accept' && action !== 'decline')) {
-        el.innerHTML = '<div class="card"><div class="icon">⚠️</div><h1>Invalid link</h1><p>This link doesn\'t look right. Please contact Chris directly.</p><a href="tel:07595399525" class="btn-call">📞 Call Chris</a></div>';
-        return;
-      }
+    // Update Supabase + notify Chris silently in background
+    if (jobId && (action === 'accept' || action === 'decline')) {
+      (async function() {
+        try {
+          var newStatus = action === 'accept' ? 'booked' : 'declined';
+          var r = await sb.from('jobs').select('*').eq('id', jobId).single();
+          if (r.data) {
+            var job = Object.assign({}, r.data.data, { id: r.data.id, name: r.data.name, status: newStatus, created: r.data.created });
+            job.status = newStatus;
+            await sb.from('jobs').upsert({ id: job.id, name: job.name || '', status: newStatus, created: job.created, data: job });
+          }
+        } catch(e) {}
+        // Notify Chris
+        fetch('https://formspree.io/f/mvzdkwvw', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({
+            _subject: (action === 'accept' ? '✅ Quote Accepted' : '❌ Quote Declined') + ' — ' + name + ' (' + ref + ')',
+            customer:  name,
+            quote_ref: ref,
+            response:  action === 'accept' ? 'ACCEPTED' : 'DECLINED',
+            message:   action === 'accept'
+              ? name + ' has accepted quote ' + ref + '. Status updated to Booked. Call to arrange start date.'
+              : name + ' has declined quote ' + ref + '. You may want to follow up.'
+          })
+        }).catch(function(){});
+      })();
+    }
 
-      // Fetch job
-      var r = await sb.from('jobs').select('*').eq('id', jobId).single();
-      if (r.error || !r.data) {
-        el.innerHTML = '<div class="card"><div class="icon">⚠️</div><h1>Quote not found</h1><p>Something went wrong. Please call Chris directly.</p><a href="tel:07595399525" class="btn-call">📞 Call Chris</a></div>';
-        return;
-      }
-
-      // Already responded?
-      var currentStatus = r.data.status;
-      if (currentStatus === 'booked' && action === 'accept') {
-        showAccepted(ref, firstName, true);
-        return;
-      }
-      if (currentStatus === 'declined' && action === 'decline') {
-        showDeclined(firstName, true);
-        return;
-      }
-
-      // Update status
-      var newStatus = action === 'accept' ? 'booked' : 'declined';
-      var job = Object.assign({}, r.data.data, { id: r.data.id, name: r.data.name, status: newStatus, created: r.data.created });
-      job.status = newStatus;
-      var save = await sb.from('jobs').upsert({ id: job.id, name: job.name || '', status: newStatus, created: job.created, data: job });
-
-      if (save.error) {
-        el.innerHTML = '<div class="card"><div class="icon">⚠️</div><h1>Something went wrong</h1><p>Please call or message Chris to confirm.</p><a href="tel:07595399525" class="btn-call">📞 Call Chris</a></div>';
-        return;
-      }
-
-      // Notify Chris via Formspree
-      fetch('https://formspree.io/f/mvzdkwvw', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({
-          _subject: (action === 'accept' ? '✅ Quote Accepted' : '❌ Quote Declined') + ' — ' + name + ' (' + ref + ')',
-          customer:  name,
-          quote_ref: ref,
-          response:  action === 'accept' ? 'ACCEPTED' : 'DECLINED',
-          message:   action === 'accept'
-            ? name + ' has accepted quote ' + ref + '. Status updated to Booked. Call to arrange start date.'
-            : name + ' has declined quote ' + ref + '. You may want to follow up.'
-        })
-      }).catch(function(){});  // silent fail — Supabase already updated
-
-      if (action === 'accept') {
-        showAccepted(ref, firstName, false);
-      } else {
-        showDeclined(firstName, false);
-      }
-    })();
-
-    function showAccepted(ref, firstName, already) {
+    function showAccepted(ref, firstName) {
       document.getElementById('content').innerHTML =
         '<div class="card">' +
         '<div class="icon">✅</div>' +
-        '<h1>' + (already ? 'Already accepted' : 'Quote accepted!') + '</h1>' +
-        '<p>Thanks ' + esc(firstName) + (already ? ', you\'ve already accepted this quote.' : '! We\'ve received your acceptance.') + '</p>' +
+        '<h1>Quote accepted!</h1>' +
+        '<p>Thanks ' + esc(firstName) + '! We\'ve received your acceptance.</p>' +
         '<p style="margin-top:8px">Chris will be in touch shortly to confirm your start date.</p>' +
         '<p class="ref">Ref: ' + esc(ref) + '</p>' +
         '<a href="tel:07595399525" class="btn-call">📞 07595 399525</a>' +
         '</div>';
     }
 
-    function showDeclined(firstName, already) {
+    function showDeclined(firstName) {
       document.getElementById('content').innerHTML =
         '<div class="card">' +
         '<div class="icon">👋</div>' +
         '<h1>Thanks for letting us know</h1>' +
-        '<p>' + esc(firstName) + ', ' + (already ? 'you\'ve already declined this quote.' : 'we\'ve noted your response.') + '</p>' +
+        '<p>' + esc(firstName) + ', we\'ve noted your response.</p>' +
         '<p style="margin-top:8px">If you change your mind or have any questions, don\'t hesitate to get in touch.</p>' +
         '<a href="tel:07595399525" class="btn-call">📞 07595 399525</a>' +
         '</div>';
