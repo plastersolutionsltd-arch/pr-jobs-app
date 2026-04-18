@@ -319,10 +319,27 @@
     }
     .fab svg { width: 26px; height: 26px; color: #111; }
     .fab:active { transform: scale(0.92); box-shadow: 0 2px 10px rgba(102,255,51,0.25); }
+    /* ── TRAFFIC LIGHTS (Mac PWA only) ── */
+    @media (pointer: fine) {
+      .tl-bar { position: fixed; top: 0; left: 0; z-index: 9999; display: flex; align-items: center; gap: 7px; padding: 10px 14px; }
+      .tl-bar button { width: 13px; height: 13px; border-radius: 50%; border: none; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: opacity 0.12s; }
+      .tl-bar button:hover { filter: brightness(1.15); }
+      .tl-bar button:active { opacity: 0.55; }
+      .tl-red    { background: #FF5F56; }
+      .tl-yellow { background: #FFBD2E; }
+      .tl-green  { background: #27C93F; }
+      .hdr { padding-left: 70px; } /* make room for traffic lights */
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
+
+<div class="tl-bar">
+  <button class="tl-red"    onclick="window.close()"       title="Close"></button>
+  <button class="tl-yellow" onclick="window.blur()"        title="Minimise"></button>
+  <button class="tl-green"  onclick="tlFullscreen()"       title="Fullscreen"></button>
+</div>
 
 <!-- ═══════════════════════════════════ JOBS SCREEN ═══ -->
 <div id="screen-jobs" class="screen active">
@@ -506,6 +523,13 @@
 <div class="toast" id="toast-msg"></div>
 
 <script>
+function tlFullscreen() {
+  if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+    (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen).call(document.documentElement);
+  } else {
+    (document.exitFullscreen || document.webkitExitFullscreen || function(){}).call(document);
+  }
+}
 // ══════════════════════════════════════════════════════════
 // DATA — localStorage (primary) + Supabase (background sync)
 // ══════════════════════════════════════════════════════════

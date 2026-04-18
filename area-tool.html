@@ -233,9 +233,27 @@
     .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
     .hidden { display: none !important; }
+
+    /* ── TRAFFIC LIGHTS (Mac PWA only) ── */
+    @media (pointer: fine) {
+      .tl-bar { position: fixed; top: 0; left: 0; z-index: 9999; display: flex; align-items: center; gap: 7px; padding: 10px 14px; }
+      .tl-bar button { width: 13px; height: 13px; border-radius: 50%; border: none; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: opacity 0.12s; }
+      .tl-bar button:hover { filter: brightness(1.15); }
+      .tl-bar button:active { opacity: 0.55; }
+      .tl-red    { background: #FF5F56; }
+      .tl-yellow { background: #FFBD2E; }
+      .tl-green  { background: #27C93F; }
+      .hdr { padding-left: 70px; }
+    }
   </style>
 </head>
 <body>
+
+<div class="tl-bar">
+  <button class="tl-red"    onclick="goHome()"       title="Close"></button>
+  <button class="tl-yellow" onclick="window.blur()"  title="Minimise"></button>
+  <button class="tl-green"  onclick="tlFullscreen()" title="Fullscreen"></button>
+</div>
 
 <!-- ══════════════════════════════════════ HOME SCREEN ══ -->
 <div id="screen-home" class="screen active">
@@ -1648,6 +1666,13 @@ function startManual() {
 // ══════════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════════
+function tlFullscreen() {
+  if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+    (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen).call(document.documentElement);
+  } else {
+    (document.exitFullscreen || document.webkitExitFullscreen || function(){}).call(document);
+  }
+}
 loadJob();
 showSubScreen('photo-setup');
 </script>
