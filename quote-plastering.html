@@ -401,20 +401,6 @@
     .inv-terms-col strong { color: #666; font-size: 7pt; display: block; margin-bottom: 2px; }
 
     /* Acceptance box */
-    .inv-acceptance {
-      margin-top: 6mm;
-      border: 1px solid #ddd;
-      padding: 4mm 5mm;
-      font-size: 8pt;
-    }
-
-    .inv-acceptance h4 {
-      font-family: 'Fjalla One', sans-serif;
-      font-size: 7.5pt;
-      letter-spacing: 2.5px;
-      color: #aaa;
-      margin-bottom: 3mm;
-    }
 
     /* Footer */
     .inv-footer {
@@ -728,14 +714,6 @@
           </div>
         </div>
 
-        <!-- Acceptance -->
-        <div class="inv-acceptance">
-          <h4>ACCEPTANCE OF QUOTATION</h4>
-          <div id="quote-response-links">
-            <span style="font-size:7.5pt;color:#bbb;font-style:italic">Save as PDF from the app — accept &amp; decline QR codes will appear here automatically.</span>
-          </div>
-        </div>
-
         <!-- Warranty & Guarantee -->
         <div class="inv-terms" style="background:#f5fbf2;border-color:#c8e6c0">
           <h4 style="color:#4a7a40">WARRANTY &amp; GUARANTEE</h4>
@@ -936,33 +914,9 @@
       const originalUrl = window.location.href;
       history.replaceState(null, '', window.location.pathname);
 
-      // Inject accept/decline QR codes into PDF acceptance section
-      const jobId = window._prJobId;
-      const job = _cachedJob || {};
-      const linksEl = document.getElementById('quote-response-links');
-      const originalLinks = linksEl.innerHTML;
-      if (jobId) {
-        const base = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/quote-response.html';
-        const acceptUrl  = base + '?action=accept&jobId='  + encodeURIComponent(jobId) + '&ref=' + encodeURIComponent(quoteNum) + '&name=' + encodeURIComponent(job.name || '');
-        const declineUrl = base + '?action=decline&jobId=' + encodeURIComponent(jobId) + '&ref=' + encodeURIComponent(quoteNum) + '&name=' + encodeURIComponent(job.name || '');
-        linksEl.innerHTML =
-          '<p style="font-size:7pt;color:#666;margin:0 0 3mm">Tap a button below to respond to this quote:</p>' +
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5mm">' +
-            '<a href="' + acceptUrl + '" style="display:block;background:#1a5c1a;color:#fff;text-decoration:none;border-radius:4px;padding:5mm 4mm;text-align:center">' +
-              '<div style="font-size:14pt;margin-bottom:2mm">&#10003;</div>' +
-              '<div style="font-size:9pt;font-weight:700;letter-spacing:0.5px">ACCEPT THIS QUOTE</div>' +
-            '</a>' +
-            '<a href="' + declineUrl + '" style="display:block;background:#fff;color:#c33;text-decoration:none;border:2px solid #c33;border-radius:4px;padding:5mm 4mm;text-align:center">' +
-              '<div style="font-size:14pt;margin-bottom:2mm">&#10007;</div>' +
-              '<div style="font-size:9pt;font-weight:700;letter-spacing:0.5px">DECLINE THIS QUOTE</div>' +
-            '</a>' +
-          '</div>';
-      }
-
       window.onafterprint = () => {
         document.title = oldTitle;
         history.replaceState(null, '', originalUrl);
-        linksEl.innerHTML = originalLinks;
       };
 
       // Increment the shared counter on print
