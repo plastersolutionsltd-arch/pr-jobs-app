@@ -928,6 +928,14 @@
           </div>
         </div>
 
+        <!-- Acceptance -->
+        <div class="inv-acceptance">
+          <h4>ACCEPTANCE OF QUOTATION</h4>
+          <div id="quote-response-links">
+            <span style="font-size:7.5pt;color:#bbb;font-style:italic">Save as PDF from the app — accept &amp; decline QR codes will appear here automatically.</span>
+          </div>
+        </div>
+
         <!-- Warranty & Guarantee -->
         <div class="inv-terms" style="background:#f5fbf2;border-color:#c8e6c0">
           <h4 style="color:#4a7a40">WARRANTY &amp; GUARANTEE</h4>
@@ -951,14 +959,6 @@
           </div>
           <div style="margin-top:4mm;padding-top:3mm;border-top:1px solid #c8e6c0;font-size:6.5pt;color:#888">
             <strong style="color:#666">Guarantee Conditions:</strong> All guarantees run from the date of practical completion. Any repair or modification carried out by a third party without written consent from P&R Solutions will render the workmanship guarantee void. To make a claim, contact us in writing at Plastersolutionsltd@gmail.com — we will attend site within 10 working days of a valid claim.
-          </div>
-        </div>
-
-        <!-- Acceptance -->
-        <div class="inv-acceptance">
-          <h4>ACCEPTANCE OF QUOTATION</h4>
-          <div id="quote-response-links">
-            <span style="font-size:7.5pt;color:#bbb;font-style:italic">Save as PDF from the app — your customer's Accept &amp; Decline links will appear here automatically.</span>
           </div>
         </div>
 
@@ -1155,6 +1155,17 @@
     const API_BASE = `https://api.counterapi.dev/v1/${API_NS}/${API_KEY}`;
 
     // ── Work type → render system dropdown ──
+    function mapToScopeKey(wt, ft) {
+      const s = ((wt||'') + ' ' + (ft||'')).toLowerCase();
+      if (s.includes('pebbledash') || s.includes('roughcast')) return 'silicone_pebbledash';
+      if ((s.includes('hack') || s.includes('hack-off') || s.includes('hackoff')) && s.includes('monocouche')) return 'monocouche_hackoff';
+      if (s.includes('hack') || s.includes('hack-off') || s.includes('hackoff')) return 'silicone_hackoff';
+      if (s.includes('monocouche')) return 'monocouche_brick_block';
+      if (s.includes('ewi') || s.includes('external wall insulation')) return 'ewi_brick_block';
+      if (s.includes('silicone') || s.includes('k-rend') || s.includes('krend') || s.includes('render')) return 'silicone_brick_block';
+      return '';
+    }
+
     function mapToRenderSystem(wt, ft) {
       const s = ((wt||'') + ' ' + (ft||'')).toLowerCase();
       if (s.includes('ewi') || s.includes('external wall')) return 'EWI System';
@@ -1312,8 +1323,16 @@
                 if (qtyEl) { qtyEl.value = m2; calcRow(fid); }
               }
             }
-            if (!document.getElementById('notes').value)
-              document.getElementById('notes').value = sv.scopeOfWorks || sv.workTypes || '';
+            if (!document.getElementById('notes').value) {
+              if (sv.scopeOfWorks) {
+                document.getElementById('notes').value = sv.scopeOfWorks;
+                update();
+              } else {
+                // Auto-load best-matching scope template if nothing was saved
+                const scopeKey = mapToScopeKey(wt, sv.finishType);
+                if (scopeKey) insertScopeTemplate(scopeKey);
+              }
+            }
           } else {
             // No site visit yet — at least set render system from workType URL param
             const wt = _p.get('workType') || '';
@@ -1356,21 +1375,35 @@
       const originalUrl = window.location.href;
       history.replaceState(null, '', window.location.pathname);
 
-      // Inject accept/decline links into PDF acceptance section
+      // Inject accept/decline QR codes into PDF acceptance section
       const jobId = window._prJobId;
       const job = _cachedJob || {};
       const linksEl = document.getElementById('quote-response-links');
       const originalLinks = linksEl.innerHTML;
       if (jobId) {
         const base = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/quote-response.html';
-        const acceptUrl = base + '?action=accept&jobId=' + encodeURIComponent(jobId) + '&ref=' + encodeURIComponent(quoteNum) + '&name=' + encodeURIComponent(job.name || '');
+        const acceptUrl  = base + '?action=accept&jobId='  + encodeURIComponent(jobId) + '&ref=' + encodeURIComponent(quoteNum) + '&name=' + encodeURIComponent(job.name || '');
         const declineUrl = base + '?action=decline&jobId=' + encodeURIComponent(jobId) + '&ref=' + encodeURIComponent(quoteNum) + '&name=' + encodeURIComponent(job.name || '');
+        const qr = 'https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=';
         linksEl.innerHTML =
-          '<p style="font-size:7.5pt;color:#444;margin:0 0 3mm">To respond to this quotation, use the links below:</p>' +
-          '<div style="display:flex;gap:6mm;align-items:center">' +
-          '<a href="' + acceptUrl + '" style="display:inline-block;padding:5px 14px;background:#1a5c1a;color:#fff;text-decoration:none;font-size:8.5pt;font-weight:700;border-radius:2px;letter-spacing:0.5px">&#10003; ACCEPT THIS QUOTE</a>' +
-          '<a href="' + declineUrl + '" style="display:inline-block;padding:5px 14px;background:#fff;color:#c33;text-decoration:none;font-size:8.5pt;font-weight:700;border-radius:2px;letter-spacing:0.5px;border:1px solid #c33">&#10007; DECLINE THIS QUOTE</a>' +
+          '<p style="font-size:7pt;color:#666;margin:0 0 3mm">Scan a QR code with your phone, or tap the link to respond to this quote:</p>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5mm">' +
+            '<div style="border:1.5px solid #2d7a2d;border-radius:3px;padding:3mm;text-align:center">' +
+              '<img src="' + qr + encodeURIComponent(acceptUrl)  + '" width="90" height="90" style="display:block;margin:0 auto 2mm">' +
+              '<div style="font-size:8pt;font-weight:700;color:#1a5c1a;margin-bottom:1mm">&#10003; ACCEPT THIS QUOTE</div>' +
+              '<a href="' + acceptUrl  + '" style="font-size:5.5pt;color:#2d7a2d;word-break:break-all;text-decoration:none">' + acceptUrl  + '</a>' +
+            '</div>' +
+            '<div style="border:1.5px solid #ccc;border-radius:3px;padding:3mm;text-align:center">' +
+              '<img src="' + qr + encodeURIComponent(declineUrl) + '" width="90" height="90" style="display:block;margin:0 auto 2mm">' +
+              '<div style="font-size:8pt;font-weight:700;color:#c33;margin-bottom:1mm">&#10007; DECLINE THIS QUOTE</div>' +
+              '<a href="' + declineUrl + '" style="font-size:5.5pt;color:#c33;word-break:break-all;text-decoration:none">' + declineUrl + '</a>' +
+            '</div>' +
           '</div>';
+        // Wait for QR code images to load before printing
+        const imgs = linksEl.querySelectorAll('img');
+        await Promise.all(Array.from(imgs).map(img =>
+          new Promise(r => { if (img.complete) r(); else { img.onload = r; img.onerror = r; } })
+        ));
       }
 
       window.onafterprint = () => {
@@ -1688,7 +1721,7 @@ Works to include:
 
 • Full inspection of existing pebbledash substrate; any hollow, blown or debonded sections identified, cut out, and made good with compatible mortar prior to overlay application. Any failed or corroded stop beads removed and replaced with proprietary stainless steel beads where required.
 
-• Application of EcoRend EWI-Pro 40 reinforcing base coat over the full pebbledash surface, reinforced throughout with EcoRend alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints. All corners and reveals to be double-meshed for additional strength and impact resistance. Base coat left to fully cure prior to topcoat application.
+• Application of EcoRend X32 reinforcing base coat over the full pebbledash surface, reinforced throughout with EcoRend alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints. All corners and reveals to be double-meshed for additional strength and impact resistance. Base coat left to fully cure prior to topcoat application.
 
 • Application of EcoRend 1.5mm silicone topcoat in the client's choice of colour from the EcoRend colour range, applied uniformly in a single coat to a consistent texture and finish across all treated elevations.
 
@@ -1698,7 +1731,7 @@ EcoRend silicone is self-cleaning, hydrophobic, breathable, and UV-stable — th
 
 All works carried out in full accordance with EcoRend manufacturer specification. 25-year manufacturer product warranty applies to materials. 5-year P&R Solutions workmanship guarantee on installation.`,
 
-      silicone_brick_block: `Supply of all labour, materials, plant and equipment to carry out a full EcoRend silicone render system (EWI-Pro 40 base coat / 1.5mm silicone topcoat) to brick and block substrate. No hack-off required.
+      silicone_brick_block: `Supply of all labour, materials, plant and equipment to carry out a full EcoRend silicone render system (X32 base coat / 1.5mm silicone topcoat) to brick and block substrate. No hack-off required.
 
 Works to include:
 
@@ -1710,7 +1743,7 @@ Works to include:
 
 • All stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points, ensuring clean, true and straight arrises throughout.
 
-• Application of EcoRend EWI-Pro 40 base coat, reinforced throughout with EcoRend alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints in accordance with manufacturer's specification. All corners and reveals to be double-meshed for additional strength and impact resistance. Base coat left to fully cure before topcoat application.
+• Application of EcoRend X32 base coat, reinforced throughout with EcoRend alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints in accordance with manufacturer's specification. All corners and reveals to be double-meshed for additional strength and impact resistance. Base coat left to fully cure before topcoat application.
 
 • Application of EcoRend 1.5mm silicone topcoat in the client's choice of colour, applied uniformly to a consistent texture and finish across all treated elevations.
 
@@ -1734,7 +1767,7 @@ Works to include:
 
 • All new stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points, ensuring clean, true and straight arrises throughout.
 
-• Application of EcoRend EWI-Pro 40 base coat, reinforced throughout with EcoRend alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints. All corners and reveals to be double-meshed for additional impact resistance. Base coat left to fully cure before topcoat application.
+• Application of EcoRend X32 base coat, reinforced throughout with EcoRend alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints. All corners and reveals to be double-meshed for additional impact resistance. Base coat left to fully cure before topcoat application.
 
 • Application of EcoRend 1.5mm silicone topcoat in the client's choice of colour from the EcoRend colour range, applied uniformly to a consistent texture and finish across all treated elevations.
 
