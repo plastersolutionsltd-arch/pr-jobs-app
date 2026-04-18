@@ -44,7 +44,8 @@
       flex-shrink: 0;
     }
     /* logo lockup */
-    .logo-lockup { display: flex; align-items: center; gap: 10px; }
+    .logo-lockup { display: flex; align-items: center; gap: 10px; background: none; border: none; cursor: pointer; padding: 0; -webkit-tap-highlight-color: transparent; }
+    .logo-lockup:active { opacity: 0.7; }
     .logo-lockup svg { height: 28px; width: auto; flex-shrink: 0; }
     .logo-text { display: flex; flex-direction: column; }
     .logo-name {
@@ -326,7 +327,7 @@
 <!-- ═══════════════════════════════════ JOBS SCREEN ═══ -->
 <div id="screen-jobs" class="screen active">
   <div class="hdr">
-    <div class="logo-lockup">
+    <button class="logo-lockup" onclick="navTo('jobs')">
       <svg viewBox="-2 -12 270 175" xmlns="http://www.w3.org/2000/svg">
         <path fill="#66FF33" d="M 0,0 L 0,160 L 35,160 L 35,95 L 80,95 C 115,95 140,70 140,40 C 140,10 115,-10 80,-10 L 0,-10 Z M 35,20 L 80,20 C 95,20 105,30 105,45 C 105,60 95,70 80,70 L 35,70 Z"/>
         <path fill="#FFFFFF" d="M 120,0 L 120,160 L 155,160 L 155,100 L 185,100 L 225,160 L 265,160 L 220,95 C 245,90 265,70 265,40 C 265,10 240,-10 205,-10 L 120,-10 Z M 155,20 L 205,20 C 220,20 230,30 230,45 C 230,60 220,70 205,70 L 155,70 Z"/>
@@ -335,7 +336,7 @@
         <div class="logo-name"><span class="g">P&amp;R</span> SOLUTIONS</div>
         <div class="logo-sub" id="jobs-count">Loading...</div>
       </div>
-    </div>
+    </button>
   </div>
   <div class="scroll">
     <div class="search-wrap">
@@ -425,7 +426,7 @@
 <!-- ═══════════════════════════════════ TOOLS SCREEN ═══ -->
 <div id="screen-tools" class="screen">
   <div class="hdr">
-    <div class="logo-lockup">
+    <button class="logo-lockup" onclick="navTo('jobs')">
       <svg viewBox="-2 -12 270 175" xmlns="http://www.w3.org/2000/svg">
         <path fill="#66FF33" d="M 0,0 L 0,160 L 35,160 L 35,95 L 80,95 C 115,95 140,70 140,40 C 140,10 115,-10 80,-10 L 0,-10 Z M 35,20 L 80,20 C 95,20 105,30 105,45 C 105,60 95,70 80,70 L 35,70 Z"/>
         <path fill="#FFFFFF" d="M 120,0 L 120,160 L 155,160 L 155,100 L 185,100 L 225,160 L 265,160 L 220,95 C 245,90 265,70 265,40 C 265,10 240,-10 205,-10 L 120,-10 Z M 155,20 L 205,20 C 220,20 230,30 230,45 C 230,60 220,70 205,70 L 155,70 Z"/>
@@ -434,7 +435,7 @@
         <div class="logo-name"><span class="g">P&amp;R</span> SOLUTIONS</div>
         <div class="logo-sub">Site visit &amp; quoting tools</div>
       </div>
-    </div>
+    </button>
   </div>
   <div class="scroll">
     <div class="tool-list-item" onclick="showTool('measure')">
