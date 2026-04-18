@@ -75,18 +75,12 @@
     var name      = p.get('name') || '';
     var firstName = name.split(' ')[0] || 'there';
 
-    // Show result immediately — no waiting
     if (!jobId || (action !== 'accept' && action !== 'decline')) {
       document.getElementById('content').innerHTML =
         '<div class="card"><div class="icon">⚠️</div><h1>Invalid link</h1><p>This link doesn\'t look right. Please contact Chris directly.</p><a href="tel:07595399525" class="btn-call">📞 Call Chris</a></div>';
-    } else if (action === 'accept') {
-      showAccepted(ref, firstName);
     } else {
-      showDeclined(firstName);
-    }
-
-    // Update Supabase + notify Chris silently in background
-    if (jobId && (action === 'accept' || action === 'decline')) {
+      // Show loading state, update Supabase, then show result
+      document.getElementById('content').innerHTML = '<div class="card"><p style="text-align:center;color:#888;padding:40px 0">Updating…</p></div>';
       (async function() {
         try {
           var newStatus = action === 'accept' ? 'booked' : 'declined';
@@ -111,6 +105,12 @@
               : name + ' has declined quote ' + ref + '. You may want to follow up.'
           })
         }).catch(function(){});
+        // Show result after update completes
+        if (action === 'accept') {
+          showAccepted(ref, firstName);
+        } else {
+          showDeclined(firstName);
+        }
       })();
     }
 
