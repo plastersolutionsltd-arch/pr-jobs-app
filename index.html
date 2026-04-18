@@ -1430,6 +1430,7 @@ async function saveEdit() {
 
 // ── INIT ──
 (async function(){
+  sessionStorage.setItem('pr_app_active', '1');
   document.getElementById('jobs-count').textContent = 'Loading…';
   await loadJobs();
   renderJobs();

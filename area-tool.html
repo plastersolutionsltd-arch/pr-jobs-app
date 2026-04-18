@@ -335,10 +335,11 @@
 
       <!-- Site visit photos (shown when job has saved photos) -->
       <div id="sv-photos-section" class="hidden">
-        <div class="sec-lbl">Site Visit Photos</div>
+        <div class="sec-lbl">Site Visit Photos — tap to use</div>
         <div class="sv-photo-grid" id="sv-photo-grid"></div>
         <div class="sec-lbl" style="margin-top:4px">Or Take / Upload New</div>
       </div>
+      <div id="sv-photos-loading" style="font-size:12px;color:#666;margin-bottom:8px">Loading site visit photos…</div>
 
       <!-- Upload area -->
       <div class="upload-area" id="upload-area-btn" onclick="document.getElementById('photo-input').click()">
@@ -665,8 +666,8 @@ const SB_URL = 'https://ngakblcdnuqectjappkl.supabase.co';
 const SB_KEY = 'sb_publishable_wX0TOGQTtNWi0ex14ux6Hw_eKVge5cJ';
 const sb = supabase.createClient(SB_URL, SB_KEY);
 
-// If opened fresh (browser restore / direct URL), go to dashboard
-if (!document.referrer.includes('plastersolutionsltd-arch.github.io')) {
+// If opened fresh (browser restore, not from within the app), go to dashboard
+if (!sessionStorage.getItem('pr_app_active')) {
   window.location.replace('https://plastersolutionsltd-arch.github.io/pr-jobs-app/');
 }
 
@@ -885,13 +886,21 @@ function startPhoto() {
   buildSVPhotoPicker();
   showScreen('screen-photo');
   showSubScreen('photo-setup');
+  // Retry after 2s in case Supabase hadn't returned yet
+  setTimeout(buildSVPhotoPicker, 2000);
 }
 
 function buildSVPhotoPicker() {
+  const loadingEl = document.getElementById('sv-photos-loading');
   const svPhotos = job?.siteVisit?.photos;
   const section = document.getElementById('sv-photos-section');
   const grid    = document.getElementById('sv-photo-grid');
-  if (!svPhotos || !svPhotos.length) { section.classList.add('hidden'); return; }
+  if (!svPhotos || !svPhotos.length) {
+    if (loadingEl) loadingEl.textContent = jobId ? 'No site visit photos saved yet.' : '';
+    section.classList.add('hidden');
+    return;
+  }
+  if (loadingEl) loadingEl.style.display = 'none';
   section.classList.remove('hidden');
   grid.innerHTML = svPhotos.map((p, i) => `
     <div class="sv-photo-thumb" id="svpt-${i}" onclick="selectSVPhoto(${i})">
