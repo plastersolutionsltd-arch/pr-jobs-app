@@ -640,6 +640,12 @@
       </div>
     </div>
 
+    <!-- Area Tool import banner (shown if job has photo-measured walls) -->
+    <div id="area-import-banner" style="display:none;background:#0d1a0d;border:1px solid rgba(102,255,51,0.3);border-radius:10px;padding:12px 14px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;gap:10px">
+      <div style="font-size:13px;color:#aaa"><span style="color:#66FF33;font-weight:700" id="area-import-count"></span> walls measured with Area Tool</div>
+      <button onclick="importAreaMeasurements()" style="background:#66FF33;color:#111;border:none;padding:6px 14px;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;letter-spacing:0.5px">Import</button>
+    </div>
+
     <!-- Rooms & Measurements -->
     <div class="sec" style="display:flex;justify-content:space-between;align-items:center">
       <span>Rooms &amp; Measurements</span>
@@ -1165,7 +1171,13 @@ function parseFreetextMessage(raw) {
         addPriceRow('');
       }
 
-      // Rooms — always blank (re-measure on site)
+      // Rooms — check for area tool measurements first
+      const areaMeasurements = _svJob?.areaToolMeasurements || [];
+      if (areaMeasurements.length > 0) {
+        const banner = document.getElementById('area-import-banner');
+        banner.style.display = 'flex';
+        document.getElementById('area-import-count').textContent = areaMeasurements.length;
+      }
       addRoom('Living Room');
       addRoom('');
       addRoom('');
@@ -1291,6 +1303,24 @@ function parseFreetextMessage(raw) {
     });
 
     /* ===== ROOMS ===== */
+    function importAreaMeasurements() {
+      const areas = _svJob?.areaToolMeasurements || [];
+      if (!areas.length) return;
+      // Clear default blank rows first
+      document.querySelectorAll('#rooms-tbody tr').forEach(r => r.remove());
+      areas.forEach(a => {
+        // Add as L×H single-surface row (W blank = L×H = m²)
+        addRoom(a.label || 'Wall');
+        const rc = roomCount;
+        const lEl = document.getElementById('l-' + rc);
+        const hEl = document.getElementById('h-' + rc);
+        if (lEl) lEl.value = a.m2.toFixed(2);
+        if (hEl) hEl.value = '1';
+        calcRoom(rc);
+      });
+      document.getElementById('area-import-banner').style.display = 'none';
+    }
+
     function addRoom(defaultName) {
       roomCount++;
       const rc = roomCount;
