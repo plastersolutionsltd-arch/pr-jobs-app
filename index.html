@@ -911,7 +911,7 @@ function openTemplate(filename) {
   if (j.propertyType)   p.set('propertyType', j.propertyType);
   p.set('ref', (j.name || '').split(' ')[0] + (j.address ? ' - ' + j.address.split(',')[0] : ''));
   p.set('jobId', j.id);
-  window.open(base + filename + '?' + p.toString(), '_blank');
+  window.location.href = base + filename + '?' + p.toString();
 }
 
 async function setStatus(status) {
