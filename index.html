@@ -7,12 +7,29 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="P&R Jobs">
   <meta name="theme-color" content="#111111">
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
   <title>P&R Solutions</title>
   <style>
-    :root { --green: #66FF33; --dark: #111; --card: #1a1a1a; --border: #2a2a2a; --text: #fff; --muted: #666; }
+    :root {
+      --green: #66FF33;
+      --green-dim: rgba(102,255,51,0.15);
+      --green-glow: rgba(102,255,51,0.22);
+      --dark: #0f0f0f;
+      --card: #1a1a1a;
+      --card2: #1e1e1e;
+      --border: #272727;
+      --border-hi: #333;
+      --text: #fff;
+      --muted: #5e5e5e;
+      --muted2: #888;
+      --brand: 'Montserrat', 'Arial Black', Arial, sans-serif;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html, body { height: 100%; overflow: hidden; }
-    body { font-family: -apple-system, Arial, sans-serif; background: var(--dark); color: var(--text); display: flex; flex-direction: column; }
+    body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; background: var(--dark); color: var(--text); display: flex; flex-direction: column; }
 
     /* ── SCREENS ── */
     .screen { display: none; flex-direction: column; flex: 1; overflow: hidden; }
@@ -20,23 +37,37 @@
 
     /* ── HEADER ── */
     .hdr {
-      background: var(--dark);
-      border-bottom: 1px solid var(--border);
-      padding: 14px 16px 10px;
+      background: #111;
+      border-bottom: 1px solid rgba(102,255,51,0.1);
+      padding: 12px 16px 10px;
       display: flex; align-items: center; justify-content: space-between;
       flex-shrink: 0;
     }
-    .hdr-title { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }
-    .hdr-title span { color: var(--green); }
-    .hdr-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .hdr-back { background: none; border: none; color: var(--green); font-size: 16px; cursor: pointer; padding: 4px 0; display: flex; align-items: center; gap: 6px; }
+    /* logo lockup */
+    .logo-lockup { display: flex; align-items: center; gap: 10px; }
+    .logo-lockup svg { height: 28px; width: auto; flex-shrink: 0; }
+    .logo-text { display: flex; flex-direction: column; }
+    .logo-name {
+      font-family: var(--brand);
+      font-size: 14px; font-weight: 900;
+      letter-spacing: 2px; line-height: 1;
+    }
+    .logo-name .g { color: var(--green); }
+    .logo-sub { font-size: 10px; color: var(--muted2); letter-spacing: 0.5px; margin-top: 3px; }
+
+    .hdr-title { font-family: var(--brand); font-size: 16px; font-weight: 800; letter-spacing: 0.5px; }
+    .hdr-back {
+      background: none; border: none; color: var(--green); font-size: 15px;
+      cursor: pointer; padding: 4px 0; display: flex; align-items: center; gap: 6px;
+      font-family: var(--brand); font-weight: 700; letter-spacing: 0.3px;
+    }
 
     /* ── SCROLL BODY ── */
     .scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 14px 16px 20px; }
 
     /* ── BOTTOM NAV ── */
     .nav {
-      background: #161616;
+      background: #111;
       border-top: 1px solid var(--border);
       display: flex;
       flex-shrink: 0;
@@ -45,19 +76,30 @@
     .nav-btn {
       flex: 1; display: flex; flex-direction: column; align-items: center;
       padding: 10px 0 8px; background: none; border: none; cursor: pointer;
-      color: var(--muted); font-size: 10px; letter-spacing: 0.5px; gap: 5px;
+      color: var(--muted); font-size: 10px; letter-spacing: 1px; gap: 5px;
+      font-family: var(--brand); font-weight: 700; text-transform: uppercase;
+      position: relative; transition: color 0.15s;
     }
     .nav-btn.active { color: var(--green); }
+    .nav-btn.active::before {
+      content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 28px; height: 2px; background: var(--green); border-radius: 0 0 2px 2px;
+    }
     .nav-btn svg { width: 22px; height: 22px; }
 
     /* ── CARDS ── */
-    .card { background: var(--card); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+    .card {
+      background: var(--card); border-radius: 14px; padding: 14px; margin-bottom: 10px;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
     .card-row { display: flex; justify-content: space-between; align-items: flex-start; }
 
     /* ── STATUS BADGES ── */
     .badge {
-      display: inline-block; padding: 3px 9px; border-radius: 20px;
-      font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+      font-family: var(--brand);
     }
     .badge-enquiry  { background: #1a2a3a; color: #5599ff; }
     .badge-quoted   { background: #2a2a1a; color: #ffcc33; }
@@ -69,21 +111,26 @@
     .badge-paid     { background: #0f2a0f; color: var(--green); }
 
     /* ── JOB LIST ── */
-    .job-card { cursor: pointer; active: opacity 0.7; }
-    .job-card:active { opacity: 0.7; }
+    .job-card { cursor: pointer; transition: opacity 0.15s; }
+    .job-card:active { opacity: 0.65; }
     .job-name { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
-    .job-addr { font-size: 13px; color: #999; margin-bottom: 8px; }
+    .job-addr { font-size: 13px; color: #888; margin-bottom: 8px; }
     .job-meta { display: flex; align-items: center; justify-content: space-between; }
     .job-date { font-size: 11px; color: var(--muted); }
 
     /* ── FILTER TABS ── */
-    .tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; margin-bottom: 14px; scrollbar-width: none; }
+    .tabs { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 2px; margin-bottom: 14px; scrollbar-width: none; }
     .tabs::-webkit-scrollbar { display: none; }
     .tab {
       flex-shrink: 0; padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
-      font-size: 13px; background: none; color: var(--muted); cursor: pointer;
+      font-size: 12px; background: none; color: var(--muted); cursor: pointer;
+      font-family: var(--brand); font-weight: 700; letter-spacing: 0.5px;
+      transition: all 0.15s;
     }
-    .tab.active { background: var(--green); color: #111; border-color: var(--green); font-weight: 600; }
+    .tab.active {
+      background: var(--green); color: #111; border-color: var(--green); font-weight: 800;
+      box-shadow: 0 2px 10px var(--green-glow);
+    }
 
     /* ── SEARCH ── */
     .search-wrap { position: relative; margin-bottom: 14px; }
@@ -100,9 +147,17 @@
     .empty p { font-size: 13px; }
 
     /* ── NEW JOB ── */
-    .seg { display: flex; background: var(--card); border-radius: 10px; padding: 3px; margin-bottom: 16px; }
-    .seg-btn { flex: 1; padding: 8px; border-radius: 8px; border: none; background: none; color: var(--muted); font-size: 14px; cursor: pointer; }
-    .seg-btn.active { background: var(--green); color: #111; font-weight: 600; }
+    .seg { display: flex; background: #141414; border-radius: 12px; padding: 4px; margin-bottom: 16px; border: 1px solid var(--border); }
+    .seg-btn {
+      flex: 1; padding: 9px; border-radius: 9px; border: none; background: none;
+      color: var(--muted2); font-size: 13px; cursor: pointer;
+      font-family: var(--brand); font-weight: 700; letter-spacing: 0.3px;
+      transition: all 0.15s;
+    }
+    .seg-btn.active {
+      background: var(--green); color: #111; font-weight: 800;
+      box-shadow: 0 2px 10px var(--green-glow);
+    }
 
     .paste-area {
       width: 100%; min-height: 130px; background: var(--card); border: 1.5px solid var(--border);
@@ -112,7 +167,7 @@
     .paste-area:focus { border-color: var(--green); }
     .paste-hint { font-size: 12px; color: var(--muted); text-align: center; margin-top: 6px; }
 
-    .lbl { font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; margin-top: 14px; }
+    .lbl { font-size: 11px; color: var(--muted2); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; margin-top: 14px; font-family: var(--brand); font-weight: 700; }
     .inp {
       width: 100%; background: var(--card); border: 1.5px solid var(--border);
       border-radius: 10px; padding: 12px 14px; color: #fff; font-size: 16px; outline: none;
@@ -120,7 +175,7 @@
     .inp:focus { border-color: var(--green); }
 
     /* ── EXTRACTED PREVIEW ── */
-    .extracted { background: #0f1f0f; border: 1px solid #2a4a2a; border-radius: 12px; padding: 14px; margin: 14px 0; display: none; }
+    .extracted { background: #0e1c0e; border: 1px solid rgba(102,255,51,0.2); border-radius: 12px; padding: 14px; margin: 14px 0; display: none; }
     .ext-row { display: flex; gap: 10px; margin-bottom: 8px; align-items: flex-start; }
     .ext-lbl { font-size: 11px; color: var(--green); letter-spacing: 1px; text-transform: uppercase; width: 60px; flex-shrink: 0; padding-top: 1px; }
     .ext-val { font-size: 15px; color: #fff; flex: 1; }
@@ -129,37 +184,49 @@
     /* ── BUTTONS ── */
     .btn {
       width: 100%; padding: 15px; border-radius: 12px; border: none;
-      font-size: 16px; font-weight: 700; cursor: pointer; letter-spacing: 0.5px;
-      margin-top: 10px;
+      font-size: 15px; font-weight: 800; cursor: pointer; letter-spacing: 1px;
+      margin-top: 10px; font-family: var(--brand); text-transform: uppercase;
+      transition: transform 0.1s, opacity 0.1s, box-shadow 0.1s;
     }
-    .btn-green { background: var(--green); color: #111; }
-    .btn-green:active { opacity: 0.85; }
-    .btn-outline { background: none; border: 1.5px solid var(--border); color: var(--muted); }
-    .btn-outline:active { background: var(--card); }
+    .btn-green {
+      background: var(--green); color: #111;
+      box-shadow: 0 4px 18px var(--green-glow);
+    }
+    .btn-green:active { transform: scale(0.97); opacity: 0.9; box-shadow: 0 2px 8px var(--green-glow); }
+    .btn-outline {
+      background: none; border: 1.5px solid var(--border-hi); color: var(--muted2);
+    }
+    .btn-outline:active { background: var(--card); transform: scale(0.97); }
     .btn-sm {
       padding: 10px 18px; border-radius: 10px; border: none;
-      font-size: 14px; font-weight: 600; cursor: pointer; width: auto;
+      font-size: 12px; font-weight: 800; cursor: pointer; width: auto;
       display: inline-flex; align-items: center; gap: 6px; margin-top: 0;
+      font-family: var(--brand); letter-spacing: 0.8px; text-transform: uppercase;
+      transition: transform 0.1s, opacity 0.1s;
     }
+    .btn-sm:active { transform: scale(0.96); }
 
     /* ── JOB DETAIL ── */
-    .detail-name { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
-    .detail-addr { font-size: 15px; color: #aaa; margin-bottom: 16px; }
+    .detail-name { font-size: 26px; font-weight: 700; margin-bottom: 4px; font-family: var(--brand); letter-spacing: -0.5px; }
+    .detail-addr { font-size: 15px; color: #888; margin-bottom: 16px; }
 
     .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
     .action-btn {
-      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
       padding: 14px 12px; display: flex; flex-direction: column; align-items: center;
-      gap: 8px; cursor: pointer; font-size: 13px; color: var(--text); font-weight: 500;
+      gap: 8px; cursor: pointer; font-size: 12px; color: var(--text); font-weight: 700;
+      font-family: var(--brand); letter-spacing: 0.5px;
+      transition: transform 0.1s, opacity 0.1s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
-    .action-btn:active { opacity: 0.7; }
+    .action-btn:active { opacity: 0.65; transform: scale(0.95); }
     .action-btn svg { width: 26px; height: 26px; }
     .action-btn.green { background: #0f2a0f; border-color: #2a4a2a; color: var(--green); }
     .action-btn.blue  { background: #0f1a2a; border-color: #1a2a4a; color: #5599ff; }
     .action-btn.wa    { background: #0f2a1a; border-color: #1a4a2a; color: #25D366; }
     .action-btn.maps  { background: #2a1a0f; border-color: #4a2a1a; color: #ff9933; }
 
-    .section-hdr { font-size: 12px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin: 18px 0 10px; }
+    .section-hdr { font-size: 11px; color: var(--muted2); letter-spacing: 2px; text-transform: uppercase; margin: 18px 0 10px; font-family: var(--brand); font-weight: 700; }
 
     .info-row { display: flex; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border); align-items: center; }
     .info-row:last-child { border-bottom: none; }
@@ -183,23 +250,29 @@
 
     .tools-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .tool-btn {
-      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
       padding: 16px 12px; display: flex; flex-direction: column; align-items: center;
-      gap: 8px; cursor: pointer; font-size: 13px; color: #ccc; font-weight: 500; text-align: center;
+      gap: 8px; cursor: pointer; font-size: 12px; color: #ccc; font-weight: 700; text-align: center;
+      font-family: var(--brand); letter-spacing: 0.3px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      transition: opacity 0.15s;
     }
-    .tool-btn:active { opacity: 0.7; }
+    .tool-btn:active { opacity: 0.65; }
     .tool-btn svg { width: 28px; height: 28px; color: var(--green); }
 
     /* ── TOOLS SCREEN ── */
     .tool-list-item {
-      background: var(--card); border-radius: 12px; padding: 16px;
+      background: var(--card); border-radius: 14px; padding: 16px;
       margin-bottom: 10px; display: flex; align-items: center; gap: 14px; cursor: pointer;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      transition: opacity 0.15s;
     }
-    .tool-list-item:active { opacity: 0.7; }
+    .tool-list-item:active { opacity: 0.65; }
     .tool-icon { width: 44px; height: 44px; border-radius: 10px; background: #0f2a0f; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .tool-icon svg { width: 24px; height: 24px; color: var(--green); }
-    .tool-info h3 { font-size: 16px; font-weight: 600; margin-bottom: 2px; }
-    .tool-info p { font-size: 13px; color: var(--muted); }
+    .tool-info h3 { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+    .tool-info p { font-size: 13px; color: var(--muted2); }
 
     /* ── MEASURE TOOL ── */
     .measure-rooms { margin-bottom: 10px; }
@@ -216,29 +289,35 @@
     .measure-hdr { display: grid; grid-template-columns: 1fr 60px 60px 60px 70px; gap: 6px; margin-bottom: 6px; }
     .measure-hdr span { font-size: 10px; color: var(--muted); text-align: center; letter-spacing: 1px; text-transform: uppercase; }
     .measure-hdr span:first-child { text-align: left; }
-    .grand-total { background: #0f2a0f; border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
-    .grand-total span:first-child { color: var(--muted); font-size: 13px; }
-    .grand-total span:last-child { font-size: 22px; font-weight: 700; color: var(--green); }
+    .grand-total {
+      background: #0f1f0f; border-radius: 12px; padding: 14px 16px;
+      display: flex; justify-content: space-between; align-items: center; margin-top: 10px;
+      border: 1px solid rgba(102,255,51,0.2);
+    }
+    .grand-total span:first-child { color: var(--muted2); font-size: 13px; font-family: var(--brand); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+    .grand-total span:last-child { font-size: 24px; font-weight: 900; color: var(--green); font-family: var(--brand); }
 
     /* ── TOAST ── */
     .toast {
-      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-      background: #222; color: #fff; padding: 10px 20px; border-radius: 20px;
-      font-size: 14px; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 999;
-      white-space: nowrap;
+      position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%);
+      background: #242424; color: #fff; padding: 10px 22px; border-radius: 22px;
+      font-size: 13px; font-weight: 600; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 999;
+      white-space: nowrap; border: 1px solid var(--border-hi);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
     }
     .toast.show { opacity: 1; }
 
     /* ── FAB ── */
     .fab {
-      position: fixed; bottom: 80px; right: 20px;
-      width: 54px; height: 54px; border-radius: 27px;
+      position: fixed; bottom: 82px; right: 18px;
+      width: 56px; height: 56px; border-radius: 28px;
       background: var(--green); border: none; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 16px rgba(102,255,51,0.3);
+      box-shadow: 0 4px 20px rgba(102,255,51,0.35), 0 2px 8px rgba(0,0,0,0.4);
+      transition: transform 0.1s, box-shadow 0.1s;
     }
     .fab svg { width: 26px; height: 26px; color: #111; }
-    .fab:active { transform: scale(0.94); }
+    .fab:active { transform: scale(0.92); box-shadow: 0 2px 10px rgba(102,255,51,0.25); }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -247,9 +326,15 @@
 <!-- ═══════════════════════════════════ JOBS SCREEN ═══ -->
 <div id="screen-jobs" class="screen active">
   <div class="hdr">
-    <div>
-      <div class="hdr-title">P&amp;<span>R</span> Solutions</div>
-      <div class="hdr-sub" id="jobs-count">Loading...</div>
+    <div class="logo-lockup">
+      <svg viewBox="-2 -12 270 175" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#66FF33" d="M 0,0 L 0,160 L 35,160 L 35,95 L 80,95 C 115,95 140,70 140,40 C 140,10 115,-10 80,-10 L 0,-10 Z M 35,20 L 80,20 C 95,20 105,30 105,45 C 105,60 95,70 80,70 L 35,70 Z"/>
+        <path fill="#FFFFFF" d="M 120,0 L 120,160 L 155,160 L 155,100 L 185,100 L 225,160 L 265,160 L 220,95 C 245,90 265,70 265,40 C 265,10 240,-10 205,-10 L 120,-10 Z M 155,20 L 205,20 C 220,20 230,30 230,45 C 230,60 220,70 205,70 L 155,70 Z"/>
+      </svg>
+      <div class="logo-text">
+        <div class="logo-name"><span class="g">P&amp;R</span> SOLUTIONS</div>
+        <div class="logo-sub" id="jobs-count">Loading...</div>
+      </div>
     </div>
   </div>
   <div class="scroll">
@@ -340,9 +425,15 @@
 <!-- ═══════════════════════════════════ TOOLS SCREEN ═══ -->
 <div id="screen-tools" class="screen">
   <div class="hdr">
-    <div>
-      <div class="hdr-title">Tools</div>
-      <div class="hdr-sub">Site visit &amp; quoting tools</div>
+    <div class="logo-lockup">
+      <svg viewBox="-2 -12 270 175" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#66FF33" d="M 0,0 L 0,160 L 35,160 L 35,95 L 80,95 C 115,95 140,70 140,40 C 140,10 115,-10 80,-10 L 0,-10 Z M 35,20 L 80,20 C 95,20 105,30 105,45 C 105,60 95,70 80,70 L 35,70 Z"/>
+        <path fill="#FFFFFF" d="M 120,0 L 120,160 L 155,160 L 155,100 L 185,100 L 225,160 L 265,160 L 220,95 C 245,90 265,70 265,40 C 265,10 240,-10 205,-10 L 120,-10 Z M 155,20 L 205,20 C 220,20 230,30 230,45 C 230,60 220,70 205,70 L 155,70 Z"/>
+      </svg>
+      <div class="logo-text">
+        <div class="logo-name"><span class="g">P&amp;R</span> SOLUTIONS</div>
+        <div class="logo-sub">Site visit &amp; quoting tools</div>
+      </div>
     </div>
   </div>
   <div class="scroll">
