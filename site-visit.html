@@ -944,6 +944,7 @@
 
     let roomCount = 0;
     let photoCount = 0;
+    let photoData = {}; // { slotIndex: { dataUrl, caption } }
 
     /* ===== EMAIL IMPORT ===== */
     function toggleImport() {
@@ -1171,6 +1172,22 @@ function parseFreetextMessage(raw) {
         addPriceRow('');
       }
 
+      // Restore saved photos
+      if (isRestore && sv.photos && sv.photos.length) {
+        sv.photos.forEach(p => {
+          addPhotoSlot();
+          const pc = photoCount;
+          displayPhoto(pc, p.dataUrl);
+          photoData[pc] = { dataUrl: p.dataUrl, caption: p.caption || '' };
+          const capEl = document.getElementById('ph-caption-' + pc);
+          if (capEl && p.caption) capEl.value = p.caption;
+        });
+      } else {
+        addPhotoSlot();
+        addPhotoSlot();
+        addPhotoSlot();
+      }
+
       // Rooms — check for area tool measurements first
       const areaMeasurements = _svJob?.areaToolMeasurements || [];
       if (areaMeasurements.length > 0) {
@@ -1297,8 +1314,6 @@ function parseFreetextMessage(raw) {
           localStorage.setItem('pr_current_client', JSON.stringify(saved));
         });
       });
-      // Start with 6 empty photo slots + add-more button
-      for (let i = 0; i < 6; i++) addPhotoSlot();
       renderAddMoreBtn();
     });
 
@@ -1421,7 +1436,7 @@ function parseFreetextMessage(raw) {
         <img id="ph-img-${pc}" src="" alt="Photo ${pc}">
         <button class="photo-remove" id="ph-remove-${pc}" onclick="removePhoto(${pc})" title="Remove photo">×</button>
         <div class="photo-caption-wrap" id="ph-caption-wrap-${pc}">
-          <input type="text" placeholder="Add caption..." id="ph-caption-${pc}">
+          <input type="text" placeholder="Add caption..." id="ph-caption-${pc}" oninput="if(photoData[${pc}])photoData[${pc}].caption=this.value">
         </div>
       `;
       grid.appendChild(slot);
@@ -1445,17 +1460,38 @@ function parseFreetextMessage(raw) {
       if (!file) return;
       const reader = new FileReader();
       reader.onload = e => {
-        const img = document.getElementById('ph-img-' + pc);
-        const placeholder = document.getElementById('ph-placeholder-' + pc);
-        const removeBtn = document.getElementById('ph-remove-' + pc);
-        const captionWrap = document.getElementById('ph-caption-wrap-' + pc);
-        img.src = e.target.result;
-        img.style.display = 'block';
-        placeholder.style.display = 'none';
-        removeBtn.style.display = 'flex';
-        captionWrap.style.display = 'block';
+        compressImage(e.target.result, 1200, 0.75, compressed => {
+          displayPhoto(pc, compressed);
+          photoData[pc] = { dataUrl: compressed, caption: '' };
+        });
       };
       reader.readAsDataURL(file);
+    }
+
+    function compressImage(dataUrl, maxW, quality, cb) {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxW / img.naturalWidth);
+        const w = Math.round(img.naturalWidth * scale);
+        const h = Math.round(img.naturalHeight * scale);
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        cb(c.toDataURL('image/jpeg', quality));
+      };
+      img.src = dataUrl;
+    }
+
+    function displayPhoto(pc, dataUrl) {
+      const img = document.getElementById('ph-img-' + pc);
+      const placeholder = document.getElementById('ph-placeholder-' + pc);
+      const removeBtn = document.getElementById('ph-remove-' + pc);
+      const captionWrap = document.getElementById('ph-caption-wrap-' + pc);
+      img.src = dataUrl;
+      img.style.display = 'block';
+      placeholder.style.display = 'none';
+      removeBtn.style.display = 'flex';
+      captionWrap.style.display = 'block';
     }
 
     /* ===== PRICING TABLE ===== */
@@ -1584,6 +1620,7 @@ function parseFreetextMessage(raw) {
         skipTons:      skipTons || '',
         skipCost:      skipCost ? '£' + parseFloat(skipCost).toFixed(2) : '',
         savedAt:       new Date().toISOString(),
+        photos:        Object.entries(photoData).map(([, v]) => ({ dataUrl: v.dataUrl, caption: v.caption || '' })),
         priceRows:     (function() {
           const rows = [];
           for (let i = 1; i <= priceCount; i++) {
@@ -1859,6 +1896,7 @@ All works carried out in full accordance with manufacturer's specification. Full
       const slot = document.getElementById('photo-slot-' + pc);
       const fileInput = slot.querySelector('input[type="file"]');
       if (fileInput) fileInput.value = '';
+      delete photoData[pc];
     }
   </script>
 </body>
