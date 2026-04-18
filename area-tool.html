@@ -665,6 +665,11 @@ const SB_URL = 'https://ngakblcdnuqectjappkl.supabase.co';
 const SB_KEY = 'sb_publishable_wX0TOGQTtNWi0ex14ux6Hw_eKVge5cJ';
 const sb = supabase.createClient(SB_URL, SB_KEY);
 
+// If opened fresh (browser restore / direct URL), go to dashboard
+if (!document.referrer.includes('plastersolutionsltd-arch.github.io')) {
+  window.location.replace('https://plastersolutionsltd-arch.github.io/pr-jobs-app/');
+}
+
 const params = new URLSearchParams(location.search);
 const jobId  = params.get('jobId');
 
