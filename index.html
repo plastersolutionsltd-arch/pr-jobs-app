@@ -854,7 +854,7 @@ function openJob(id) {
   html += '<div class="tools-grid">';
   html += toolBtn(ruleSVG(),    'Measure',       "showTool('measure')");
   html += toolBtn(areaSVG(),    'Area Tool',     "openTemplate('area-tool.html')");
-  html += toolBtn(imgSVG(),     'Render Preview',"toast('Coming soon — Render Preview')");
+  html += toolBtn(imgSVG(),     'Render Preview',"openTemplate('render-preview.html')");
   html += '</div>';
 
   document.getElementById('detail-content').innerHTML = html;
