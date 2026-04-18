@@ -1329,6 +1329,28 @@
       }
       update();
 
+      // ── Auto-fill before/after photos from job data ──
+      if (_job && !photos.before && !photos.after) {
+        // Before: first site visit photo
+        const svPhotos = _job.siteVisit?.photos;
+        if (svPhotos && svPhotos.length > 0 && svPhotos[0].dataUrl) {
+          photos.before = svPhotos[0].dataUrl;
+          renderPhotoZone('before');
+        }
+        // After: most recent render preview image
+        const rp = _job.renderPreviews;
+        if (rp && rp.length > 0 && rp[0].imageDataUrl) {
+          photos.after = rp[0].imageDataUrl;
+          renderPhotoZone('after');
+          // Auto-fill caption from render preview data
+          const capEl = document.getElementById('photo-caption');
+          if (capEl && !capEl.value.trim()) {
+            capEl.value = (rp[0].colour || '') + (rp[0].system ? ' ' + rp[0].system : '');
+          }
+          update();
+        }
+      }
+
       // ── Quote number (async) — skip if restoring saved quote ──
       let next = 1;
       try {
