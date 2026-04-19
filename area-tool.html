@@ -1532,10 +1532,11 @@ function updateInstrBar() {
     actionBtn.disabled = polyPts.length < 3;
     actionBtn.onclick = calculatePhotoArea;
   } else if (canvasState === 'ded-outline') {
+    const nDone = measuredDeductions.length;
     numEl.textContent = '✂';
-    textEl.textContent = 'Tap around the opening to outline it';
-    subEl.textContent  = dedPolyPts.length >= 3 ? 'Tap the ⊙ first point to close' : 'Tap each corner of the door or window';
-    actionBtn.textContent = '← Back to Results';
+    textEl.textContent = nDone > 0 ? `Opening ${nDone} added — outline next or tap Done` : 'Tap around the opening to outline it';
+    subEl.textContent  = dedPolyPts.length >= 3 ? 'Tap the ⊙ first point to close' : (nDone > 0 ? 'Tap corners of next opening, or tap Done below' : 'Tap each corner of the door or window');
+    actionBtn.textContent = nDone > 0 ? `✓ Done (${nDone} opening${nDone>1?'s':''})` : '← Back to Results';
     actionBtn.disabled = false;
     actionBtn.onclick = cancelDedMode;
   }
@@ -2252,6 +2253,8 @@ function cancelDedMode() {
   photoMode = 'wall';
   dedPolyPts = [];
   canvasState = 'closed';
+  updatePhotoNet();
+  renderMeasuredDeds();
   redraw();
   showSubScreen('photo-result-view');
 }
@@ -2263,13 +2266,14 @@ function closeDedPolygon() {
   const dedM2 = mmArea / 1e6;
   const num = measuredDeductions.length + 1;
   measuredDeductions.push({ area: dedM2, label: 'Opening ' + num });
+  // Stay on canvas — reset for next opening immediately
   dedPolyPts = [];
-  photoMode = 'wall';
-  canvasState = 'closed';
-  updatePhotoNet();
-  renderMeasuredDeds();
+  document.getElementById('pt-badge').style.display = 'none';
+  document.getElementById('pt-badge').textContent = '0 pts';
+  document.getElementById('tbtn-action').disabled = true;
+  document.getElementById('tbtn-undo').disabled = true;
+  updateInstrBar();
   redraw();
-  showSubScreen('photo-result-view');
 }
 
 function removeMeasuredDed(i) {
