@@ -1253,7 +1253,7 @@
         if (_job?.quoteData) {
           // ── Restore previously saved quote ──
           restoreQuote(_job.quoteData);
-          // If render system/colour weren't saved in quoteData, pull from site visit
+          // Fill missing render system/colour from site visit if not in quoteData
           if (_job?.siteVisit && !_job.quoteData.renderSystem) {
             const sv  = _job.siteVisit;
             const wt  = _p.get('workType') || sv.workTypes || '';
@@ -1312,16 +1312,6 @@
                 if (qtyEl) { qtyEl.value = m2; calcRow(fid); }
               }
             }
-            if (!document.getElementById('notes').value) {
-              if (sv.scopeOfWorks) {
-                document.getElementById('notes').value = sv.scopeOfWorks;
-                update();
-              } else {
-                // Auto-load best-matching scope template if nothing was saved
-                const scopeKey = mapToScopeKey(wt, sv.finishType);
-                if (scopeKey) insertScopeTemplate(scopeKey);
-              }
-            }
           } else {
             // No site visit yet — at least set render system from workType URL param
             const wt = _p.get('workType') || '';
@@ -1332,6 +1322,24 @@
             if (fid && pv) {
               const sel = document.querySelector(`#row-${fid} select`);
               if (sel) { sel.value = pv; applyPreset(fid, sel); }
+            }
+          }
+        }
+
+        // ── Scope of works: always prefer a proper template over a short stub ──
+        // If notes is empty or short (just a system name), load the best matching template
+        if (_job?.siteVisit) {
+          const sv       = _job.siteVisit;
+          const wt       = _p.get('workType') || sv.workTypes || '';
+          const notesEl  = document.getElementById('notes');
+          const curNotes = notesEl?.value || '';
+          if (curNotes.length < 120) {
+            const scopeKey = mapToScopeKey(wt, sv.finishType);
+            if (scopeKey) {
+              insertScopeTemplate(scopeKey);
+            } else if (sv.scopeOfWorks && sv.scopeOfWorks.length >= 120) {
+              notesEl.value = sv.scopeOfWorks;
+              update();
             }
           }
         }
