@@ -568,6 +568,10 @@
         <div class="result-unit">m²</div>
         <div class="result-breakdown" id="photo-result-breakdown"></div>
       </div>
+      <div class="count-box">
+        <div class="count-box-title">Deduct openings (optional)</div>
+        <div class="ded-list" id="photo-ded-list"></div>
+      </div>
       <div class="wall-name-lbl">Wall name</div>
       <input class="wall-name-inp" id="photo-wall-name" type="text" placeholder="e.g. Front gable, Side wall">
       <button class="btn-full btn-green" onclick="savePhotoWall()">Save This Wall</button>
@@ -1517,11 +1521,10 @@ function calculatePhotoArea() {
   const pxArea = shoelace(polyPts);
   const mmArea = pxArea / (pixPerMM * pixPerMM);
   pendingM2 = mmArea / 1e6;
-  const ref = PHOTO_REFS.find(r => r.id === selectedRefId);
-  document.getElementById('photo-result-num').textContent = pendingM2.toFixed(2);
-  document.getElementById('photo-result-breakdown').textContent =
-    `${polyPts.length} outline points · Scale from ${ref ? ref.name : 'reference'} (${photoRefMM}mm)`;
+  photoDeds = {};
+  buildDedList('photo-ded-list');
   document.getElementById('photo-wall-name').value = '';
+  updatePhotoNet();
   showSubScreen('photo-result-view');
 }
 
@@ -1536,9 +1539,16 @@ function shoelace(pts) {
 
 function savePhotoWall() {
   if (!pendingM2) return;
+  let dedTotal = 0, dedLines = [];
+  DEDUCTIONS.forEach(d => {
+    const n = photoDeds[d.id] || 0;
+    if (n > 0) { const a = d.wM * d.hM * n; dedTotal += a; dedLines.push(`${n}× ${d.name}`); }
+  });
+  const net = Math.max(0, pendingM2 - dedTotal);
   const label = document.getElementById('photo-wall-name').value.trim() || 'Wall ' + (measuredAreas.length + 1);
   const ref = PHOTO_REFS.find(r => r.id === selectedRefId);
-  addWall(label, pendingM2, 'Photo outline', `Scale: ${ref ? ref.name : ''} (${photoRefMM}mm) · ${polyPts.length} pts`);
+  const breakdown = `Gross: ${pendingM2.toFixed(2)}m²` + (dedLines.length ? ` − ${dedLines.join(', ')} = ${net.toFixed(2)}m²` : '') + ` · ${polyPts.length} pts`;
+  addWall(label, net, 'Photo outline', breakdown);
 }
 
 function measureAnotherPhoto() {
@@ -1688,17 +1698,36 @@ function buildDedList(containerId) {
     </div>`).join('');
 }
 
-let manDeds = {};
+let manDeds = {}, photoDeds = {};
 function dedStep(container, id, delta) {
   if (container === 'ded-list') {
     countDeds[id] = Math.max(0, (countDeds[id] || 0) + delta);
     document.getElementById('ded-list-' + id).textContent = countDeds[id];
     calcCount();
+  } else if (container === 'photo-ded-list') {
+    photoDeds[id] = Math.max(0, (photoDeds[id] || 0) + delta);
+    document.getElementById('photo-ded-list-' + id).textContent = photoDeds[id];
+    updatePhotoNet();
   } else {
     manDeds[id] = Math.max(0, (manDeds[id] || 0) + delta);
     document.getElementById('man-ded-list-' + id).textContent = manDeds[id];
     calcManual();
   }
+}
+
+function updatePhotoNet() {
+  if (!pendingM2) return;
+  let dedTotal = 0, dedLines = [];
+  DEDUCTIONS.forEach(d => {
+    const n = photoDeds[d.id] || 0;
+    if (n > 0) { const a = d.wM * d.hM * n; dedTotal += a; dedLines.push(`− ${n}× ${d.name} (${a.toFixed(2)}m²)`); }
+  });
+  const net = Math.max(0, pendingM2 - dedTotal);
+  const ref = PHOTO_REFS.find(r => r.id === selectedRefId);
+  document.getElementById('photo-result-num').textContent = net.toFixed(2);
+  document.getElementById('photo-result-breakdown').innerHTML =
+    `Gross: ${pendingM2.toFixed(2)}m² · ${polyPts.length} pts · Scale: ${ref ? ref.name : ''}` +
+    (dedLines.length ? '<br>' + dedLines.join('<br>') + `<br>Net: ${net.toFixed(2)} m²` : '');
 }
 
 function step(which, delta) {
