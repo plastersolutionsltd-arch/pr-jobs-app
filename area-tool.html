@@ -191,8 +191,13 @@
     .count-sv-thumb { width: 72px; height: 54px; border-radius: 8px; overflow: hidden; flex-shrink: 0; cursor: pointer; border: 2px solid transparent; transition: border-color 0.15s; }
     .count-sv-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .count-sv-thumb.active { border-color: var(--green); }
-    .count-sv-bigimg { width: 100%; margin-bottom: 12px; display: none; }
-    .count-sv-bigimg img { width: 100%; border-radius: 10px; display: block; max-height: 220px; object-fit: contain; background: #000; }
+    .count-sv-bigimg { width: 100%; height: 220px; margin-bottom: 12px; display: none; position: relative; overflow: hidden; border-radius: 10px; background: #000; touch-action: none; cursor: grab; }
+    .count-sv-bigimg.panning { cursor: grabbing; }
+    .count-sv-bigimg img { width: 100%; height: auto; display: block; transform-origin: 0 0; transform: translate(0,0) scale(1); user-select: none; -webkit-user-drag: none; pointer-events: none; }
+    .csv-zoom-strip { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; z-index: 10; }
+    .csv-zoom-btn { width: 36px; height: 36px; border-radius: 50%; background: rgba(0,0,0,0.72); border: 1px solid rgba(255,255,255,0.22); color: #fff; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; line-height: 1; }
+    .csv-zoom-btn:active { background: rgba(102,255,51,0.35); }
+    .csv-zoom-badge { font-family: var(--brand); font-size: 9px; font-weight: 800; color: rgba(255,255,255,0.65); padding: 1px 0; }
 
     .count-ref-row { display: flex; gap: 8px; margin-bottom: 14px; }
     .count-ref-opt { flex: 1; background: var(--card); border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 6px; text-align: center; cursor: pointer; transition: all 0.15s; }
@@ -1650,6 +1655,7 @@ function buildCountSVStrip() {
   const bigimg   = document.getElementById('count-sv-bigimg');
   const svPhotos = job?.siteVisit?.photos;
   _countRefPhotoIdx = null;
+  csvDetachPointers();
   bigimg.style.display = 'none';
   bigimg.innerHTML = '';
   if (!svPhotos || !svPhotos.length) { section.style.display = 'none'; return; }
@@ -1666,15 +1672,111 @@ function toggleCountPhoto(i) {
   const bigimg = document.getElementById('count-sv-bigimg');
   document.querySelectorAll('.count-sv-thumb').forEach(el => el.classList.remove('active'));
   if (_countRefPhotoIdx === i) {
+    csvDetachPointers();
     bigimg.style.display = 'none';
     bigimg.innerHTML = '';
     _countRefPhotoIdx = null;
     return;
   }
   _countRefPhotoIdx = i;
+  csvZoom = 1; csvPanX = 0; csvPanY = 0;
   document.getElementById('cst-' + i).classList.add('active');
-  bigimg.innerHTML = `<img src="${svPhotos[i].dataUrl}" alt="Site photo ${i+1}">`;
+  bigimg.innerHTML = `
+    <img id="csv-img" src="${svPhotos[i].dataUrl}" alt="Site photo ${i+1}" draggable="false">
+    <div class="csv-zoom-strip">
+      <button class="csv-zoom-btn" onclick="csvZoomIn()">+</button>
+      <div class="csv-zoom-badge" id="csv-zoom-badge">1×</div>
+      <button class="csv-zoom-btn" onclick="csvZoomOut()">−</button>
+      <button class="csv-zoom-btn" style="font-size:13px" onclick="csvResetView()">⤢</button>
+    </div>`;
   bigimg.style.display = '';
+  csvAttachPointers(bigimg);
+}
+
+// ── Count screen photo zoom / pan ──
+let csvZoom = 1, csvPanX = 0, csvPanY = 0;
+let csvActivePtrs = {}, csvLastPinchDist = null;
+let csvDragStartX = 0, csvDragStartY = 0, csvPanStartX = 0, csvPanStartY = 0;
+let csvContainer = null;
+
+function csvAttachPointers(el) {
+  csvContainer = el;
+  el.addEventListener('pointerdown',   csvOnDown,   { passive: false });
+  el.addEventListener('pointermove',   csvOnMove,   { passive: false });
+  el.addEventListener('pointerup',     csvOnUp,     { passive: false });
+  el.addEventListener('pointercancel', csvOnCancel, { passive: false });
+}
+function csvDetachPointers() {
+  if (!csvContainer) return;
+  csvContainer.removeEventListener('pointerdown',   csvOnDown);
+  csvContainer.removeEventListener('pointermove',   csvOnMove);
+  csvContainer.removeEventListener('pointerup',     csvOnUp);
+  csvContainer.removeEventListener('pointercancel', csvOnCancel);
+  csvContainer = null;
+  csvActivePtrs = {}; csvLastPinchDist = null;
+}
+function csvOnCancel(e) { delete csvActivePtrs[e.pointerId]; csvLastPinchDist = null; }
+
+function csvOnDown(e) {
+  e.preventDefault();
+  csvContainer.setPointerCapture(e.pointerId);
+  csvActivePtrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+  if (Object.keys(csvActivePtrs).length === 1) {
+    csvDragStartX = e.clientX; csvDragStartY = e.clientY;
+    csvPanStartX = csvPanX;    csvPanStartY = csvPanY;
+  } else {
+    const pts = Object.values(csvActivePtrs);
+    csvLastPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+  }
+  csvContainer.classList.add('panning');
+}
+function csvOnMove(e) {
+  e.preventDefault();
+  if (!csvActivePtrs[e.pointerId]) return;
+  csvActivePtrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+  const count = Object.keys(csvActivePtrs).length;
+  if (count >= 2 && csvLastPinchDist) {
+    const pts = Object.values(csvActivePtrs);
+    const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    csvApplyZoom(csvZoom * (dist / csvLastPinchDist));
+    csvLastPinchDist = dist;
+  } else if (count === 1) {
+    csvPanX = csvPanStartX + (e.clientX - csvDragStartX);
+    csvPanY = csvPanStartY + (e.clientY - csvDragStartY);
+    csvClampPan();
+    csvApplyTransform();
+  }
+}
+function csvOnUp(e) {
+  e.preventDefault();
+  delete csvActivePtrs[e.pointerId];
+  csvLastPinchDist = null;
+  if (!Object.keys(csvActivePtrs).length) csvContainer?.classList.remove('panning');
+}
+function csvClampPan() {
+  if (csvZoom <= 1) { csvPanX = 0; csvPanY = 0; return; }
+  const img = document.getElementById('csv-img');
+  const con = csvContainer;
+  if (!img || !con) return;
+  const cw = con.clientWidth, ch = con.clientHeight;
+  const iw = img.offsetWidth,  ih = img.offsetHeight;
+  csvPanX = Math.max(cw - iw * csvZoom, Math.min(0, csvPanX));
+  csvPanY = Math.max(ch - ih * csvZoom, Math.min(0, csvPanY));
+}
+function csvApplyTransform() {
+  const img = document.getElementById('csv-img');
+  if (img) img.style.transform = `translate(${csvPanX}px,${csvPanY}px) scale(${csvZoom})`;
+  const badge = document.getElementById('csv-zoom-badge');
+  if (badge) badge.textContent = csvZoom <= 1 ? '1×' : csvZoom.toFixed(1) + '×';
+}
+function csvZoomIn()    { csvApplyZoom(csvZoom * 1.45); }
+function csvZoomOut()   { csvApplyZoom(csvZoom / 1.45); }
+function csvResetView() { csvZoom = 1; csvPanX = 0; csvPanY = 0; csvApplyTransform(); }
+function csvApplyZoom(z) {
+  csvZoom = Math.max(1, Math.min(8, z));
+  if (csvZoom === 1) { csvPanX = 0; csvPanY = 0; }
+  csvClampPan();
+  csvApplyTransform();
 }
 
 // ══════════════════════════════════════════════════════════
