@@ -385,12 +385,24 @@ async function saveToJob() {
     savedAt:      new Date().toISOString(),
   });
 
-  // Auto-update site visit with chosen render system + colour
-  if (job.siteVisit) {
-    if (system) job.siteVisit.finishType = system.id;
-    if (colour) job.siteVisit.colour     = colour.name;
-    if (colour) job.siteVisit.renderHex  = colour.hex;
-  }
+  // Always write render choice back to site visit (create siteVisit stub if none yet)
+  const SYSTEM_TO_FINISH = {
+    silicone:    'Full Silicone Render',
+    monocouche:  'Monocouche Render',
+    k_rend:      'K-Rend',
+    ewi:         'EWI System',
+    sand_cement: 'Sand & Cement Render',
+    pebbledash:  'Roughcast / Pebbledash',
+  };
+  const COLOUR_TO_SV = {
+    white: 'Pure White', off_white: 'Off White', ivory: 'Ivory', cream: 'Cream',
+    light_grey: 'Light Grey', mid_grey: 'Mid Grey', dark_grey: 'Dark Grey',
+    graphite: 'Anthracite', sand: 'Stone', buff: 'Buff', stone: 'Stone', mocha: 'Mocha / Brown',
+  };
+  job.siteVisit = job.siteVisit || {};
+  if (system) job.siteVisit.finishType = SYSTEM_TO_FINISH[system.id] || system.name;
+  if (colour) job.siteVisit.colour     = COLOUR_TO_SV[colour.id]  || colour.name;
+  if (colour) job.siteVisit.renderHex  = colour.hex;
   try {
     const all = JSON.parse(localStorage.getItem('pr_jobs') || '[]');
     const idx = all.findIndex(j => j.id === jobId);

@@ -1253,6 +1253,14 @@
         if (_job?.quoteData) {
           // ── Restore previously saved quote ──
           restoreQuote(_job.quoteData);
+          // If render system/colour weren't saved in quoteData, pull from site visit
+          if (_job?.siteVisit && !_job.quoteData.renderSystem) {
+            const sv  = _job.siteVisit;
+            const wt  = _p.get('workType') || sv.workTypes || '';
+            const sys = mapToRenderSystem(wt, sv.finishType);
+            if (sys) document.getElementById('render-system').value = sys;
+            if (sv.colour && !_job.quoteData.renderFinish) document.getElementById('render-finish').value = sv.colour;
+          }
         } else {
           // ── Fresh quote: auto-fill from site visit ──
           addRow('labour');
