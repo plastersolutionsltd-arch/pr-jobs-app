@@ -63,6 +63,11 @@
     .epc-result-row:active { opacity: 0.65; }
     .epc-result-addr { font-size: 14px; color: #eee; font-weight: 600; margin-bottom: 4px; }
     .epc-result-meta { font-size: 12px; color: #888; }
+    .epc-wall-row { display:flex; align-items:center; justify-content:space-between; padding: 10px 14px; border-radius: 10px; background: #1a1a1a; border: 1.5px solid #2a2a2a; margin-bottom: 8px; }
+    .epc-wall-name { font-size: 14px; color: #eee; font-weight: 600; }
+    .epc-wall-sub  { font-size: 11px; color: #666; margin-top: 2px; }
+    .epc-wall-area { font-size: 18px; font-weight: 800; color: #FFB400; margin: 0 12px; white-space:nowrap; }
+    .epc-wall-add  { padding: 6px 14px; border-radius: 8px; border: 1.5px solid var(--green); background: var(--green-dim); color: var(--green); font-size: 13px; font-weight: 700; cursor: pointer; white-space:nowrap; }
 
     /* ── SAVED WALLS ── */
     .saved-wall { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
@@ -728,46 +733,53 @@
       <div class="sec-lbl">Property Info</div>
       <div class="count-box" id="epc-property-card" style="border:1px solid rgba(255,180,0,0.3)"></div>
 
-      <div class="sec-lbl" style="margin-top:18px">Gable Estimator</div>
+      <div class="sec-lbl" style="margin-top:18px">Wall Estimator</div>
       <div class="count-box">
         <div style="font-size:13px;color:var(--muted2);margin-bottom:12px">Adjust values then tap Calculate</div>
 
         <div class="dim-row" style="margin-bottom:14px">
           <div class="dim-field">
-            <div class="dim-lbl">Building Depth</div>
+            <div class="dim-lbl">Width (front)</div>
+            <input type="number" class="dim-inp" id="epc-width" placeholder="0.0" step="0.1" inputmode="decimal">
+            <div class="dim-unit">metres</div>
+          </div>
+          <div class="dim-field">
+            <div class="dim-lbl">Depth (side)</div>
             <input type="number" class="dim-inp" id="epc-depth" placeholder="0.0" step="0.1" inputmode="decimal">
             <div class="dim-unit">metres</div>
           </div>
+        </div>
+
+        <div class="dim-row" style="margin-bottom:14px">
           <div class="dim-field">
             <div class="dim-lbl">Roof Pitch</div>
             <input type="number" class="dim-inp" id="epc-pitch" value="35" step="1" inputmode="decimal">
             <div class="dim-unit">degrees</div>
           </div>
-        </div>
-
-        <div style="margin-bottom:14px">
-          <div class="dim-lbl" style="margin-bottom:6px">Storeys</div>
-          <div style="display:flex;gap:8px">
-            <button class="epc-storey-btn active" id="epc-s1" onclick="epcSetStoreys(1)">1</button>
-            <button class="epc-storey-btn" id="epc-s2" onclick="epcSetStoreys(2)">2</button>
-            <button class="epc-storey-btn" id="epc-s3" onclick="epcSetStoreys(3)">3</button>
+          <div class="dim-field">
+            <div class="dim-lbl">Storeys</div>
+            <div style="display:flex;gap:6px;margin-top:6px">
+              <button class="epc-storey-btn active" id="epc-s1" onclick="epcSetStoreys(1)">1</button>
+              <button class="epc-storey-btn" id="epc-s2" onclick="epcSetStoreys(2)">2</button>
+              <button class="epc-storey-btn" id="epc-s3" onclick="epcSetStoreys(3)">3</button>
+            </div>
           </div>
         </div>
 
-        <button class="btn-full btn-green" style="margin-top:4px" onclick="epcCalcGable()">Calculate Gable Area</button>
+        <button class="btn-full btn-green" style="margin-top:4px" onclick="epcCalcWalls()">Calculate All Walls</button>
       </div>
 
-      <!-- Gable result -->
-      <div id="epc-gable-result" style="display:none">
-        <div class="result-box" style="margin-top:0">
-          <div class="result-num" id="epc-gable-m2">0.00</div>
-          <div class="result-unit">m²</div>
-          <div class="result-breakdown" id="epc-gable-breakdown"></div>
-        </div>
-        <div class="count-box" style="margin-top:12px">
-          <div class="wall-name-lbl">Wall name</div>
-          <input class="wall-name-inp" id="epc-wall-name" type="text" placeholder="e.g. Gable wall">
-          <button class="btn-full btn-green" onclick="epcSaveGable()">Add to Walls</button>
+      <!-- All walls result -->
+      <div id="epc-walls-result" style="display:none">
+        <div class="sec-lbl" style="margin-top:18px">Estimated Wall Areas</div>
+        <div style="font-size:12px;color:var(--muted2);margin-bottom:10px;padding:0 2px">Gross areas — deduct windows &amp; doors after adding</div>
+        <div id="epc-walls-list"></div>
+        <div class="count-box" style="margin-top:4px;border:1px solid rgba(102,255,51,0.3)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <span style="font-size:14px;color:#eee;font-weight:700">Total</span>
+            <span style="font-size:22px;font-weight:800;color:var(--green)" id="epc-total-m2">0.00 m²</span>
+          </div>
+          <button class="btn-full btn-green" onclick="epcAddAllWalls()">Add All Walls</button>
         </div>
       </div>
     </div>
@@ -2028,7 +2040,6 @@ function epcSelect(i) {
   if (!r) return;
   _epcLastResult = r;
 
-  // Property card
   const addr = r['address'] || '';
   const type = [r['built-form'], r['property-type']].filter(Boolean).join(' ');
   const area = r['total-floor-area'] ? `${r['total-floor-area']} m²` : 'Not recorded';
@@ -2042,7 +2053,6 @@ function epcSelect(i) {
       <div><div style="font-size:11px;color:#888;margin-bottom:2px">ROOMS</div><div style="font-size:13px;color:#eee">${r['number-habitable-rooms']||'—'}</div></div>
     </div>`;
 
-  // Estimate building depth from floor area + built form
   const totalArea = parseFloat(r['total-floor-area']) || 0;
   const builtForm = (r['built-form'] || '').toLowerCase();
   const propType  = (r['property-type'] || '').toLowerCase();
@@ -2052,49 +2062,91 @@ function epcSelect(i) {
 
   if (totalArea > 0) {
     const footprint = totalArea / _epcStoreys;
-    // Aspect ratio (depth:width) by type — depth is front-to-back (= gable face width)
     const ratio = builtForm.includes('detach') ? 1.25
                 : builtForm.includes('semi')   ? 1.6
                 : builtForm.includes('terrace')? 1.8 : 1.5;
     const depth = Math.sqrt(footprint * ratio);
+    const width = footprint / depth;
     document.getElementById('epc-depth').value = depth.toFixed(1);
+    document.getElementById('epc-width').value = width.toFixed(1);
   }
 
-  document.getElementById('epc-wall-name').value = `Gable — ${addr.split(',')[0]}`;
-  document.getElementById('epc-gable-result').style.display = 'none';
+  document.getElementById('epc-walls-result').style.display = 'none';
   document.getElementById('epc-estimator-section').style.display = 'block';
   document.getElementById('epc-estimator-section').scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 function epcSetStoreys(n) {
   _epcStoreys = n;
-  [1,2,3].forEach(i => {
-    document.getElementById(`epc-s${i}`)?.classList.toggle('active', i === n);
-  });
+  [1,2,3].forEach(i => document.getElementById(`epc-s${i}`)?.classList.toggle('active', i === n));
 }
 
-function epcCalcGable() {
+let _epcWalls = [];
+
+function epcCalcWalls() {
+  const width = parseFloat(document.getElementById('epc-width').value) || 0;
   const depth = parseFloat(document.getElementById('epc-depth').value) || 0;
   const pitch = parseFloat(document.getElementById('epc-pitch').value) || 35;
-  if (depth <= 0) { alert('Enter building depth'); return; }
-  const wallH   = _epcStoreys * 2.5;
-  const gableH  = (depth / 2) * Math.tan(pitch * Math.PI / 180);
-  const wallArea  = depth * wallH;
-  const gableArea = 0.5 * depth * gableH;
-  const total = wallArea + gableArea;
-  document.getElementById('epc-gable-m2').textContent = total.toFixed(2);
-  document.getElementById('epc-gable-breakdown').textContent =
-    `Wall ${depth.toFixed(1)}m × ${wallH.toFixed(1)}m = ${wallArea.toFixed(2)}m²  ·  Gable triangle = ${gableArea.toFixed(2)}m²  ·  Pitch ${pitch}°  ·  ${_epcStoreys} storey${_epcStoreys>1?'s':''}`;
-  document.getElementById('epc-gable-result').style.display = 'block';
-  document.getElementById('epc-gable-result').scrollIntoView({ behavior:'smooth', block:'start' });
+  if (width <= 0 || depth <= 0) { alert('Enter building width and depth'); return; }
+
+  const wallH  = _epcStoreys * 2.5;
+  const gableH = (depth / 2) * Math.tan(pitch * Math.PI / 180);
+  const builtForm = (_epcLastResult?.['built-form'] || '').toLowerCase();
+
+  // Front and back — rectangular (width × wall height, no gable triangle)
+  const frontBack = width * wallH;
+  // Side/gable walls — rectangle + triangle
+  const sideRect  = depth * wallH;
+  const sideTri   = 0.5 * depth * gableH;
+  const sideTotal = sideRect + sideTri;
+
+  // How many exposed gable ends based on property type
+  const isDetached   = builtForm.includes('detach');
+  const isSemi       = builtForm.includes('semi');
+  const isEndTerrace = builtForm.includes('end');
+  const isMidTerrace = builtForm.includes('mid') || (builtForm.includes('terrace') && !isEndTerrace);
+
+  _epcWalls = [
+    { name: 'Front wall',    area: frontBack, breakdown: `${width.toFixed(1)}m × ${wallH.toFixed(1)}m` },
+    { name: 'Back wall',     area: frontBack, breakdown: `${width.toFixed(1)}m × ${wallH.toFixed(1)}m` },
+  ];
+  if (isDetached) {
+    _epcWalls.push({ name: 'Left gable',  area: sideTotal, breakdown: `${depth.toFixed(1)}m × ${wallH.toFixed(1)}m + triangle` });
+    _epcWalls.push({ name: 'Right gable', area: sideTotal, breakdown: `${depth.toFixed(1)}m × ${wallH.toFixed(1)}m + triangle` });
+  } else if (isSemi || isEndTerrace) {
+    _epcWalls.push({ name: 'Gable end',   area: sideTotal, breakdown: `${depth.toFixed(1)}m × ${wallH.toFixed(1)}m + triangle` });
+  }
+  // Mid-terrace: no exposed gable ends
+
+  const total = _epcWalls.reduce((s, w) => s + w.area, 0);
+  const addr0 = (_epcLastResult?.['address'] || '').split(',')[0];
+
+  document.getElementById('epc-walls-list').innerHTML = _epcWalls.map((w, i) => `
+    <div class="epc-wall-row">
+      <div>
+        <div class="epc-wall-name">${w.name}</div>
+        <div class="epc-wall-sub">${w.breakdown}</div>
+      </div>
+      <div class="epc-wall-area">${w.area.toFixed(1)} m²</div>
+      <button class="epc-wall-add" onclick="epcAddOneWall(${i})">+ Add</button>
+    </div>`).join('');
+
+  document.getElementById('epc-total-m2').textContent = total.toFixed(2) + ' m²';
+  document.getElementById('epc-walls-result').style.display = 'block';
+  document.getElementById('epc-walls-result').scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
-function epcSaveGable() {
-  const total = parseFloat(document.getElementById('epc-gable-m2').textContent);
-  const name  = document.getElementById('epc-wall-name').value.trim() || 'Gable wall';
-  const breakdown = document.getElementById('epc-gable-breakdown').textContent;
-  if (!total) return;
-  addWall(name, total, 'Property lookup', breakdown);
+function epcAddOneWall(i) {
+  const w = _epcWalls[i];
+  if (!w) return;
+  const addr0 = (_epcLastResult?.['address'] || '').split(',')[0];
+  addWall(`${w.name} — ${addr0}`, w.area, 'Property lookup', w.breakdown);
+}
+
+function epcAddAllWalls() {
+  if (!_epcWalls.length) return;
+  const addr0 = (_epcLastResult?.['address'] || '').split(',')[0];
+  _epcWalls.forEach(w => addWall(`${w.name} — ${addr0}`, w.area, 'Property lookup', w.breakdown));
 }
 </script>
 </body>
