@@ -649,6 +649,7 @@ function showTool(name) {
 function renderJobs() {
   var q = (document.getElementById('search-input').value || '').toLowerCase();
   var filtered = jobs.filter(function(j){
+    if (currentTab === 'all' && j.status === 'paid') return false;
     if (currentTab !== 'all' && j.status !== currentTab) return false;
     if (!q) return true;
     return (j.name+j.address+j.phone+j.notes).toLowerCase().indexOf(q) > -1;
@@ -656,8 +657,9 @@ function renderJobs() {
 
   filtered.sort(function(a,b){ return b.created - a.created; });
 
-  var count = jobs.length;
-  document.getElementById('jobs-count').textContent = count === 0 ? 'No jobs yet' : count + ' job' + (count===1?'':'s');
+  var activeCount = jobs.filter(function(j){ return j.status !== 'paid'; }).length;
+  var paidCount   = jobs.filter(function(j){ return j.status === 'paid'; }).length;
+  document.getElementById('jobs-count').textContent = activeCount === 0 ? (paidCount ? 'All jobs paid ✓' : 'No jobs yet') : activeCount + ' active job' + (activeCount===1?'':'s') + (paidCount ? ' · '+paidCount+' paid' : '');
 
   var el = document.getElementById('jobs-list');
   if (filtered.length === 0) {
@@ -1139,7 +1141,7 @@ function findAddress(s, postcode) {
   return '';
 }
 function findName(s) {
-  var skip=['looking','wondering','hoping','wanting','calling','writing','ringing','contacting','regarding','could','would','please','can','just','sheffield','leeds','manchester','bradford','birmingham','good','dear','hello','hi','detached','semi','terraced','bungalow','house','flat','apartment','commercial','silicone','monocouche','roughcast','tyrolean','plastering','rendering','new','quote','free','whatsapp','message','pictures','photos','address','road','street','avenue','close','drive'];
+  var skip=['looking','wondering','hoping','wanting','calling','writing','ringing','contacting','regarding','could','would','please','can','just','sheffield','leeds','manchester','bradford','birmingham','good','dear','hello','hi','detached','semi','terraced','bungalow','house','flat','apartment','commercial','silicone','monocouche','roughcast','tyrolean','plastering','rendering','new','quote','free','whatsapp','message','pictures','photos','address','road','street','avenue','close','drive','enquiry','quoted','booked','inprogress','done','declined','invoiced','paid','details','workflow','status','notes','tools','unknown'];
   function ok(c){ return c && !skip.some(function(w){ return c.toLowerCase().indexOf(w)===0; }); }
   var m;
   // Standalone Title Case line
