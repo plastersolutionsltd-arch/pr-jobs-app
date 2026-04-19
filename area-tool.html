@@ -186,6 +186,14 @@
     .manual-mm-inp:focus { border-color: var(--green); }
 
     /* ── COUNT SCREEN ── */
+    .count-sv-strip { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 10px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    .count-sv-strip::-webkit-scrollbar { display: none; }
+    .count-sv-thumb { width: 72px; height: 54px; border-radius: 8px; overflow: hidden; flex-shrink: 0; cursor: pointer; border: 2px solid transparent; transition: border-color 0.15s; }
+    .count-sv-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .count-sv-thumb.active { border-color: var(--green); }
+    .count-sv-bigimg { width: 100%; margin-bottom: 12px; display: none; }
+    .count-sv-bigimg img { width: 100%; border-radius: 10px; display: block; max-height: 220px; object-fit: contain; background: #000; }
+
     .count-ref-row { display: flex; gap: 8px; margin-bottom: 14px; }
     .count-ref-opt { flex: 1; background: var(--card); border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 6px; text-align: center; cursor: pointer; transition: all 0.15s; }
     .count-ref-opt.sel { border-color: var(--green); background: #0d1a0d; }
@@ -554,6 +562,13 @@
     <div class="hdr-r"></div>
   </div>
   <div class="scroll">
+
+    <!-- Site visit photos reference strip -->
+    <div id="count-sv-section" style="display:none">
+      <div class="sec-lbl">Site Visit Photos — tap to reference</div>
+      <div class="count-sv-strip" id="count-sv-strip"></div>
+      <div class="count-sv-bigimg" id="count-sv-bigimg"></div>
+    </div>
 
     <!-- Reference type -->
     <div class="sec-lbl">What are you counting?</div>
@@ -1624,6 +1639,42 @@ function startCount() {
   showScreen('screen-count');
   buildCountRef();
   buildDedList('ded-list');
+  buildCountSVStrip();
+}
+
+let _countRefPhotoIdx = null;
+
+function buildCountSVStrip() {
+  const section  = document.getElementById('count-sv-section');
+  const strip    = document.getElementById('count-sv-strip');
+  const bigimg   = document.getElementById('count-sv-bigimg');
+  const svPhotos = job?.siteVisit?.photos;
+  _countRefPhotoIdx = null;
+  bigimg.style.display = 'none';
+  bigimg.innerHTML = '';
+  if (!svPhotos || !svPhotos.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  strip.innerHTML = svPhotos.map((p, i) => `
+    <div class="count-sv-thumb" id="cst-${i}" onclick="toggleCountPhoto(${i})">
+      <img src="${p.dataUrl}" alt="Photo ${i+1}">
+    </div>`).join('');
+}
+
+function toggleCountPhoto(i) {
+  const svPhotos = job?.siteVisit?.photos;
+  if (!svPhotos || !svPhotos[i]) return;
+  const bigimg = document.getElementById('count-sv-bigimg');
+  document.querySelectorAll('.count-sv-thumb').forEach(el => el.classList.remove('active'));
+  if (_countRefPhotoIdx === i) {
+    bigimg.style.display = 'none';
+    bigimg.innerHTML = '';
+    _countRefPhotoIdx = null;
+    return;
+  }
+  _countRefPhotoIdx = i;
+  document.getElementById('cst-' + i).classList.add('active');
+  bigimg.innerHTML = `<img src="${svPhotos[i].dataUrl}" alt="Site photo ${i+1}">`;
+  bigimg.style.display = '';
 }
 
 // ══════════════════════════════════════════════════════════
