@@ -191,9 +191,9 @@
     .count-sv-thumb { width: 72px; height: 54px; border-radius: 8px; overflow: hidden; flex-shrink: 0; cursor: pointer; border: 2px solid transparent; transition: border-color 0.15s; }
     .count-sv-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .count-sv-thumb.active { border-color: var(--green); }
-    .count-sv-bigimg { width: 100%; height: 220px; margin-bottom: 12px; display: none; position: relative; overflow: hidden; border-radius: 10px; background: #000; touch-action: none; cursor: grab; }
+    .count-sv-bigimg { width: 100%; height: 340px; margin-bottom: 12px; display: none; position: relative; overflow: hidden; border-radius: 10px; background: #000; touch-action: none; cursor: grab; }
     .count-sv-bigimg.panning { cursor: grabbing; }
-    .count-sv-bigimg img { width: 100%; height: auto; display: block; transform-origin: 0 0; transform: translate(0,0) scale(1); user-select: none; -webkit-user-drag: none; pointer-events: none; }
+    .count-sv-bigimg img { position: absolute; top: 0; left: 0; max-width: none; transform-origin: 0 0; user-select: none; -webkit-user-drag: none; pointer-events: none; }
     .csv-zoom-strip { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; z-index: 10; }
     .csv-zoom-btn { width: 36px; height: 36px; border-radius: 50%; background: rgba(0,0,0,0.72); border: 1px solid rgba(255,255,255,0.22); color: #fff; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; line-height: 1; }
     .csv-zoom-btn:active { background: rgba(102,255,51,0.35); }
@@ -1679,22 +1679,25 @@ function toggleCountPhoto(i) {
     return;
   }
   _countRefPhotoIdx = i;
-  csvZoom = 1; csvPanX = 0; csvPanY = 0;
+  csvZoom = 1; csvPanX = 0; csvPanY = 0; csvMinZoom = 1;
   document.getElementById('cst-' + i).classList.add('active');
   bigimg.innerHTML = `
-    <img id="csv-img" src="${svPhotos[i].dataUrl}" alt="Site photo ${i+1}" draggable="false">
+    <img id="csv-img" src="${svPhotos[i].dataUrl}" alt="Site photo ${i+1}" draggable="false" onload="csvInitFit()">
     <div class="csv-zoom-strip">
       <button class="csv-zoom-btn" onclick="csvZoomIn()">+</button>
-      <div class="csv-zoom-badge" id="csv-zoom-badge">1×</div>
+      <div class="csv-zoom-badge" id="csv-zoom-badge">Fit</div>
       <button class="csv-zoom-btn" onclick="csvZoomOut()">−</button>
       <button class="csv-zoom-btn" style="font-size:13px" onclick="csvResetView()">⤢</button>
     </div>`;
   bigimg.style.display = 'block';
   csvAttachPointers(bigimg);
+  // data URLs load synchronously — fire fit immediately if already complete
+  const _ci = document.getElementById('csv-img');
+  if (_ci && _ci.complete && _ci.naturalWidth) csvInitFit();
 }
 
 // ── Count screen photo zoom / pan ──
-let csvZoom = 1, csvPanX = 0, csvPanY = 0;
+let csvZoom = 1, csvPanX = 0, csvPanY = 0, csvMinZoom = 1;
 let csvActivePtrs = {}, csvLastPinchDist = null;
 let csvDragStartX = 0, csvDragStartY = 0, csvPanStartX = 0, csvPanStartY = 0;
 let csvContainer = null;
@@ -1753,28 +1756,39 @@ function csvOnUp(e) {
   csvLastPinchDist = null;
   if (!Object.keys(csvActivePtrs).length) csvContainer?.classList.remove('panning');
 }
+function csvInitFit() {
+  const img = document.getElementById('csv-img');
+  const con = csvContainer || document.getElementById('count-sv-bigimg');
+  if (!img || !con || !img.naturalWidth) return;
+  const cw = con.clientWidth, ch = con.clientHeight;
+  const nw = img.naturalWidth,  nh = img.naturalHeight;
+  const fitScale = Math.min(cw / nw, ch / nh);
+  csvMinZoom = fitScale;
+  csvZoom = fitScale;
+  csvPanX = (cw - nw * fitScale) / 2;
+  csvPanY = (ch - nh * fitScale) / 2;
+  csvApplyTransform();
+}
 function csvClampPan() {
-  if (csvZoom <= 1) { csvPanX = 0; csvPanY = 0; return; }
   const img = document.getElementById('csv-img');
   const con = csvContainer;
-  if (!img || !con) return;
+  if (!img || !con || !img.naturalWidth) return;
   const cw = con.clientWidth, ch = con.clientHeight;
-  const iw = img.offsetWidth,  ih = img.offsetHeight;
-  csvPanX = Math.max(cw - iw * csvZoom, Math.min(0, csvPanX));
-  csvPanY = Math.max(ch - ih * csvZoom, Math.min(0, csvPanY));
+  const iw = img.naturalWidth * csvZoom, ih = img.naturalHeight * csvZoom;
+  if (iw <= cw) { csvPanX = (cw - iw) / 2; } else { csvPanX = Math.max(cw - iw, Math.min(0, csvPanX)); }
+  if (ih <= ch) { csvPanY = (ch - ih) / 2; } else { csvPanY = Math.max(ch - ih, Math.min(0, csvPanY)); }
 }
 function csvApplyTransform() {
   const img = document.getElementById('csv-img');
   if (img) img.style.transform = `translate(${csvPanX}px,${csvPanY}px) scale(${csvZoom})`;
   const badge = document.getElementById('csv-zoom-badge');
-  if (badge) badge.textContent = csvZoom <= 1 ? '1×' : csvZoom.toFixed(1) + '×';
+  if (badge) badge.textContent = csvZoom <= csvMinZoom * 1.01 ? 'Fit' : csvZoom.toFixed(1) + '×';
 }
 function csvZoomIn()    { csvApplyZoom(csvZoom * 1.45); }
 function csvZoomOut()   { csvApplyZoom(csvZoom / 1.45); }
-function csvResetView() { csvZoom = 1; csvPanX = 0; csvPanY = 0; csvApplyTransform(); }
+function csvResetView() { csvInitFit(); }
 function csvApplyZoom(z) {
-  csvZoom = Math.max(1, Math.min(8, z));
-  if (csvZoom === 1) { csvPanX = 0; csvPanY = 0; }
+  csvZoom = Math.max(csvMinZoom, Math.min(8, z));
   csvClampPan();
   csvApplyTransform();
 }
