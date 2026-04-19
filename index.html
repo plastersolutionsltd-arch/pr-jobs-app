@@ -765,8 +765,7 @@ async function saveJob() {
     timescale:    _extracted.timescale    || '',
     status: 'enquiry',
     created: Date.now(),
-    source: 'message',
-    rawMsg: document.getElementById('new-msg').value
+    source: 'message'
   };
   jobs.push(job);
   await upsertJob(job);
@@ -798,7 +797,6 @@ async function saveJobManual() {
 // JOB DETAIL
 // ══════════════════════════════════════════════════════════
 function openJob(id) {
-  loadJobs();
   var j = jobs.find(function(x){ return x.id === id; });
   if (!j) return;
   currentJobId = id;
