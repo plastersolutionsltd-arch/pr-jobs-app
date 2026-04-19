@@ -883,9 +883,9 @@ function startPhoto() {
   document.getElementById('photo-input').value = '';
   updatePhotoContinueBtn();
   buildRefGrid();
-  buildSVPhotoPicker();
   showScreen('screen-photo');
   showSubScreen('photo-setup');
+  buildSVPhotoPicker();
   // Retry after 2s in case Supabase hadn't returned yet
   setTimeout(buildSVPhotoPicker, 2000);
 }
@@ -901,6 +901,7 @@ function buildSVPhotoPicker() {
     return;
   }
   if (loadingEl) loadingEl.style.display = 'none';
+  section.style.display = '';
   section.classList.remove('hidden');
   grid.innerHTML = svPhotos.map((p, i) => `
     <div class="sv-photo-thumb" id="svpt-${i}" onclick="selectSVPhoto(${i})">
