@@ -1326,21 +1326,42 @@
           }
         }
 
-        // ── Scope of works: always prefer a proper template over a short stub ──
-        // If notes is empty or short (just a system name), load the best matching template
+        // ── Scope of works: prefer saved scope if it's a real template, else auto-load ──
         if (_job?.siteVisit) {
           const sv       = _job.siteVisit;
           const wt       = _p.get('workType') || sv.workTypes || '';
           const notesEl  = document.getElementById('notes');
           const curNotes = notesEl?.value || '';
           if (curNotes.length < 120) {
-            const scopeKey = mapToScopeKey(wt, sv.finishType);
-            if (scopeKey) {
-              insertScopeTemplate(scopeKey);
-            } else if (sv.scopeOfWorks && sv.scopeOfWorks.length >= 120) {
-              notesEl.value = sv.scopeOfWorks;
+            const savedScope = sv.scopeOfWorks || '';
+            if (savedScope.length >= 120) {
+              notesEl.value = savedScope;
               update();
+            } else {
+              const scopeKey = mapToScopeKey(wt, sv.finishType);
+              if (scopeKey) insertScopeTemplate(scopeKey);
             }
+          }
+        }
+
+        // ── Auto-fill before/after photos from job data ──
+        if (!photos.before) {
+          const svPhotos = _job?.siteVisit?.photos;
+          if (svPhotos && svPhotos.length > 0 && svPhotos[0].dataUrl) {
+            photos.before = svPhotos[0].dataUrl;
+            renderPhotoZone('before');
+          }
+        }
+        if (!photos.after) {
+          const rp = _job?.renderPreviews;
+          if (rp && rp.length > 0 && rp[0].imageDataUrl) {
+            photos.after = rp[0].imageDataUrl;
+            renderPhotoZone('after');
+            const capEl = document.getElementById('photo-caption');
+            if (capEl && !capEl.value.trim()) {
+              capEl.value = (rp[0].colour || '') + (rp[0].system ? ' ' + rp[0].system : '');
+            }
+            update();
           }
         }
       } else {
@@ -1348,28 +1369,6 @@
         addRow('fees');
       }
       update();
-
-      // ── Auto-fill before/after photos from job data ──
-      if (_job && !photos.before && !photos.after) {
-        // Before: first site visit photo
-        const svPhotos = _job.siteVisit?.photos;
-        if (svPhotos && svPhotos.length > 0 && svPhotos[0].dataUrl) {
-          photos.before = svPhotos[0].dataUrl;
-          renderPhotoZone('before');
-        }
-        // After: most recent render preview image
-        const rp = _job.renderPreviews;
-        if (rp && rp.length > 0 && rp[0].imageDataUrl) {
-          photos.after = rp[0].imageDataUrl;
-          renderPhotoZone('after');
-          // Auto-fill caption from render preview data
-          const capEl = document.getElementById('photo-caption');
-          if (capEl && !capEl.value.trim()) {
-            capEl.value = (rp[0].colour || '') + (rp[0].system ? ' ' + rp[0].system : '');
-          }
-          update();
-        }
-      }
 
       // ── Quote number (async) — skip if restoring saved quote ──
       let next = 1;
