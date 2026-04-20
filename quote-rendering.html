@@ -995,6 +995,21 @@
     var sb = supabase.createClient(SB_URL, SB_KEY);
     var _cachedJob = null;
 
+    function lsGetJob(jobId) {
+      try {
+        var all = JSON.parse(localStorage.getItem('pr_jobs') || '[]');
+        return all.find(function(j){ return j.id === jobId; }) || null;
+      } catch(e) { return null; }
+    }
+    function lsSaveJob(job) {
+      try {
+        var all = JSON.parse(localStorage.getItem('pr_jobs') || '[]');
+        var idx = all.findIndex(function(j){ return j.id === job.id; });
+        if (idx >= 0) all[idx] = job; else all.push(job);
+        localStorage.setItem('pr_jobs', JSON.stringify(all));
+      } catch(e) {}
+    }
+
     async function sbGetJob(jobId) {
       var r = await sb.from('jobs').select('*').eq('id', jobId).single();
       if (r.error || !r.data) return null;
@@ -1218,7 +1233,7 @@
       window._quoteRestored = true;
     }
 
-    document.addEventListener('DOMContentLoaded', async () => {
+    document.addEventListener('DOMContentLoaded', function() {
       setupPhotoZones();
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('inv-date').value = today;
@@ -1226,7 +1241,7 @@
       document.getElementById('inv-due').value = due.toISOString().split('T')[0];
       document.getElementById('inv-number').value = '…';
 
-      // ── URL params ──
+      // ── URL params (fill first so client details always show) ──
       const _p = new URLSearchParams(location.search);
       if (_p.get('name'))    document.getElementById('client-name').value = _p.get('name');
       if (_p.get('address')) document.getElementById('client-addr').value = _p.get('address');
@@ -1235,11 +1250,13 @@
       if (_p.get('ref'))     document.getElementById('inv-ref').value = _p.get('ref');
 
       const _jobId = _p.get('jobId');
+      const _job = _jobId ? lsGetJob(_jobId) : null;
+      _cachedJob = _job;
+
       if (_jobId) {
         window._prJobId = _jobId;
         const loadBtn = document.querySelector('[onclick="loadCurrentClient()"]');
         if (loadBtn?.parentElement) loadBtn.parentElement.style.display = 'none';
-        // Clean up address
         const addrEl = document.getElementById('client-addr');
         if (addrEl?.value) {
           const raw = addrEl.value;
@@ -1247,8 +1264,6 @@
           const pc = (raw.match(/\b([A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2})\b/i) || [])[1];
           addrEl.value = (pc && !clean.toUpperCase().includes(pc.toUpperCase())) ? clean + ', ' + pc.toUpperCase() : clean;
         }
-        const _job = await sbGetJob(_jobId);
-        _cachedJob = _job;
 
         if (_job?.quoteData) {
           // ── Restore previously saved quote ──
@@ -1364,23 +1379,28 @@
             update();
           }
         }
+        // Background Supabase sync — updates cache for next save, never blanks the form
+        sbGetJob(_jobId).then(function(remote) {
+          if (!remote) return;
+          var localTs  = (_cachedJob?.quoteData?.savedAt || _cachedJob?.siteVisit?.savedAt || '');
+          var remoteTs = (remote.quoteData?.savedAt || remote.siteVisit?.savedAt || '');
+          if (remoteTs > localTs) { _cachedJob = remote; lsSaveJob(remote); }
+        }).catch(function(){});
       } else {
         addRow('labour');
         addRow('fees');
       }
       update();
 
-      // ── Quote number (async) — skip if restoring saved quote ──
-      let next = 1;
-      try {
-        const cr = await sb.from('counters').select('value').eq('id', 'qr_last').single();
-        if (!cr.error && cr.data) next = (cr.data.value || 0) + 1;
-      } catch(e) {}
-      const year = new Date().getFullYear();
-      if (!window._quoteRestored) {
-        document.getElementById('inv-number').value = 'QR-' + year + '-' + String(next).padStart(3, '0');
-        update();
-      }
+      // Quote counter (background — never blocks form render)
+      sb.from('counters').select('value').eq('id', 'qr_last').single().then(function(cr) {
+        if (!window._quoteRestored) {
+          const next = (!cr.error && cr.data) ? (cr.data.value || 0) + 1 : 1;
+          const year = new Date().getFullYear();
+          document.getElementById('inv-number').value = 'QR-' + year + '-' + String(next).padStart(3, '0');
+          update();
+        }
+      }).catch(function(){});
     });
 
     async function saveNum() {
@@ -1570,10 +1590,10 @@
     async function saveQuoteToApp() {
       const jobId = window._prJobId || new URLSearchParams(location.search).get('jobId');
       if (!jobId) { alert('Open this from the PR Jobs app to save to a client.'); return; }
-      const job = _cachedJob || await sbGetJob(jobId);
+      let job = _cachedJob || lsGetJob(jobId);
+      if (!job) { try { job = await sbGetJob(jobId); } catch(e) {} }
       if (!job) { alert('Client not found.'); return; }
 
-      // Capture all form state so we can restore it next time
       const labourRows = rows.labour.map(id => ({
         presetVal: document.querySelector(`#row-${id} select`)?.value || '',
         desc:  document.querySelector(`[data-id="${id}"][data-field="desc"]`)?.value  || '',
@@ -1592,6 +1612,7 @@
         startDate: v('start-date'), endDate: v('end-date'), notes: v('notes'),
         vatRate: v('vat-rate'), photoCaption: v('photo-caption'),
         labourRows, feesRows,
+        savedAt: new Date().toISOString(),
       };
       job.quote = {
         number:  v('inv-number'),
@@ -1601,6 +1622,7 @@
       };
       job.status = 'quoted';
       const btn = document.getElementById('save-app-btn');
+      lsSaveJob(job);
       try {
         await sbSaveJob(job);
         _cachedJob = job;
