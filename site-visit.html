@@ -1171,6 +1171,13 @@ function parseFreetextMessage(raw) {
 
     document.addEventListener('DOMContentLoaded', function() {
       const jobId = new URLSearchParams(location.search).get('jobId');
+      const _p = new URLSearchParams(location.search);
+
+      // Fill client details from URL params immediately — first thing, no deps
+      if (_p.get('name'))    document.getElementById('customer-name').value = _p.get('name');
+      if (_p.get('phone'))   { const el = document.querySelector('input[type="tel"]');   if (el) el.value = _p.get('phone'); }
+      if (_p.get('email'))   { const el = document.querySelector('input[type="email"]'); if (el) el.value = _p.get('email'); }
+      if (_p.get('address')) { const el = document.querySelector('input[placeholder="Street, City, Postcode"]'); if (el) el.value = _p.get('address'); }
 
       // Load from localStorage immediately — no network wait
       if (jobId) _svJob = lsGetJob(jobId);
@@ -1198,68 +1205,66 @@ function parseFreetextMessage(raw) {
       }
 
       // Restore saved pricing rows, or add blank defaults
-      if (isRestore && sv.priceRows && sv.priceRows.length) {
-        sv.priceRows.forEach(pr => {
-          addPriceRow('');
-          const pc = priceCount;
-          if (pr.desc)    document.getElementById('pdesc-'  + pc).value = pr.desc;
-          if (pr.m2   > 0) document.getElementById('pm2-'   + pc).value = pr.m2;
-          if (pr.rate > 0) document.getElementById('prate-' + pc).value = pr.rate;
-          if (pr.total > 0) document.getElementById('ptotal-'+ pc).value = pr.total;
-          else if (pr.m2 > 0 && pr.rate > 0) calcPriceRow(pc);
-          calcGrandTotal();
-        });
-      } else {
-        addPriceRow('');
-      }
+      try {
+        if (isRestore && sv.priceRows && sv.priceRows.length) {
+          sv.priceRows.forEach(pr => {
+            addPriceRow('');
+            const pc = priceCount;
+            if (pr.desc)     document.getElementById('pdesc-'  + pc).value = pr.desc;
+            if (pr.m2   > 0) document.getElementById('pm2-'    + pc).value = pr.m2;
+            if (pr.rate > 0) document.getElementById('prate-'  + pc).value = pr.rate;
+            if (pr.total > 0) document.getElementById('ptotal-'+ pc).value = pr.total;
+            else if (pr.m2 > 0 && pr.rate > 0) calcPriceRow(pc);
+            calcGrandTotal();
+          });
+        } else { addPriceRow(''); }
+      } catch(e) { try { addPriceRow(''); } catch(e2) {} }
 
       // Restore saved photos
-      if (isRestore && sv.photos && sv.photos.length) {
-        sv.photos.forEach(p => {
-          addPhotoSlot();
-          const pc = photoCount;
-          displayPhoto(pc, p.dataUrl);
-          photoData[pc] = { dataUrl: p.dataUrl, caption: p.caption || '' };
-          const capEl = document.getElementById('ph-caption-' + pc);
-          if (capEl && p.caption) capEl.value = p.caption;
-        });
-      } else {
-        addPhotoSlot();
-        addPhotoSlot();
-        addPhotoSlot();
-      }
+      try {
+        if (isRestore && sv.photos && sv.photos.length) {
+          sv.photos.forEach(p => {
+            addPhotoSlot();
+            const pc = photoCount;
+            displayPhoto(pc, p.dataUrl);
+            photoData[pc] = { dataUrl: p.dataUrl, caption: p.caption || '' };
+            const capEl = document.getElementById('ph-caption-' + pc);
+            if (capEl && p.caption) capEl.value = p.caption;
+          });
+        } else { addPhotoSlot(); addPhotoSlot(); addPhotoSlot(); }
+      } catch(e) { try { addPhotoSlot(); addPhotoSlot(); addPhotoSlot(); } catch(e2) {} }
 
       // Rooms — show area import banner if measurements exist
-      const areaMeasurements = _svJob?.areaToolMeasurements || [];
-      if (areaMeasurements.length > 0) {
-        const banner = document.getElementById('area-import-banner');
-        banner.style.display = 'flex';
-        document.getElementById('area-import-count').textContent = areaMeasurements.length;
-      }
+      try {
+        const areaMeasurements = _svJob?.areaToolMeasurements || [];
+        if (areaMeasurements.length > 0) {
+          const banner = document.getElementById('area-import-banner');
+          banner.style.display = 'flex';
+          document.getElementById('area-import-count').textContent = areaMeasurements.length;
+        }
+      } catch(e) {}
 
       // Restore saved rooms or add blank defaults
-      if (isRestore && sv.rooms && sv.rooms.length) {
-        sv.rooms.forEach(r => {
-          addRoom(r.name);
-          const rc = roomCount;
-          const lEl = document.getElementById('l-' + rc);
-          const wEl = document.getElementById('w-' + rc);
-          const hEl = document.getElementById('h-' + rc);
-          if (lEl && r.l) lEl.value = r.l;
-          if (wEl && r.w) wEl.value = r.w;
-          if (hEl && r.h) hEl.value = r.h;
-          const tr = document.getElementById('room-' + rc);
-          const checks = tr?.querySelectorAll('input[type="checkbox"]');
-          if (checks) { checks[0].checked = r.walls; checks[1].checked = r.ceil; checks[2].checked = r.both; }
-          const noteEl = tr?.querySelector('input[placeholder="Notes"]');
-          if (noteEl && r.note) noteEl.value = r.note;
-          calcRoom(rc);
-        });
-      } else {
-        addRoom('Living Room');
-        addRoom('');
-        addRoom('');
-      }
+      try {
+        if (isRestore && sv.rooms && sv.rooms.length) {
+          sv.rooms.forEach(r => {
+            addRoom(r.name);
+            const rc = roomCount;
+            const lEl = document.getElementById('l-' + rc);
+            const wEl = document.getElementById('w-' + rc);
+            const hEl = document.getElementById('h-' + rc);
+            if (lEl && r.l) lEl.value = r.l;
+            if (wEl && r.w) wEl.value = r.w;
+            if (hEl && r.h) hEl.value = r.h;
+            const tr = document.getElementById('room-' + rc);
+            const checks = tr?.querySelectorAll('input[type="checkbox"]');
+            if (checks) { checks[0].checked = r.walls; checks[1].checked = r.ceil; checks[2].checked = r.both; }
+            const noteEl = tr?.querySelector('input[placeholder="Notes"]');
+            if (noteEl && r.note) noteEl.value = r.note;
+            calcRoom(rc);
+          });
+        } else { addRoom('Living Room'); addRoom(''); addRoom(''); }
+      } catch(e) { try { addRoom('Living Room'); addRoom(''); addRoom(''); } catch(e2) {} }
 
       // ── Work type → finish type & price lookup ──
       const WORK_PRICE_MAP = {
@@ -1277,13 +1282,6 @@ function parseFreetextMessage(raw) {
         'dry lining / stud walls':      { label: 'Dot & Dab Dry Lining',             finish: 'Dot & Dab',   price: 70 },
         'patching & repair':            { label: 'Patching & Repair',                finish: 'Patching & Repair', price: 70 },
       };
-
-      // ── Auto-fill from PR Jobs app URL params ──
-      const _p = new URLSearchParams(location.search);
-      if (_p.get('name'))    document.getElementById('customer-name').value = _p.get('name');
-      if (_p.get('phone'))   document.querySelector('input[type="tel"]').value = _p.get('phone');
-      if (_p.get('email'))   document.querySelector('input[type="email"]').value = _p.get('email');
-      if (_p.get('address')) document.querySelector('input[placeholder="Street, City, Postcode"]').value = _p.get('address');
 
       // Property type auto-fill
       const _pt = (_p.get('propertyType') || '').toLowerCase();
