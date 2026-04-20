@@ -1327,6 +1327,7 @@ function parseFreetextMessage(raw) {
           const soEl = document.getElementById('scope-of-works');
           if (soEl) soEl.value = sv.scopeOfWorks;
         }
+        if (sv.propertyType)    { const el = document.getElementById('property-type-sel'); if (el) el.value = sv.propertyType; }
         if (sv.existingSurface) { const el = document.getElementById('existing-surface'); if (el) el.value = sv.existingSurface; }
         if (sv.prepRequired)    { const el = document.getElementById('prep-required');    if (el) el.value = sv.prepRequired; }
         if (sv.surfaceNotes)    { const el = document.getElementById('surface-notes');    if (el) el.value = sv.surfaceNotes; }
@@ -1709,6 +1710,7 @@ function parseFreetextMessage(raw) {
         colour:        document.getElementById('colour-render')?.value || '',
         skipTons:       skipTons || '',
         skipCost:       skipCost ? '£' + parseFloat(skipCost).toFixed(2) : '',
+        propertyType:   document.getElementById('property-type-sel')?.value || '',
         existingSurface: document.getElementById('existing-surface')?.value || '',
         prepRequired:   document.getElementById('prep-required')?.value || '',
         surfaceNotes:   document.getElementById('surface-notes')?.value || '',
@@ -1735,7 +1737,7 @@ function parseFreetextMessage(raw) {
             });
           });
           return rows;
-        })()
+        })(),
         priceRows:     (function() {
           const rows = [];
           for (let i = 1; i <= priceCount; i++) {
