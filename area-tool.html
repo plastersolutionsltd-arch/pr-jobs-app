@@ -821,8 +821,11 @@ async function loadJob() {
     const local = all.find(j => j.id === jobId);
     if (local) {
       job = local;
-      measuredAreas = job.areaToolMeasurements || [];
-      renderSaved();
+      // Only set measuredAreas from saved data if user hasn't added any yet
+      if (!measuredAreas.length) {
+        measuredAreas = job.areaToolMeasurements || [];
+        renderSaved();
+      }
     }
   } catch(e) {}
   // Sync from Supabase
@@ -830,15 +833,27 @@ async function loadJob() {
     const { data } = await sb.from('jobs').select('*').eq('id', jobId).single();
     if (data) {
       job = Object.assign({}, data.data, { id: data.id, name: data.name, status: data.status, created: data.created });
-      measuredAreas = job.areaToolMeasurements || [];
-      renderSaved();
+      // Only restore saved measurements if user hasn't added any walls yet
+      if (!measuredAreas.length) {
+        measuredAreas = job.areaToolMeasurements || [];
+        renderSaved();
+      }
       buildSVPhotoPicker();
     }
   } catch(e) {}
 }
 
 async function saveToJob() {
-  if (!job || !measuredAreas.length) return;
+  if (!measuredAreas.length) { areaToast('Add at least one wall first'); return; }
+  // If job didn't load yet, try localStorage one more time
+  if (!job && jobId) {
+    try {
+      const all = JSON.parse(localStorage.getItem('pr_jobs') || '[]');
+      const found = all.find(j => j.id === jobId);
+      if (found) job = found;
+    } catch(e) {}
+  }
+  if (!job) { areaToast('Open this tool from a job to save measurements'); return; }
   job.areaToolMeasurements = measuredAreas;
   // Update localStorage
   try {
@@ -852,6 +867,20 @@ async function saveToJob() {
     await sb.from('jobs').upsert({ id: job.id, name: job.name||'', status: job.status||'enquiry', created: job.created||Date.now(), data: job });
   } catch(e) {}
   goHome();
+}
+
+function areaToast(msg) {
+  let t = document.getElementById('area-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'area-toast';
+    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 18px;border-radius:20px;font-size:14px;z-index:9999;pointer-events:none;transition:opacity 0.3s';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2500);
 }
 
 function goHome() {
