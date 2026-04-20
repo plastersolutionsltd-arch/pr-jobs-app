@@ -199,6 +199,9 @@
 
     .btn-add:hover { border-color: var(--green); color: #5cc; }
 
+    .sv-update-banner { display: none; align-items: center; justify-content: space-between; gap: 10px; background: #2a1f00; border: 1px solid #664400; border-radius: 10px; padding: 10px 14px; margin: 12px 16px 0; font-size: 13px; color: #ffbb33; }
+    .sv-update-banner button { flex-shrink: 0; padding: 6px 14px; background: #ffbb33; color: #111; border: none; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; }
+
     /* ===== QUOTE PREVIEW ===== */
     .invoice {
       background: white;
@@ -683,6 +686,11 @@
         </div>
       </div>
 
+      <div id="sv-update-banner" class="sv-update-banner">
+        <span>⚠️ Site visit updated — pricing may have changed</span>
+        <button onclick="reimportPricing()">Reimport Pricing</button>
+      </div>
+
       <div class="form-section">
         <div class="form-section-title">Proposed Works</div>
         <div class="col-labels labour">
@@ -1158,6 +1166,51 @@
       return '';
     }
 
+    function reimportPricing() {
+      const sv = _cachedJob?.siteVisit;
+      if (!sv) return;
+      rows.labour.forEach(id => { const el = document.getElementById('row-' + id); if (el) el.remove(); });
+      rows.labour = [];
+      const wt = sv.workTypes || '';
+      const sys = mapToRenderSystem(wt, sv.finishType);
+      if (sys) document.getElementById('render-system').value = sys;
+      if (sv.colour) document.getElementById('render-finish').value = sv.colour;
+      const pv = mapToPreset(wt, sv.finishType);
+      if (sv.priceRows && sv.priceRows.length > 0) {
+        sv.priceRows.forEach((pr, i) => {
+          addRow('labour');
+          const rfid = rows.labour[i];
+          const rsel = document.querySelector(`#row-${rfid} select`);
+          const descEl = document.querySelector(`[data-id="${rfid}"][data-field="desc"]`);
+          const qtyEl  = document.querySelector(`[data-id="${rfid}"][data-field="qty"]`);
+          const unitEl = document.querySelector(`[data-id="${rfid}"][data-field="unit"]`);
+          if (i === 0 && pv) {
+            if (rsel) { rsel.value = pv; applyPreset(rfid, rsel); }
+            if (qtyEl && pr.m2 > 0) { qtyEl.value = pr.m2; calcRow(rfid); }
+            if (unitEl && pr.rate > 0) { unitEl.value = pr.rate; calcRow(rfid); }
+          } else {
+            if (rsel) rsel.value = 'custom';
+            if (descEl) { descEl.style.display = ''; descEl.value = pr.desc || ''; }
+            if (qtyEl && pr.m2 > 0) qtyEl.value = pr.m2;
+            if (unitEl && pr.rate > 0) unitEl.value = pr.rate;
+            if (pr.total > 0 && !(pr.m2 > 0 && pr.rate > 0)) {
+              const totalEl = document.getElementById('row-total-' + rfid);
+              if (totalEl) totalEl.value = pr.total.toFixed(2);
+            }
+            calcRow(rfid);
+          }
+        });
+      } else {
+        addRow('labour');
+        const fid = rows.labour[0];
+        if (fid && pv) { const sel = document.querySelector(`#row-${fid} select`); if (sel) { sel.value = pv; applyPreset(fid, sel); } }
+        const m2 = parseFloat((sv.combinedM2 || '').replace(/[^\d.]/g, ''));
+        if (m2 > 0) { const qtyEl = document.querySelector(`[data-id="${fid}"][data-field="qty"]`); if (qtyEl) { qtyEl.value = m2; calcRow(fid); } }
+      }
+      update();
+      document.getElementById('sv-update-banner').style.display = 'none';
+    }
+
     function mapToRenderSystem(wt, ft) {
       const s = ((wt||'') + ' ' + (ft||'')).toLowerCase();
       if (s.includes('ewi') || s.includes('external wall')) return 'EWI System';
@@ -1268,6 +1321,10 @@
         if (_job?.quoteData) {
           // ── Restore previously saved quote ──
           restoreQuote(_job.quoteData);
+          // Show banner if site visit was updated after the quote was saved
+          if (_job.siteVisit?.savedAt && _job.quoteData?.savedAt && _job.siteVisit.savedAt > _job.quoteData.savedAt) {
+            document.getElementById('sv-update-banner').style.display = 'flex';
+          }
           // Fill missing render system/colour from site visit if not in quoteData
           if (_job?.siteVisit && !_job.quoteData.renderSystem) {
             const sv  = _job.siteVisit;
