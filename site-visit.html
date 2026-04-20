@@ -968,16 +968,21 @@
       if (r.error) throw r.error;
     }
 
-    // Pre-load job — localStorage first for instant load, then Supabase for latest data
+    // Pre-load job — localStorage is primary, Supabase only wins if it has a newer siteVisit
     var _svJobLoaded = (async function() {
       var jobId = new URLSearchParams(location.search).get('jobId');
       if (!jobId) return;
-      // Instant load from localStorage
       _svJob = lsGetJob(jobId);
-      // Then try Supabase — overwrite only if it returns something valid
       try {
         var remote = await sbGetJob(jobId);
-        if (remote) _svJob = remote;
+        if (remote) {
+          // Only use Supabase data if it has a newer (or equal) siteVisit timestamp
+          var localTs  = _svJob?.siteVisit?.savedAt || '';
+          var remoteTs = remote.siteVisit?.savedAt  || '';
+          if (remoteTs >= localTs) _svJob = remote;
+          // If Supabase is newer, also update localStorage so it stays in sync
+          if (remoteTs > localTs) lsSaveJob(remote);
+        }
       } catch(e) {}
     })();
 
