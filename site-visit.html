@@ -942,6 +942,21 @@
     var sb = supabase.createClient(SB_URL, SB_KEY);
     var _svJob = null;
 
+    function lsGetJob(jobId) {
+      try {
+        var all = JSON.parse(localStorage.getItem('pr_jobs') || '[]');
+        return all.find(function(j){ return j.id === jobId; }) || null;
+      } catch(e) { return null; }
+    }
+    function lsSaveJob(job) {
+      try {
+        var all = JSON.parse(localStorage.getItem('pr_jobs') || '[]');
+        var idx = all.findIndex(function(j){ return j.id === job.id; });
+        if (idx >= 0) all[idx] = job; else all.push(job);
+        localStorage.setItem('pr_jobs', JSON.stringify(all));
+      } catch(e) {}
+    }
+
     async function sbGetJob(jobId) {
       var r = await sb.from('jobs').select('*').eq('id', jobId).single();
       if (r.error || !r.data) return null;
@@ -953,10 +968,17 @@
       if (r.error) throw r.error;
     }
 
-    // Pre-load job from Supabase — returns a Promise so DOMContentLoaded can await it
+    // Pre-load job — localStorage first for instant load, then Supabase for latest data
     var _svJobLoaded = (async function() {
       var jobId = new URLSearchParams(location.search).get('jobId');
-      if (jobId) _svJob = await sbGetJob(jobId);
+      if (!jobId) return;
+      // Instant load from localStorage
+      _svJob = lsGetJob(jobId);
+      // Then try Supabase — overwrite only if it returns something valid
+      try {
+        var remote = await sbGetJob(jobId);
+        if (remote) _svJob = remote;
+      } catch(e) {}
     })();
 
     let roomCount = 0;
@@ -1205,9 +1227,9 @@ function parseFreetextMessage(raw) {
         addPhotoSlot();
       }
 
-      // Rooms — check for area tool measurements first
+      // Rooms — show area import banner only on a fresh form (not when restoring saved data)
       const areaMeasurements = _svJob?.areaToolMeasurements || [];
-      if (areaMeasurements.length > 0) {
+      if (areaMeasurements.length > 0 && !isRestore) {
         const banner = document.getElementById('area-import-banner');
         banner.style.display = 'flex';
         document.getElementById('area-import-count').textContent = areaMeasurements.length;
@@ -1278,11 +1300,26 @@ function parseFreetextMessage(raw) {
         }
       }
 
-      // ── Restore saved site visit fields (scope, finish, colour, work types) ──
+      // ── Restore saved site visit fields (scope, finish, colour, work types, skip) ──
       if (isRestore) {
         if (sv.scopeOfWorks) {
           const soEl = document.getElementById('scope-of-works');
           if (soEl) soEl.value = sv.scopeOfWorks;
+        }
+        // Restore skip hire
+        if (sv.skipTons) {
+          const yesRadio = document.querySelector('input[name="skip"][value="yes"]');
+          if (yesRadio) { yesRadio.checked = true; document.getElementById('skip-size-wrap').style.display = 'block'; }
+          const skipSel = document.getElementById('skip-size');
+          if (skipSel) {
+            for (const opt of skipSel.options) {
+              if (opt.value.startsWith(sv.skipTons + '|')) { skipSel.value = opt.value; break; }
+            }
+            updateSkipCost();
+          }
+        } else {
+          const noRadio = document.querySelector('input[name="skip"][value="no"]');
+          if (noRadio) noRadio.checked = true;
         }
         if (sv.finishType) {
           const finSel = document.getElementById('finish-type-sel');
@@ -1676,6 +1713,9 @@ function parseFreetextMessage(raw) {
       if (addrEl?.value)  job.address = addrEl.value;
 
       const btn = document.getElementById('save-app-btn');
+      // Always save to localStorage immediately so data is never lost
+      lsSaveJob(job);
+      _svJob = job;
       try {
         // Increment sv_last counter if ref looks auto-generated
         if (svRef && /^SV-\d{4}-\d+$/.test(svRef)) {
@@ -1685,7 +1725,6 @@ function parseFreetextMessage(raw) {
           }
         }
         await sbSaveJob(job);
-        _svJob = job;
         btn.textContent = '✓ Saved! Going back…';
         btn.style.background = '#66FF33';
         btn.style.color = '#111';
