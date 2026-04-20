@@ -681,7 +681,7 @@
     <div class="grid-2">
       <div class="f">
         <label>Existing Surface</label>
-        <select>
+        <select id="existing-surface">
           <option value="">— select —</option>
           <option>Bare brick</option>
           <option>Existing plaster</option>
@@ -694,7 +694,7 @@
       </div>
       <div class="f">
         <label>Prep Required</label>
-        <select>
+        <select id="prep-required">
           <option value="">— select —</option>
           <option>None — ready to go</option>
           <option>Hack off existing plaster</option>
@@ -709,7 +709,7 @@
     </div>
     <div class="f">
       <label>Surface Notes</label>
-      <textarea placeholder="Describe any issues, cracks, damp, staining, structural concerns..."></textarea>
+      <textarea id="surface-notes" placeholder="Describe any issues, cracks, damp, staining, structural concerns..."></textarea>
     </div>
 
     <!-- Materials & Finish -->
@@ -1234,9 +1234,30 @@ function parseFreetextMessage(raw) {
         banner.style.display = 'flex';
         document.getElementById('area-import-count').textContent = areaMeasurements.length;
       }
-      addRoom('Living Room');
-      addRoom('');
-      addRoom('');
+
+      // Restore saved rooms or add blank defaults
+      if (isRestore && sv.rooms && sv.rooms.length) {
+        sv.rooms.forEach(r => {
+          addRoom(r.name);
+          const rc = roomCount;
+          const lEl = document.getElementById('l-' + rc);
+          const wEl = document.getElementById('w-' + rc);
+          const hEl = document.getElementById('h-' + rc);
+          if (lEl && r.l) lEl.value = r.l;
+          if (wEl && r.w) wEl.value = r.w;
+          if (hEl && r.h) hEl.value = r.h;
+          const tr = document.getElementById('room-' + rc);
+          const checks = tr?.querySelectorAll('input[type="checkbox"]');
+          if (checks) { checks[0].checked = r.walls; checks[1].checked = r.ceil; checks[2].checked = r.both; }
+          const noteEl = tr?.querySelector('input[placeholder="Notes"]');
+          if (noteEl && r.note) noteEl.value = r.note;
+          calcRoom(rc);
+        });
+      } else {
+        addRoom('Living Room');
+        addRoom('');
+        addRoom('');
+      }
 
       // ── Work type → finish type & price lookup ──
       const WORK_PRICE_MAP = {
@@ -1300,12 +1321,15 @@ function parseFreetextMessage(raw) {
         }
       }
 
-      // ── Restore saved site visit fields (scope, finish, colour, work types, skip) ──
+      // ── Restore saved site visit fields (scope, finish, colour, work types, skip, surface) ──
       if (isRestore) {
         if (sv.scopeOfWorks) {
           const soEl = document.getElementById('scope-of-works');
           if (soEl) soEl.value = sv.scopeOfWorks;
         }
+        if (sv.existingSurface) { const el = document.getElementById('existing-surface'); if (el) el.value = sv.existingSurface; }
+        if (sv.prepRequired)    { const el = document.getElementById('prep-required');    if (el) el.value = sv.prepRequired; }
+        if (sv.surfaceNotes)    { const el = document.getElementById('surface-notes');    if (el) el.value = sv.surfaceNotes; }
         // Restore skip hire
         if (sv.skipTons) {
           const yesRadio = document.querySelector('input[name="skip"][value="yes"]');
@@ -1683,10 +1707,35 @@ function parseFreetextMessage(raw) {
         scopeOfWorks:  document.getElementById('scope-of-works')?.value.trim() || '',
         finishType:    document.getElementById('finish-type-sel')?.value || '',
         colour:        document.getElementById('colour-render')?.value || '',
-        skipTons:      skipTons || '',
-        skipCost:      skipCost ? '£' + parseFloat(skipCost).toFixed(2) : '',
-        savedAt:       new Date().toISOString(),
-        photos:        Object.entries(photoData).map(([, v]) => ({ dataUrl: v.dataUrl, caption: v.caption || '' })),
+        skipTons:       skipTons || '',
+        skipCost:       skipCost ? '£' + parseFloat(skipCost).toFixed(2) : '',
+        existingSurface: document.getElementById('existing-surface')?.value || '',
+        prepRequired:   document.getElementById('prep-required')?.value || '',
+        surfaceNotes:   document.getElementById('surface-notes')?.value || '',
+        savedAt:        new Date().toISOString(),
+        photos:         Object.entries(photoData).map(([, v]) => ({ dataUrl: v.dataUrl, caption: v.caption || '' })),
+        rooms:          (function() {
+          const rows = [];
+          document.querySelectorAll('#rooms-tbody tr').forEach(tr => {
+            const nameEl  = tr.querySelector('input[type="text"]');
+            const lEl     = tr.querySelector('input[id^="l-"]');
+            const wEl     = tr.querySelector('input[id^="w-"]');
+            const hEl     = tr.querySelector('input[id^="h-"]');
+            const checks  = tr.querySelectorAll('input[type="checkbox"]');
+            const noteEl  = tr.querySelector('input[placeholder="Notes"]');
+            rows.push({
+              name:  nameEl?.value || '',
+              l:     parseFloat(lEl?.value) || 0,
+              w:     parseFloat(wEl?.value) || 0,
+              h:     parseFloat(hEl?.value) || 0,
+              walls: checks[0]?.checked || false,
+              ceil:  checks[1]?.checked || false,
+              both:  checks[2]?.checked || false,
+              note:  noteEl?.value || ''
+            });
+          });
+          return rows;
+        })()
         priceRows:     (function() {
           const rows = [];
           for (let i = 1; i <= priceCount; i++) {
