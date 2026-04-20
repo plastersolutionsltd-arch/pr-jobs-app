@@ -968,23 +968,15 @@
       if (r.error) throw r.error;
     }
 
-    // Pre-load job — localStorage is primary, Supabase only wins if it has a newer siteVisit
-    var _svJobLoaded = (async function() {
-      var jobId = new URLSearchParams(location.search).get('jobId');
-      if (!jobId) return;
-      _svJob = lsGetJob(jobId);
-      try {
-        var remote = await sbGetJob(jobId);
-        if (remote) {
-          // Only use Supabase data if it has a newer (or equal) siteVisit timestamp
-          var localTs  = _svJob?.siteVisit?.savedAt || '';
-          var remoteTs = remote.siteVisit?.savedAt  || '';
-          if (remoteTs >= localTs) _svJob = remote;
-          // If Supabase is newer, also update localStorage so it stays in sync
-          if (remoteTs > localTs) lsSaveJob(remote);
-        }
-      } catch(e) {}
-    })();
+    // Background Supabase sync — never blocks the form
+    function syncFromSupabase(jobId) {
+      sbGetJob(jobId).then(function(remote) {
+        if (!remote) return;
+        var localTs  = _svJob?.siteVisit?.savedAt || '';
+        var remoteTs = remote.siteVisit?.savedAt  || '';
+        if (remoteTs > localTs) { _svJob = remote; lsSaveJob(remote); }
+      }).catch(function(){});
+    }
 
     let roomCount = 0;
     let photoCount = 0;
@@ -1177,27 +1169,32 @@ function parseFreetextMessage(raw) {
       document.title = original;
     }
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      // Wait for Supabase job to load before filling form
-      await _svJobLoaded;
+    document.addEventListener('DOMContentLoaded', function() {
+      const jobId = new URLSearchParams(location.search).get('jobId');
+
+      // Load from localStorage immediately — no network wait
+      if (jobId) _svJob = lsGetJob(jobId);
+
+      // Kick off background Supabase sync (updates localStorage for next open)
+      if (jobId) syncFromSupabase(jobId);
+
       const sv = _svJob?.siteVisit;
       const isRestore = !!sv;
 
       // Date — restore or default to today
       document.getElementById('visit-date').value = sv?.date || new Date().toISOString().split('T')[0];
 
-      // Visit Ref — restore or generate next SV number
+      // Visit Ref — restore or generate
       if (sv?.ref) {
         document.getElementById('visit-ref').value = sv.ref;
       } else {
-        try {
-          const cr = await sb.from('counters').select('value').eq('id', 'sv_last').single();
+        // Set a default immediately, then update from Supabase counter in background
+        const year = new Date().getFullYear();
+        document.getElementById('visit-ref').value = 'SV-' + year + '-001';
+        sb.from('counters').select('value').eq('id', 'sv_last').single().then(function(cr) {
           const last = (!cr.error && cr.data) ? (cr.data.value || 0) : 0;
-          const year = new Date().getFullYear();
           document.getElementById('visit-ref').value = 'SV-' + year + '-' + String(last + 1).padStart(3, '0');
-        } catch(e) {
-          document.getElementById('visit-ref').value = 'SV-' + new Date().getFullYear() + '-001';
-        }
+        }).catch(function(){});
       }
 
       // Restore saved pricing rows, or add blank defaults
