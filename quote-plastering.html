@@ -1062,6 +1062,8 @@
           const year = new Date().getFullYear();
           document.getElementById('inv-number').value = 'QT-' + year + '-' + String(next).padStart(3, '0');
           update();
+          // Save immediately so next quote gets the incremented number
+          sb.from('counters').upsert({ id: 'qt_last', value: next }).catch(function(){});
         }
       }).catch(function(){});
     });
