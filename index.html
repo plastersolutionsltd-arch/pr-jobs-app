@@ -553,9 +553,31 @@ var currentJobId = null;
 var currentTab = 'all';
 var prevScreen = 'screen-jobs';
 
+// Strip large binary fields so localStorage never hits quota
+function compactJob(j) {
+  if (!j) return j;
+  var c = Object.assign({}, j);
+  if (c.siteVisit && c.siteVisit.photos) {
+    c.siteVisit = Object.assign({}, c.siteVisit, {
+      photos: c.siteVisit.photos.map(function(p) { return { caption: p.caption || '' }; })
+    });
+  }
+  if (c.renderPreviews) {
+    c.renderPreviews = c.renderPreviews.map(function(r) {
+      var rc = Object.assign({}, r); delete rc.imageDataUrl; return rc;
+    });
+  }
+  return c;
+}
+
 // localStorage helpers — always work, even offline
 function lsSave() {
-  try { localStorage.setItem('pr_jobs', JSON.stringify(jobs)); } catch(e) {}
+  try {
+    localStorage.setItem('pr_jobs', JSON.stringify(jobs));
+  } catch(e) {
+    // Quota exceeded — save without photo data so form data is never lost
+    try { localStorage.setItem('pr_jobs', JSON.stringify(jobs.map(compactJob))); } catch(e2) {}
+  }
 }
 function lsLoad() {
   try { return JSON.parse(localStorage.getItem('pr_jobs') || '[]'); } catch(e) { return []; }
