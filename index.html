@@ -56,6 +56,13 @@
     .logo-name .g { color: var(--green); }
     .logo-sub { font-size: 10px; color: var(--muted2); letter-spacing: 0.5px; margin-top: 3px; }
 
+    .sync-btn { background: none; border: 1px solid var(--border); border-radius: 10px; color: var(--muted2); padding: 7px 10px; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 12px; font-family: var(--brand); font-weight: 700; letter-spacing: 0.5px; -webkit-tap-highlight-color: transparent; transition: color 0.15s, border-color 0.15s; }
+    .sync-btn:active { opacity: 0.6; }
+    .sync-btn.syncing { color: var(--green); border-color: var(--green); }
+    .sync-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .sync-btn.syncing svg { animation: spin 0.7s linear infinite; }
+
     .hdr-title { font-family: var(--brand); font-size: 16px; font-weight: 800; letter-spacing: 0.5px; }
     .hdr-back {
       background: none; border: none; color: var(--green); font-size: 15px;
@@ -354,6 +361,10 @@
         <div class="logo-sub" id="jobs-count">Loading...</div>
       </div>
     </button>
+    <button class="sync-btn" id="sync-btn" onclick="hardSync()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+      Sync
+    </button>
   </div>
   <div class="scroll">
     <div class="search-wrap">
@@ -558,23 +569,42 @@ async function loadJobs() {
     renderJobs();
   }
 
-  // Try Supabase sync in background — if it has more/newer data, use it
+  // Supabase sync — remote is the source of truth for shared data
   try {
     var result = await sb.from('jobs').select('*').order('created', { ascending: false });
     if (result.error) throw result.error;
     var remote = (result.data || []).map(function(r) {
       return Object.assign({}, r.data, { id: r.id, name: r.name, status: r.status, created: r.created });
     });
-    if (remote.length > 0) {
-      // Merge: keep any local-only jobs (created offline) and let remote win for shared ones
-      var remoteIds = new Set(remote.map(function(j){ return j.id; }));
-      var localOnly = jobs.filter(function(j){ return !remoteIds.has(j.id); });
-      jobs = localOnly.concat(remote).sort(function(a,b){ return b.created - a.created; });
-      lsSave();
-      renderJobs();
-    }
+    // Use Supabase as truth — don't preserve local-only jobs that may have been deleted elsewhere
+    jobs = remote.sort(function(a,b){ return b.created - a.created; });
+    lsSave();
+    renderJobs();
   } catch(e) {
     console.warn('Supabase sync failed, using local data:', e);
+  }
+}
+
+async function hardSync() {
+  var btn = document.getElementById('sync-btn');
+  btn.classList.add('syncing');
+  document.getElementById('jobs-count').textContent = 'Syncing…';
+  try {
+    var result = await sb.from('jobs').select('*').order('created', { ascending: false });
+    if (result.error) throw result.error;
+    var remote = (result.data || []).map(function(r) {
+      return Object.assign({}, r.data, { id: r.id, name: r.name, status: r.status, created: r.created });
+    });
+    jobs = remote.sort(function(a,b){ return b.created - a.created; });
+    lsSave();
+    renderJobs();
+    btn.classList.remove('syncing');
+    document.getElementById('jobs-count').textContent = '✓ Synced';
+    setTimeout(function() { renderJobs(); }, 1500);
+  } catch(e) {
+    btn.classList.remove('syncing');
+    document.getElementById('jobs-count').textContent = 'Sync failed — check connection';
+    setTimeout(function() { renderJobs(); }, 2500);
   }
 }
 
