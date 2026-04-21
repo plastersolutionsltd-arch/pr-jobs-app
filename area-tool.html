@@ -855,14 +855,21 @@ async function saveToJob() {
   }
   if (!job) { areaToast('Open this tool from a job to save measurements'); return; }
   job.areaToolMeasurements = measuredAreas;
-  // Update localStorage
-  try {
+  // Update localStorage (compact fallback if photos cause quota exceeded)
+  function _lsWrite(data) {
     const all = JSON.parse(localStorage.getItem('pr_jobs') || '[]');
-    const idx = all.findIndex(j => j.id === jobId);
-    if (idx >= 0) all[idx] = job; else all.push(job);
+    const idx = all.findIndex(j => j.id === data.id);
+    if (idx >= 0) all[idx] = data; else all.push(data);
     localStorage.setItem('pr_jobs', JSON.stringify(all));
-  } catch(e) {}
-  // Supabase
+  }
+  function _compact(j) {
+    const c = Object.assign({}, j);
+    if (c.siteVisit && c.siteVisit.photos) c.siteVisit = Object.assign({}, c.siteVisit, { photos: c.siteVisit.photos.map(p => ({ caption: p.caption||'' })) });
+    if (c.renderPreviews) c.renderPreviews = c.renderPreviews.map(r => { const rc=Object.assign({},r); delete rc.imageDataUrl; return rc; });
+    return c;
+  }
+  try { _lsWrite(job); } catch(e) { try { _lsWrite(_compact(job)); } catch(e2) {} }
+  // Supabase (full data)
   try {
     await sb.from('jobs').upsert({ id: job.id, name: job.name||'', status: job.status||'enquiry', created: job.created||Date.now(), data: job });
   } catch(e) {}
