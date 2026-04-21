@@ -979,8 +979,8 @@
 
         if (_job?.quoteData) {
           restoreQuote(_job.quoteData);
-          // Show banner if site visit was updated after the quote was saved
-          if (_job.siteVisit?.savedAt && _job.quoteData?.savedAt && _job.siteVisit.savedAt > _job.quoteData.savedAt) {
+          // Always show reimport banner when a saved quote + site visit both exist
+          if (_job.siteVisit) {
             document.getElementById('sv-update-banner').style.display = 'flex';
           }
         } else {
