@@ -561,23 +561,39 @@ function lsLoad() {
   try { return JSON.parse(localStorage.getItem('pr_jobs') || '[]'); } catch(e) { return []; }
 }
 
-async function loadJobs() {
-  // Load from localStorage instantly — data always available
-  var local = lsLoad();
-  if (local.length > 0) {
-    jobs = local;
-    renderJobs();
-  }
+function jobTs(j) {
+  // Most recent timestamp on a job — used to decide which version wins in a merge
+  return j && (j.siteVisit && j.siteVisit.savedAt) || (j && j.quoteData && j.quoteData.savedAt) || '';
+}
 
-  // Supabase sync — remote is the source of truth for shared data
+async function loadJobs() {
+  // Show local data immediately — never block on network
+  var local = lsLoad();
+  if (local.length > 0) { jobs = local; renderJobs(); }
+
   try {
     var result = await sb.from('jobs').select('*').order('created', { ascending: false });
     if (result.error) throw result.error;
     var remote = (result.data || []).map(function(r) {
       return Object.assign({}, r.data, { id: r.id, name: r.name, status: r.status, created: r.created });
     });
-    // Use Supabase as truth — don't preserve local-only jobs that may have been deleted elsewhere
-    jobs = remote.sort(function(a,b){ return b.created - a.created; });
+
+    // Smart merge: for each job ID keep whichever version was saved more recently.
+    // Remote-only jobs are kept (added on another device).
+    // Local-only jobs are kept (created offline, or saved moments ago before Supabase caught up).
+    // Use the ⟳ Sync button when you need a hard replace (e.g. after deleting on another device).
+    var localMap = {};
+    local.forEach(function(j) { localMap[j.id] = j; });
+    var merged = remote.map(function(rem) {
+      var loc = localMap[rem.id];
+      if (loc && jobTs(loc) > jobTs(rem)) return loc; // local is newer — keep it
+      return rem;
+    });
+    // Add any local-only jobs (not yet in Supabase — just saved, or offline)
+    remote.forEach(function(r) { delete localMap[r.id]; });
+    Object.values(localMap).forEach(function(j) { merged.push(j); });
+
+    jobs = merged.sort(function(a,b){ return b.created - a.created; });
     lsSave();
     renderJobs();
   } catch(e) {
