@@ -407,6 +407,14 @@
     .photo-add-more:hover { border-color: var(--green); color: #666; background: #f5fff0; }
     .photo-add-more span { font-size: 26px; opacity: 0.35; }
 
+    /* ── LIGHTBOX ── */
+    .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.96); z-index: 9999; display: flex; align-items: center; justify-content: center; touch-action: none; }
+    .lightbox.lb-hidden { display: none; }
+    .lb-img { max-width: 100vw; max-height: 100vh; display: block; transform-origin: center center; user-select: none; -webkit-user-drag: none; pointer-events: none; transition: transform 0.08s ease-out; }
+    .lb-img.lb-animating { transition: transform 0.25s ease-out; }
+    .lb-close { position: absolute; top: max(14px, env(safe-area-inset-top)); right: 14px; width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; -webkit-tap-highlight-color: transparent; }
+    .lb-hint { position: absolute; bottom: max(20px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.4); font-size: 11px; letter-spacing: 0.5px; white-space: nowrap; pointer-events: none; }
+
     /* Footer */
     .doc-footer {
       margin-top: 8mm;
@@ -1580,6 +1588,9 @@ function parseFreetextMessage(raw) {
       const captionWrap = document.getElementById('ph-caption-wrap-' + pc);
       img.src = dataUrl;
       img.style.display = 'block';
+      img.style.zIndex = '4';
+      img.style.cursor = 'zoom-in';
+      img.onclick = function(e) { e.stopPropagation(); openLightbox(dataUrl); };
       placeholder.style.display = 'none';
       removeBtn.style.display = 'flex';
       captionWrap.style.display = 'block';
@@ -2007,6 +2018,9 @@ All works carried out in full accordance with manufacturer's specification. Full
       const caption = document.getElementById('ph-caption-' + pc);
       img.src = '';
       img.style.display = 'none';
+      img.style.zIndex = '1';
+      img.style.cursor = '';
+      img.onclick = null;
       placeholder.style.display = 'flex';
       removeBtn.style.display = 'none';
       captionWrap.style.display = 'none';
@@ -2017,6 +2031,102 @@ All works carried out in full accordance with manufacturer's specification. Full
       if (fileInput) fileInput.value = '';
       delete photoData[pc];
     }
+  </script>
+
+  <!-- ── LIGHTBOX ── -->
+  <div id="lightbox" class="lightbox lb-hidden">
+    <button class="lb-close" onclick="closeLightbox()">×</button>
+    <img id="lb-img" class="lb-img" src="" alt="">
+    <div class="lb-hint">Pinch to zoom · Double-tap · Tap × to close</div>
+  </div>
+  <script>
+    (function() {
+      var lb = { scale: 1, tx: 0, ty: 0, lastTap: 0 };
+      var touch = {};
+
+      function getImg() { return document.getElementById('lb-img'); }
+
+      window.openLightbox = function(src) {
+        lb.scale = 1; lb.tx = 0; lb.ty = 0;
+        var img = getImg();
+        img.src = src;
+        img.classList.remove('lb-animating');
+        img.style.transform = '';
+        document.getElementById('lightbox').classList.remove('lb-hidden');
+        document.body.style.overflow = 'hidden';
+      };
+
+      window.closeLightbox = function() {
+        document.getElementById('lightbox').classList.add('lb-hidden');
+        document.body.style.overflow = '';
+      };
+
+      function applyT(animate) {
+        var img = getImg();
+        if (animate) { img.classList.add('lb-animating'); setTimeout(function(){ img.classList.remove('lb-animating'); }, 260); }
+        img.style.transform = 'translate(' + lb.tx + 'px,' + lb.ty + 'px) scale(' + lb.scale + ')';
+      }
+
+      function ptDist(t) { return Math.hypot(t[1].clientX - t[0].clientX, t[1].clientY - t[0].clientY); }
+      function ptMid(t)  { return { x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 }; }
+
+      var overlay = document.getElementById('lightbox');
+      overlay.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        var ts = Array.from(e.touches);
+        if (ts.length === 1) {
+          var now = Date.now();
+          if (now - lb.lastTap < 280) {
+            // Double-tap: toggle zoom
+            lb.lastTap = 0;
+            if (lb.scale > 1) { lb.scale = 1; lb.tx = 0; lb.ty = 0; }
+            else { lb.scale = 2.5; }
+            applyT(true);
+            return;
+          }
+          lb.lastTap = now;
+          touch.sx = ts[0].clientX - lb.tx;
+          touch.sy = ts[0].clientY - lb.ty;
+        } else if (ts.length === 2) {
+          touch.startDist  = ptDist(ts);
+          touch.startScale = lb.scale;
+          var m = ptMid(ts);
+          touch.startMidX = m.x; touch.startMidY = m.y;
+          touch.startTx = lb.tx; touch.startTy = lb.ty;
+        }
+      }, { passive: false });
+
+      overlay.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+        var ts = Array.from(e.touches);
+        if (ts.length === 1 && lb.scale > 1) {
+          lb.tx = ts[0].clientX - touch.sx;
+          lb.ty = ts[0].clientY - touch.sy;
+          applyT(false);
+        } else if (ts.length === 2) {
+          var d = ptDist(ts);
+          lb.scale = Math.max(1, Math.min(6, touch.startScale * d / touch.startDist));
+          var m = ptMid(ts);
+          lb.tx = touch.startTx + (m.x - touch.startMidX);
+          lb.ty = touch.startTy + (m.y - touch.startMidY);
+          applyT(false);
+        }
+      }, { passive: false });
+
+      overlay.addEventListener('touchend', function(e) {
+        // If scale=1 and it was a quick tap (not a double-tap window), close
+        if (lb.scale <= 1 && e.changedTouches.length === 1 && e.touches.length === 0) {
+          // Give double-tap a chance to fire first
+          setTimeout(function() {
+            if (lb.lastTap && Date.now() - lb.lastTap > 280) {
+              closeLightbox();
+            }
+          }, 290);
+        }
+        // Snap scale back to 1 if slightly under due to rounding
+        if (lb.scale < 1.05) { lb.scale = 1; lb.tx = 0; lb.ty = 0; applyT(true); }
+      });
+    })();
   </script>
 </body>
 </html>
