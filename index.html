@@ -326,6 +326,36 @@
     }
     .fab svg { width: 26px; height: 26px; color: #111; }
     .fab:active { transform: scale(0.92); box-shadow: 0 2px 10px rgba(102,255,51,0.25); }
+    /* ── MORNING BRIEF ── */
+    #morning-brief { margin-bottom: 14px; }
+    .brief-section {
+      background: var(--card); border-radius: 12px; border: 1px solid var(--border);
+      overflow: hidden; margin-bottom: 8px;
+    }
+    .brief-hdr {
+      padding: 8px 14px; font-size: 10px; font-weight: 800; letter-spacing: 1px;
+      text-transform: uppercase; font-family: var(--brand); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .brief-hdr.today { color: var(--green); }
+    .brief-hdr.chase { color: #ffcc33; }
+    .brief-row {
+      display: flex; align-items: center; padding: 10px 14px; cursor: pointer;
+      border-bottom: 1px solid var(--border); transition: background 0.15s;
+    }
+    .brief-row:last-child { border-bottom: none; }
+    .brief-row:active { background: #222; }
+    .brief-row-info { flex: 1; min-width: 0; }
+    .brief-row-name { font-size: 14px; font-weight: 600; }
+    .brief-row-sub { font-size: 12px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+    .brief-action {
+      flex-shrink: 0; padding: 5px 10px; border-radius: 8px;
+      border: 1px solid; font-size: 11px; font-weight: 700; margin-left: 10px;
+      cursor: pointer; background: none; white-space: nowrap;
+    }
+    .brief-action.maps { border-color: #2a3a2a; color: var(--green); }
+    .brief-action.call { border-color: #3a3000; color: #ffcc33; }
+
     /* ── TRAFFIC LIGHTS (Mac PWA only) ── */
     @media (pointer: fine) {
       .tl-bar { position: fixed; top: 0; left: 0; z-index: 9999; display: flex; align-items: center; gap: 7px; padding: 10px 14px; }
@@ -367,6 +397,7 @@
     </button>
   </div>
   <div class="scroll">
+    <div id="morning-brief"></div>
     <div class="search-wrap">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       <input type="search" id="search-input" placeholder="Search jobs..." oninput="renderJobs()">
@@ -734,6 +765,8 @@ function renderJobs() {
     el.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><h3>No jobs found</h3><p>Tap + to add a new job</p></div>';
     return;
   }
+
+  renderMorningBrief();
 
   el.innerHTML = filtered.map(function(j){
     return '<div class="card job-card" onclick="openJob(\''+j.id+'\')">'
@@ -1329,8 +1362,8 @@ function scheduleJob() {
       + '<div class="lbl" style="margin-top:14px">Notes <span style="color:#555;font-size:10px;letter-spacing:0;text-transform:none;font-weight:400">(access, start time, etc.)</span></div>'
       + '<input class="inp" type="text" id="sched-notes" placeholder="e.g. 8am start, back gate" value="' + esc(savedNotes) + '" style="margin-bottom:0">'
 
-      + '<button class="btn btn-green" onclick="saveSchedule()" style="margin-top:20px">💾 Save Dates</button>'
-      + '<button class="btn" onclick="addToCalendar()" style="background:#0f2a0f;border:1.5px solid #2a4a2a;color:var(--green);margin-top:8px">📅 Add to My Calendar</button>'
+      + '<button class="btn btn-green" onclick="saveAndAddCalendar()" style="margin-top:20px">📅 Save & Add to Calendar</button>'
+      + '<button class="btn" onclick="saveSchedule()" style="margin-top:8px">💾 Save Dates Only</button>'
       + '<button class="btn" onclick="confirmDatesToCustomer()" style="background:#0f1a2a;border:1.5px solid #1a2a4a;color:#5599ff;margin-top:8px">✉ Email Dates to Customer</button>'
       + '<button onclick="closeScheduleModal()" style="width:100%;background:none;border:none;color:#555;font-size:14px;padding:14px;cursor:pointer;margin-top:4px">Cancel</button>'
     + '</div>';
@@ -1361,16 +1394,8 @@ async function saveSchedule() {
   openJob(currentJobId);
 }
 
-function addToCalendar() {
-  var j = jobs.find(function(x){ return x.id === currentJobId; });
-  if (!j) return;
-
-  var start = document.getElementById('sched-start').value;
-  if (!start) { toast('Pick a start date first'); return; }
-
-  var end = document.getElementById('sched-end').value;
+function buildCalendarUrl(j, start, end, notes) {
   var startFmt = start.replace(/-/g, '');
-
   // Google Calendar all-day: end date is exclusive (day after last day)
   var endFmt;
   if (end) {
@@ -1382,14 +1407,11 @@ function addToCalendar() {
     startD.setDate(startD.getDate() + 1);
     endFmt = startD.toISOString().slice(0, 10).replace(/-/g, '');
   }
-
-  var notes     = document.getElementById('sched-notes').value.trim();
-  var workDesc  = j.workType || j.description || j.notes || 'Plastering / Rendering';
-  var details   = workDesc
+  var workDesc = j.workType || j.description || j.notes || 'Plastering / Rendering';
+  var details  = workDesc
     + (notes ? '\n\n' + notes : '')
     + '\n\nPhone: ' + (j.phone || '—')
     + '\nEmail: ' + (j.email  || '—');
-
   var params = new URLSearchParams({
     action:   'TEMPLATE',
     text:     'P&R Solutions — ' + (j.name || 'Job'),
@@ -1397,8 +1419,35 @@ function addToCalendar() {
     details:  details,
     location: j.address || ''
   });
+  return 'https://calendar.google.com/calendar/render?' + params.toString();
+}
 
-  window.open('https://calendar.google.com/calendar/render?' + params.toString(), '_blank');
+function addToCalendar() {
+  var j = jobs.find(function(x){ return x.id === currentJobId; });
+  if (!j) return;
+  var start = document.getElementById('sched-start').value;
+  if (!start) { toast('Pick a start date first'); return; }
+  var end   = document.getElementById('sched-end').value;
+  var notes = document.getElementById('sched-notes').value.trim();
+  window.open(buildCalendarUrl(j, start, end, notes), '_blank');
+}
+
+async function saveAndAddCalendar() {
+  var j = jobs.find(function(x){ return x.id === currentJobId; });
+  if (!j) return;
+  var start = document.getElementById('sched-start').value;
+  if (!start) { toast('Pick a start date first'); return; }
+  var end   = document.getElementById('sched-end').value;
+  var notes = document.getElementById('sched-notes').value.trim();
+  // Open calendar URL synchronously BEFORE any await — iOS requires a direct user gesture
+  window.open(buildCalendarUrl(j, start, end, notes), '_blank');
+  j.scheduledDate    = start;
+  j.scheduledEndDate = end;
+  j.scheduleNotes    = notes;
+  await upsertJob(j);
+  closeScheduleModal();
+  toast('Dates saved · Calendar opened');
+  openJob(currentJobId);
 }
 
 function confirmDatesToCustomer() {
@@ -1440,6 +1489,100 @@ function confirmDatesToCustomer() {
   location.href = 'mailto:' + j.email
     + '?subject=' + encodeURIComponent(subject)
     + '&body='    + encodeURIComponent(body);
+}
+
+// ══════════════════════════════════════════════════════════
+// MORNING BRIEF
+// ══════════════════════════════════════════════════════════
+function openMaps(jobId) {
+  var j = jobs.find(function(x){ return x.id === jobId; });
+  if (j && j.address) window.open('https://maps.apple.com/?q=' + encodeURIComponent(j.address), '_blank');
+}
+
+function callJob(jobId) {
+  var j = jobs.find(function(x){ return x.id === jobId; });
+  if (j && j.phone) location.href = 'tel:' + j.phone;
+}
+
+function renderMorningBrief() {
+  var el = document.getElementById('morning-brief');
+  if (!el) return;
+
+  var todayStr = new Date().toISOString().slice(0, 10);
+  var weekEnd  = new Date(); weekEnd.setDate(weekEnd.getDate() + 7);
+  var weekStr  = weekEnd.toISOString().slice(0, 10);
+
+  var todayJobs = jobs.filter(function(j) {
+    return j.scheduledDate === todayStr && j.status !== 'paid' && j.status !== 'declined';
+  });
+
+  var upcomingJobs = jobs.filter(function(j) {
+    return j.scheduledDate && j.scheduledDate > todayStr && j.scheduledDate <= weekStr
+      && j.status !== 'paid' && j.status !== 'declined';
+  }).sort(function(a, b){ return a.scheduledDate < b.scheduledDate ? -1 : 1; });
+
+  var fiveDaysAgo     = Date.now() - 5  * 24 * 60 * 60 * 1000;
+  var fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
+  var chaseJobs = jobs.filter(function(j) {
+    if (j.status === 'quoted'   && j.created < fiveDaysAgo)     return true;
+    if (j.status === 'invoiced' && j.created < fourteenDaysAgo) return true;
+    return false;
+  });
+
+  var html = '';
+
+  if (todayJobs.length > 0) {
+    var dateLabel = new Date().toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long'});
+    html += '<div class="brief-section">'
+      + '<div class="brief-hdr today">📅 Today — ' + dateLabel + '</div>'
+      + todayJobs.map(function(j) {
+          var sub = j.address || '';
+          if (j.scheduleNotes) sub += (sub ? ' · ' : '') + j.scheduleNotes;
+          return '<div class="brief-row" onclick="openJob(\'' + j.id + '\')">'
+            + '<div class="brief-row-info">'
+            + '<div class="brief-row-name">' + esc(j.name || 'Unknown') + '</div>'
+            + (sub ? '<div class="brief-row-sub">📍 ' + esc(sub) + '</div>' : '')
+            + '</div>'
+            + (j.address ? '<button class="brief-action maps" onclick="event.stopPropagation();openMaps(\'' + j.id + '\')">Maps</button>' : '')
+            + '</div>';
+        }).join('')
+      + '</div>';
+  }
+
+  if (upcomingJobs.length > 0 && todayJobs.length === 0) {
+    var next = upcomingJobs[0];
+    var nextDateStr = new Date(next.scheduledDate + 'T00:00:00').toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'});
+    html += '<div class="brief-section">'
+      + '<div class="brief-hdr today">📅 Next Up</div>'
+      + '<div class="brief-row" onclick="openJob(\'' + next.id + '\')">'
+      + '<div class="brief-row-info">'
+      + '<div class="brief-row-name">' + esc(next.name || 'Unknown') + '</div>'
+      + '<div class="brief-row-sub">' + nextDateStr + (next.address ? ' · 📍 ' + esc(next.address) : '') + '</div>'
+      + '</div>'
+      + (next.address ? '<button class="brief-action maps" onclick="event.stopPropagation();openMaps(\'' + next.id + '\')">Maps</button>' : '')
+      + '</div>'
+      + '</div>';
+  }
+
+  if (chaseJobs.length > 0) {
+    html += '<div class="brief-section">'
+      + '<div class="brief-hdr chase">⚠️ Chase (' + chaseJobs.length + ')</div>'
+      + chaseJobs.map(function(j) {
+          var daysAgo = Math.floor((Date.now() - j.created) / (24 * 60 * 60 * 1000));
+          var label   = (j.status === 'quoted' ? 'Quoted' : 'Invoiced') + ' ' + daysAgo + ' days ago';
+          var addr    = j.address ? j.address.split(',')[0] : '';
+          return '<div class="brief-row" onclick="openJob(\'' + j.id + '\')">'
+            + '<div class="brief-row-info">'
+            + '<div class="brief-row-name">' + esc(j.name || 'Unknown') + '</div>'
+            + '<div class="brief-row-sub">' + label + (addr ? ' · ' + esc(addr) : '') + '</div>'
+            + '</div>'
+            + (j.phone ? '<button class="brief-action call" onclick="event.stopPropagation();callJob(\'' + j.id + '\')">Call</button>' : '')
+            + '</div>';
+        }).join('')
+      + '</div>';
+  }
+
+  el.innerHTML = html;
 }
 
 // ══════════════════════════════════════════════════════════
