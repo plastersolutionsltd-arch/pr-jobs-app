@@ -1277,10 +1277,21 @@ function findAddress(s, postcode) {
   return '';
 }
 function findName(s) {
-  var skip=['looking','wondering','hoping','wanting','calling','writing','ringing','contacting','regarding','could','would','please','can','just','sheffield','leeds','manchester','bradford','birmingham','good','dear','hello','hi','detached','semi','terraced','bungalow','house','flat','apartment','commercial','silicone','monocouche','roughcast','tyrolean','plastering','rendering','new','quote','free','whatsapp','message','pictures','photos','address','road','street','avenue','close','drive','enquiry','quoted','booked','inprogress','done','declined','invoiced','paid','details','workflow','status','notes','tools','unknown'];
+  var skip=['looking','wondering','hoping','wanting','calling','writing','ringing','contacting','regarding','regards','kind','best','many','warm','sincerely','hello','hi','hey','good','dear','could','would','please','can','just','sheffield','leeds','manchester','bradford','birmingham','detached','semi','terraced','bungalow','house','flat','apartment','commercial','silicone','monocouche','roughcast','tyrolean','plastering','rendering','external','internal','new','quote','free','whatsapp','message','pictures','photos','address','road','street','avenue','close','drive','enquiry','quoted','booked','inprogress','done','declined','invoiced','paid','details','workflow','status','notes','tools','unknown'];
   function ok(c){ return c && !skip.some(function(w){ return c.toLowerCase().indexOf(w)===0; }); }
   function cap(n){ return n.trim().replace(/\b\w/g, function(ch){ return ch.toUpperCase(); }); }
   var m;
+  // "Name, address" format — e.g. "Mick Swindells, 52 Wheel Lane S35 8RN"
+  var commaIdx = s.indexOf(',');
+  if (commaIdx > -1) {
+    var beforeComma = s.substring(0, commaIdx).trim();
+    var bcWords = beforeComma.split(/\s+/);
+    if (bcWords.length >= 1 && bcWords.length <= 3
+        && bcWords.every(function(w){ return /^[a-zA-Z]{2,}$/.test(w); })
+        && ok(beforeComma)) {
+      return cap(beforeComma);
+    }
+  }
   // Standalone Title Case line (first + last name)
   var lines = s.split('\n');
   for (var i=0;i<lines.length;i++){
