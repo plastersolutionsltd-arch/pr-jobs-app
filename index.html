@@ -985,8 +985,45 @@ function openJob(id) {
   html += toolBtn(imgSVG(),     'Render Preview',"openTemplate('render-preview.html')");
   html += '</div>';
 
+  // Render previews — read directly from localStorage so imageDataUrl is available
+  var lsJob = lsLoad().find(function(x){ return x.id === j.id; });
+  var previews = (lsJob && lsJob.renderPreviews) || j.renderPreviews || [];
+  if (previews.length > 0) {
+    html += '<div class="section-hdr">Saved Renders</div>';
+    html += previews.map(function(p, i) {
+      return '<div class="card" style="padding:0;overflow:hidden;margin-bottom:10px">'
+        + (p.imageDataUrl ? '<img src="'+p.imageDataUrl+'" style="width:100%;display:block;border-radius:14px 14px 0 0">' : '')
+        + '<div style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center">'
+        + '<div>'
+        + '<div style="font-size:14px;font-weight:600">' + esc(p.system || '—') + '</div>'
+        + '<div style="font-size:12px;color:#888;margin-top:2px">'
+        + (p.hex ? '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+esc(p.hex)+';margin-right:5px;vertical-align:middle"></span>' : '')
+        + esc(p.colour || '—') + '</div>'
+        + '</div>'
+        + '<button onclick="deleteRenderPreview(\''+j.id+'\','+i+')" style="background:none;border:none;color:#555;font-size:12px;cursor:pointer;padding:4px 8px">✕ Remove</button>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
   document.getElementById('detail-content').innerHTML = html;
   showScreen('screen-detail');
+}
+
+async function deleteRenderPreview(jobId, index) {
+  var j = jobs.find(function(x){ return x.id === jobId; });
+  if (!j) return;
+  // Remove from in-memory + localStorage
+  var lsAll = lsLoad();
+  var lsJ = lsAll.find(function(x){ return x.id === jobId; });
+  if (lsJ && lsJ.renderPreviews) {
+    lsJ.renderPreviews.splice(index, 1);
+    localStorage.setItem('pr_jobs', JSON.stringify(lsAll));
+  }
+  if (j.renderPreviews) j.renderPreviews.splice(index, 1);
+  await upsertJob(j);
+  toast('Render removed');
+  openJob(jobId);
 }
 
 function actionBtn(href, cls, svg, label) {
@@ -1579,6 +1616,14 @@ function renderMorningBrief() {
             + (j.phone ? '<button class="brief-action call" onclick="event.stopPropagation();callJob(\'' + j.id + '\')">Call</button>' : '')
             + '</div>';
         }).join('')
+      + '</div>';
+  }
+
+  if (!html) {
+    html = '<div class="brief-section" style="text-align:center;padding:14px 0 6px">'
+      + '<div style="font-size:22px;margin-bottom:6px">✅</div>'
+      + '<div style="font-size:14px;font-weight:600;color:var(--green)">All clear</div>'
+      + '<div style="font-size:12px;color:#555;margin-top:3px">Nothing on today</div>'
       + '</div>';
   }
 
