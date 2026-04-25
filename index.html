@@ -1733,140 +1733,7 @@ function renderMorningBrief() {
   el.innerHTML = html;
 }
 
-function showMorningBriefOverlay() {
-  var hour = new Date().getHours();
-  if (hour < 5 || hour >= 11) return;
 
-  var todayStr = new Date().toISOString().slice(0, 10);
-  var shownKey = 'pr_brief_shown_' + todayStr;
-  if (localStorage.getItem(shownKey)) return;
-  localStorage.setItem(shownKey, '1');
-
-  var weekEnd = new Date(); weekEnd.setDate(weekEnd.getDate() + 7);
-  var weekStr  = weekEnd.toISOString().slice(0, 10);
-
-  var todayJobs = jobs.filter(function(j) {
-    return j.scheduledDate === todayStr && j.status !== 'paid' && j.status !== 'declined';
-  });
-  var upcomingJobs = jobs.filter(function(j) {
-    return j.scheduledDate && j.scheduledDate > todayStr && j.scheduledDate <= weekStr
-      && j.status !== 'paid' && j.status !== 'declined';
-  }).sort(function(a,b){ return a.scheduledDate < b.scheduledDate ? -1 : 1; });
-  var fiveDaysAgo     = Date.now() - 5  * 24 * 60 * 60 * 1000;
-  var fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
-  var chaseJobs = jobs.filter(function(j) {
-    if (j.status === 'quoted'   && j.created < fiveDaysAgo)     return true;
-    if (j.status === 'invoiced' && j.created < fourteenDaysAgo) return true;
-    return false;
-  });
-
-  var dateLabel = new Date().toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long'});
-  var html = '';
-
-  if (todayJobs.length > 0) {
-    html += '<div style="margin-bottom:16px">'
-      + '<div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--green);margin-bottom:8px">TODAY</div>'
-      + todayJobs.map(function(j) {
-          var sub = j.address || '';
-          if (j.scheduleNotes) sub += (sub ? ' · ' : '') + j.scheduleNotes;
-          return '<div style="background:#1a1a1a;border-radius:10px;padding:12px 14px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">'
-            + '<div style="flex:1;min-width:0">'
-            + '<div style="font-size:15px;font-weight:600">' + esc(j.name || 'Unknown') + '</div>'
-            + (sub ? '<div style="font-size:12px;color:#888;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📍 ' + esc(sub) + '</div>' : '')
-            + '</div>'
-            + (j.address ? '<button onclick="openMaps(\'' + j.id + '\')" style="flex-shrink:0;background:none;border:1px solid #2a3a2a;color:var(--green);border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;margin-left:10px">Maps</button>' : '')
-            + '</div>';
-        }).join('')
-      + '</div>';
-  }
-
-  if (upcomingJobs.length > 0 && todayJobs.length === 0) {
-    var next = upcomingJobs[0];
-    var nextDateStr = new Date(next.scheduledDate + 'T00:00:00').toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'});
-    html += '<div style="margin-bottom:16px">'
-      + '<div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--green);margin-bottom:8px">NEXT UP</div>'
-      + '<div style="background:#1a1a1a;border-radius:10px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between">'
-      + '<div style="flex:1;min-width:0">'
-      + '<div style="font-size:15px;font-weight:600">' + esc(next.name || 'Unknown') + '</div>'
-      + '<div style="font-size:12px;color:#888;margin-top:3px">' + nextDateStr + (next.address ? ' · 📍 ' + esc(next.address) : '') + '</div>'
-      + '</div>'
-      + (next.address ? '<button onclick="openMaps(\'' + next.id + '\')" style="flex-shrink:0;background:none;border:1px solid #2a3a2a;color:var(--green);border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;margin-left:10px">Maps</button>' : '')
-      + '</div>'
-      + '</div>';
-  }
-
-  if (chaseJobs.length > 0) {
-    html += '<div style="margin-bottom:16px">'
-      + '<div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#ffcc33;margin-bottom:8px">CHASE (' + chaseJobs.length + ')</div>'
-      + chaseJobs.map(function(j) {
-          var daysAgo = Math.floor((Date.now() - j.created) / (24 * 60 * 60 * 1000));
-          var label   = (j.status === 'quoted' ? 'Quoted' : 'Invoiced') + ' ' + daysAgo + ' days ago';
-          var addr    = j.address ? j.address.split(',')[0] : '';
-          return '<div style="background:#1a1a1a;border-radius:10px;padding:12px 14px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">'
-            + '<div style="flex:1;min-width:0">'
-            + '<div style="font-size:15px;font-weight:600">' + esc(j.name || 'Unknown') + '</div>'
-            + '<div style="font-size:12px;color:#888;margin-top:3px">' + label + (addr ? ' · ' + esc(addr) : '') + '</div>'
-            + '</div>'
-            + (j.phone ? '<button onclick="callJob(\'' + j.id + '\')" style="flex-shrink:0;background:none;border:1px solid #3a3000;color:#ffcc33;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;margin-left:10px">Call</button>' : '')
-            + '</div>';
-        }).join('')
-      + '</div>';
-  }
-
-  if (!html) {
-    html = '<div style="text-align:center;padding:20px 0 8px">'
-      + '<div style="font-size:40px;margin-bottom:8px">✅</div>'
-      + '<div style="font-size:16px;font-weight:600;color:var(--green)">All clear</div>'
-      + '<div style="font-size:13px;color:#555;margin-top:4px">Nothing on today</div>'
-      + '</div>';
-  }
-
-  var overlay = document.createElement('div');
-  overlay.id = 'morning-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:900;background:rgba(0,0,0,0.75);display:flex;align-items:flex-end;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)';
-
-  overlay.innerHTML = '<div id="morning-card" style="background:#111;border-radius:20px 20px 0 0;padding:24px 20px 0;width:100%;max-height:82vh;overflow-y:auto;border-top:1px solid #2a2a2a;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.34,1.2,0.64,1)">'
-    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">'
-    + '<div>'
-    + '<div style="font-size:20px;font-weight:700">Good morning ☀️</div>'
-    + '<div style="font-size:13px;color:#555;margin-top:2px">' + dateLabel + '</div>'
-    + '</div>'
-    + '<button onclick="dismissBriefOverlay()" style="background:#1a1a1a;border:none;color:#666;border-radius:50%;width:32px;height:32px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>'
-    + '</div>'
-    + html
-    + '<div style="position:sticky;bottom:0;background:#111;padding-bottom:env(safe-area-inset-bottom,12px)">'
-    + '<div id="brief-countdown-bar" style="height:3px;background:var(--green);width:100%;border-radius:2px;transition:width 5s linear"></div>'
-    + '<div style="height:12px"></div>'
-    + '</div>'
-    + '</div>';
-
-  document.body.appendChild(overlay);
-
-  requestAnimationFrame(function() {
-    requestAnimationFrame(function() {
-      document.getElementById('morning-card').style.transform = 'translateY(0)';
-      setTimeout(function() {
-        var bar = document.getElementById('brief-countdown-bar');
-        if (bar) bar.style.width = '0%';
-      }, 80);
-    });
-  });
-
-  overlay._timer = setTimeout(dismissBriefOverlay, 5200);
-  overlay.addEventListener('click', function(e) {
-    if (e.target === overlay) dismissBriefOverlay();
-  });
-}
-
-function dismissBriefOverlay() {
-  var overlay = document.getElementById('morning-overlay');
-  if (!overlay) return;
-  clearTimeout(overlay._timer);
-  var card = document.getElementById('morning-card');
-  card.style.transition = 'transform 0.25s ease-in';
-  card.style.transform = 'translateY(100%)';
-  setTimeout(function() { if (overlay.parentNode) overlay.remove(); }, 260);
-}
 
 // ══════════════════════════════════════════════════════════
 // EDIT JOB DETAILS
@@ -1928,7 +1795,6 @@ async function saveEdit() {
   document.getElementById('jobs-count').textContent = 'Loading…';
   await loadJobs();
   renderJobs();
-  showMorningBriefOverlay();
   var openId = new URLSearchParams(location.search).get('openJob');
   if (openId) {
     var j = jobs.find(function(x){ return x.id === openId; });
