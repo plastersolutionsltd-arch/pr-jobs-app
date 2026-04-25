@@ -141,12 +141,34 @@
     }
 
     /* ── SEARCH ── */
-    .search-wrap { position: relative; margin-bottom: 14px; }
+    .search-wrap { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
+    .search-wrap .search-inner { position: relative; flex: 1; }
     .search-wrap input {
       width: 100%; background: var(--card); border: 1px solid var(--border);
       border-radius: 10px; padding: 10px 14px 10px 36px; color: #fff; font-size: 15px; outline: none;
+      box-sizing: border-box;
     }
-    .search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); width: 18px; height: 18px; }
+    .search-wrap .search-inner svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); width: 18px; height: 18px; }
+    .sort-btn {
+      flex-shrink: 0; background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 12px; color: var(--muted); font-size: 12px;
+      font-family: var(--brand); font-weight: 700; cursor: pointer; white-space: nowrap;
+      transition: all 0.15s; letter-spacing: 0.3px;
+    }
+    .sort-btn.active { border-color: var(--green); color: var(--green); background: #0a1a0a; }
+    /* ── LIST SECTION HEADERS ── */
+    .list-section-hdr {
+      font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--muted2); padding: 4px 0 8px; margin-top: 4px; font-family: var(--brand);
+    }
+    .past-toggle {
+      width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 13px 16px; color: var(--muted); font-size: 13px; font-weight: 600;
+      cursor: pointer; text-align: left; display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px; font-family: var(--brand);
+    }
+    .past-toggle span { font-size: 16px; transition: transform 0.2s; }
+    .past-toggle.open span { transform: rotate(180deg); }
 
     /* ── EMPTY STATE ── */
     .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
@@ -399,8 +421,11 @@
   <div class="scroll">
     <div id="morning-brief"></div>
     <div class="search-wrap">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input type="search" id="search-input" placeholder="Search jobs..." oninput="renderJobs()">
+      <div class="search-inner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="search" id="search-input" placeholder="Search jobs..." oninput="renderJobs()">
+      </div>
+      <button class="sort-btn" id="sort-btn" onclick="toggleSort()">Date ↓</button>
     </div>
     <div class="tabs" id="status-tabs">
       <button class="tab active" data-status="all" onclick="setTab(this)">All</button>
@@ -582,6 +607,8 @@ var sb = supabase.createClient(SB_URL, SB_KEY);
 var jobs = [];
 var currentJobId = null;
 var currentTab = 'all';
+var currentSort = 'date';
+var pastExpanded = false;
 var prevScreen = 'screen-jobs';
 
 // Strip large binary fields so localStorage never hits quota
@@ -745,49 +772,102 @@ function showTool(name) {
 // ══════════════════════════════════════════════════════════
 // JOBS LIST
 // ══════════════════════════════════════════════════════════
+function jobCard(j) {
+  return '<div class="card job-card" onclick="openJob(\''+j.id+'\')">'
+    + '<div class="card-row">'
+    + '<div class="job-name">' + esc(j.name || 'Unknown') + '</div>'
+    + '<span class="badge badge-'+j.status+'">'+statusLabel(j.status)+'</span>'
+    + '</div>'
+    + (j.address ? '<div class="job-addr">📍 '+esc(j.address)+'</div>' : '')
+    + (j.scheduledDate ? '<div style="font-size:12px;color:var(--green);margin-bottom:6px">📅 ' + new Date(j.scheduledDate+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}) + (j.scheduledEndDate ? ' – '+new Date(j.scheduledEndDate+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '') + '</div>' : '')
+    + '<div class="job-meta">'
+    + '<span style="font-size:13px;color:#888">'+(j.phone?'📞 '+esc(j.phone):'No phone')+'</span>'
+    + '<span class="job-date">'+formatDate(j.created)+'</span>'
+    + '</div>'
+    + '</div>';
+}
+
+function sortJobs(arr) {
+  if (currentSort === 'az') {
+    return arr.slice().sort(function(a,b){
+      return (a.name||'').toLowerCase() < (b.name||'').toLowerCase() ? -1 : 1;
+    });
+  }
+  return arr.slice().sort(function(a,b){ return b.created - a.created; });
+}
+
 function renderJobs() {
   var q = (document.getElementById('search-input').value || '').toLowerCase();
+  var PAST = ['done','paid','declined'];
+
   var filtered = jobs.filter(function(j){
-    if (currentTab === 'all' && j.status === 'paid') return false;
     if (currentTab !== 'all' && j.status !== currentTab) return false;
     if (!q) return true;
-    return (j.name+j.address+j.phone+j.notes).toLowerCase().indexOf(q) > -1;
+    return (j.name+j.address+j.phone+(j.notes||'')).toLowerCase().indexOf(q) > -1;
   });
 
-  filtered.sort(function(a,b){ return b.created - a.created; });
-
-  var activeCount = jobs.filter(function(j){ return j.status !== 'paid'; }).length;
+  var activeCount = jobs.filter(function(j){ return PAST.indexOf(j.status) === -1; }).length;
   var paidCount   = jobs.filter(function(j){ return j.status === 'paid'; }).length;
   document.getElementById('jobs-count').textContent = activeCount === 0 ? (paidCount ? 'All jobs paid ✓' : 'No jobs yet') : activeCount + ' active job' + (activeCount===1?'':'s') + (paidCount ? ' · '+paidCount+' paid' : '');
 
+  // Update sort button label
+  var sortBtn = document.getElementById('sort-btn');
+  if (sortBtn) {
+    sortBtn.textContent = currentSort === 'az' ? 'A–Z' : 'Date ↓';
+    sortBtn.classList.toggle('active', currentSort === 'az');
+  }
+
   var el = document.getElementById('jobs-list');
+
   if (filtered.length === 0) {
+    renderMorningBrief();
     el.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><h3>No jobs found</h3><p>Tap + to add a new job</p></div>';
     return;
   }
 
   renderMorningBrief();
 
-  el.innerHTML = filtered.map(function(j){
-    return '<div class="card job-card" onclick="openJob(\''+j.id+'\')">'
-      + '<div class="card-row">'
-      + '<div class="job-name">' + esc(j.name || 'Unknown') + '</div>'
-      + '<span class="badge badge-'+j.status+'">'+statusLabel(j.status)+'</span>'
-      + '</div>'
-      + (j.address ? '<div class="job-addr">📍 '+esc(j.address)+'</div>' : '')
-      + (j.scheduledDate ? '<div style="font-size:12px;color:var(--green);margin-bottom:6px">📅 ' + new Date(j.scheduledDate+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}) + (j.scheduledEndDate ? ' – '+new Date(j.scheduledEndDate+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '') + '</div>' : '')
-      + '<div class="job-meta">'
-      + '<span style="font-size:13px;color:#888">'+(j.phone?'📞 '+esc(j.phone):'No phone')+'</span>'
-      + '<span class="job-date">'+formatDate(j.created)+'</span>'
-      + '</div>'
-      + '</div>';
-  }).join('');
+  if (currentTab === 'all') {
+    var active = sortJobs(filtered.filter(function(j){ return PAST.indexOf(j.status) === -1; }));
+    var past   = sortJobs(filtered.filter(function(j){ return PAST.indexOf(j.status) > -1; }));
+
+    var html = '';
+    if (active.length > 0) {
+      html += '<div class="list-section-hdr">Active — ' + active.length + '</div>';
+      html += active.map(jobCard).join('');
+    }
+    if (past.length > 0) {
+      html += '<button class="past-toggle' + (pastExpanded ? ' open' : '') + '" onclick="togglePast()">'
+        + '<span style="font-size:13px">' + (pastExpanded ? 'Past clients' : 'Past clients') + ' (' + past.length + ')</span>'
+        + '<span>▼</span>'
+        + '</button>';
+      if (pastExpanded) {
+        html += '<div id="past-jobs-list">' + past.map(jobCard).join('') + '</div>';
+      }
+    }
+    if (active.length === 0 && past.length === 0) {
+      html = '<div class="empty"><div class="empty-icon">📋</div><h3>No jobs found</h3><p>Tap + to add a new job</p></div>';
+    }
+    el.innerHTML = html;
+  } else {
+    el.innerHTML = sortJobs(filtered).map(jobCard).join('');
+  }
 }
 
 function setTab(btn) {
   document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
   btn.classList.add('active');
   currentTab = btn.dataset.status;
+  renderJobs();
+}
+
+function toggleSort() {
+  currentSort = currentSort === 'date' ? 'az' : 'date';
+  renderJobs();
+}
+
+function togglePast() {
+  pastExpanded = !pastExpanded;
   renderJobs();
 }
 
