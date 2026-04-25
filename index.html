@@ -643,7 +643,7 @@ function lsLoad() {
 
 function jobTs(j) {
   // Most recent timestamp on a job — used to decide which version wins in a merge
-  return j && (j.siteVisit && j.siteVisit.savedAt) || (j && j.quoteData && j.quoteData.savedAt) || '';
+  return (j && j.siteVisit && j.siteVisit.savedAt) || (j && j.quoteData && j.quoteData.savedAt) || 0;
 }
 
 async function loadJobs() {
@@ -750,7 +750,8 @@ function navTo(tab) {
 }
 
 function goNewJob() {
-  prevScreen = document.querySelector('.screen.active').id;
+  var activeScreen = document.querySelector('.screen.active');
+  prevScreen = activeScreen ? activeScreen.id : 'screen-jobs';
   clearNewJob();
   showScreen('screen-new');
   document.getElementById('main-nav').style.display = 'none';
@@ -838,7 +839,7 @@ function renderJobs() {
     }
     if (past.length > 0) {
       html += '<button class="past-toggle' + (pastExpanded ? ' open' : '') + '" onclick="togglePast()">'
-        + '<span style="font-size:13px">' + (pastExpanded ? 'Past clients' : 'Past clients') + ' (' + past.length + ')</span>'
+        + '<span style="font-size:13px">' + (pastExpanded ? 'Hide past' : 'Past clients') + ' (' + past.length + ')</span>'
         + '<span>▼</span>'
         + '</button>';
       if (pastExpanded) {
@@ -1190,7 +1191,7 @@ function updateRow(i, field, val) {
   // Update this row total in place
   var rows = document.querySelectorAll('.measure-row');
   var total = calcRowTotal(measureRows[i]);
-  rows[i].querySelector('.total').textContent = total > 0 ? total.toFixed(2) : '—';
+  if (rows[i]) rows[i].querySelector('.total').textContent = total > 0 ? total.toFixed(2) : '—';
 }
 function calcRowTotal(row) {
   var l = parseFloat(row.l) || 0;
@@ -1781,10 +1782,11 @@ async function saveEdit() {
   j.address = document.getElementById('edit-addr').value.trim();
   j.email   = document.getElementById('edit-email').value.trim();
   j.notes   = document.getElementById('edit-notes').value.trim();
-  if (j.description !== undefined) j.description = j.notes;
+  if (j.description !== undefined) j.description = j.notes || j.description;
 
   await upsertJob(j);
-  document.getElementById('edit-modal').remove();
+  var editModal = document.getElementById('edit-modal');
+  if (editModal) editModal.remove();
   toast('Details updated');
   openJob(currentJobId);
 }
