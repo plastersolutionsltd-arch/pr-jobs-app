@@ -1923,14 +1923,19 @@ var calcQtys = {};
 var editingMatId = null;
 
 var DEFAULT_MATERIALS = [
-  { id: 'm_ecorend_x32',    name: 'Ecorend X32',      supplier: 'Ecorend',         unit: '25kg bag',  price: 12.90 },
-  { id: 'm_finish_plaster', name: 'Finish Plaster',   supplier: 'British Gypsum',  unit: '25kg bag',  price: 7.50  },
-  { id: 'm_bonding',        name: 'Bonding Plaster',  supplier: 'British Gypsum',  unit: '25kg bag',  price: 7.00  },
-  { id: 'm_grit',           name: 'Grit Plaster',     supplier: 'British Gypsum',  unit: '25kg bag',  price: 8.00  },
-  { id: 'm_pva',            name: 'PVA Primer',       supplier: 'SIG',             unit: '5L tub',    price: 12.00 },
-  { id: 'm_mesh',           name: 'Fibreglass Mesh',  supplier: 'SIG',             unit: '50m roll',  price: 18.00 },
-  { id: 'm_corner_bead',    name: 'Corner Bead (SS)', supplier: 'SIG',             unit: '2.5m each', price: 2.50  },
-  { id: 'm_stop_bead',      name: 'Stop Bead (SS)',   supplier: 'SIG',             unit: '3m each',   price: 4.00  },
+  { id: 'm_ecorend_x32',       name: 'Ecorend X32',                    supplier: 'ProTec',      unit: '25kg bag',   price: 12.90 },
+  { id: 'm_finish_plaster',    name: 'Thistle Multi Finish Plaster',   supplier: 'R&J / ProTec', unit: '25kg bag',  price: 11.68 },
+  { id: 'm_bonding',           name: 'Siniat Bonding Compound',        supplier: 'R&J',         unit: '25kg bag',   price: 11.60 },
+  { id: 'm_grit',              name: 'Grit Plaster',                   supplier: 'ProTec',      unit: '25kg bag',   price: 8.00  },
+  { id: 'm_pva',               name: 'PVA Primer',                     supplier: 'SIG',         unit: '5L tub',     price: 12.00 },
+  { id: 'm_mesh',              name: 'Fibreglass Mesh',                supplier: 'SIG',         unit: '50m roll',   price: 18.00 },
+  { id: 'm_corner_bead',       name: 'Corner Bead (SS)',               supplier: 'SIG',         unit: '2.5m each',  price: 2.50  },
+  { id: 'm_stop_bead',         name: 'Stop Bead (SS)',                 supplier: 'SIG',         unit: '3m each',    price: 4.00  },
+  { id: 'm_orange_tape',       name: 'Orange Dolphin Tape',            supplier: 'ProTec',      unit: 'roll',       price: 6.00  },
+  { id: 'm_blue_tape',         name: 'Blue Dolphin Tape',              supplier: 'ProTec',      unit: 'roll',       price: 4.92  },
+  { id: 'm_ecotherm_pir',      name: 'Ecotherm Eco-Liner PIR Board',   supplier: 'R&J',         unit: 'board',      price: 40.20 },
+  { id: 'm_plasterboard',      name: 'Siniat Plasterboard 1800×900×12.5mm', supplier: 'R&J',   unit: 'sheet',      price: 8.35  },
+  { id: 'm_scrim_tape',        name: 'Bond It Scrim Tape 48mm×90m',    supplier: 'R&J',         unit: '90m roll',   price: 4.46  },
 ];
 
 function lsSaveMaterials() {
@@ -1941,8 +1946,18 @@ function lsLoadMaterials() {
 }
 function loadMaterials() {
   var saved = lsLoadMaterials();
-  materials = (saved && saved.length > 0) ? saved : DEFAULT_MATERIALS.slice();
-  if (!saved || !saved.length) lsSaveMaterials();
+  if (saved && saved.length > 0) {
+    materials = saved;
+    // Merge any new defaults not already saved
+    var existingIds = materials.map(function(m){ return m.id; });
+    DEFAULT_MATERIALS.forEach(function(d) {
+      if (existingIds.indexOf(d.id) === -1) { materials.push(d); }
+    });
+    lsSaveMaterials();
+  } else {
+    materials = DEFAULT_MATERIALS.slice();
+    lsSaveMaterials();
+  }
 }
 
 function renderMaterials() {
