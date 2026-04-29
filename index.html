@@ -430,6 +430,34 @@
     }
     .calc-total-lbl { font-size: 11px; color: var(--muted2); letter-spacing: 1.5px; text-transform: uppercase; font-family: var(--brand); font-weight: 700; }
     .calc-total-val { font-size: 24px; font-weight: 900; color: var(--green); font-family: var(--brand); }
+
+    /* ── LOGIN SCREEN ── */
+    .login-wrap {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 32px 28px; gap: 0;
+    }
+    .login-logo { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-bottom: 44px; }
+    .login-logo svg { height: 52px; width: auto; }
+    .login-logo-name { font-family: var(--brand); font-size: 22px; font-weight: 900; letter-spacing: 3px; }
+    .login-logo-name .g { color: var(--green); }
+    .login-logo-sub { font-size: 11px; color: var(--muted2); letter-spacing: 1px; margin-top: 2px; }
+    .login-field { width: 100%; margin-bottom: 12px; }
+    .login-field label { display: block; font-size: 11px; color: var(--muted2); letter-spacing: 1px; text-transform: uppercase; font-family: var(--brand); font-weight: 700; margin-bottom: 6px; }
+    .login-field input {
+      width: 100%; background: var(--card); border: 1.5px solid var(--border); border-radius: 12px;
+      color: #fff; font-size: 16px; padding: 14px 16px; outline: none;
+      font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+      -webkit-appearance: none;
+    }
+    .login-field input:focus { border-color: var(--green); }
+    .login-btn {
+      width: 100%; margin-top: 8px; padding: 16px; border-radius: 12px;
+      background: var(--green); border: none; color: #000; font-size: 15px;
+      font-family: var(--brand); font-weight: 900; letter-spacing: 1px; cursor: pointer;
+    }
+    .login-btn:active { opacity: 0.8; }
+    .login-btn:disabled { opacity: 0.5; }
+    .login-err { color: #ff5555; font-size: 13px; text-align: center; margin-top: 10px; min-height: 18px; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -441,8 +469,34 @@
   <button class="tl-green"  onclick="tlFullscreen()"       title="Fullscreen"></button>
 </div>
 
+<!-- ═══════════════════════════════════ LOGIN SCREEN ═══ -->
+<div id="screen-login" class="screen active">
+  <div class="login-wrap">
+    <div class="login-logo">
+      <svg viewBox="-2 -12 270 175" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#66FF33" d="M 0,0 L 0,160 L 35,160 L 35,95 L 80,95 C 115,95 140,70 140,40 C 140,10 115,-10 80,-10 L 0,-10 Z M 35,20 L 80,20 C 95,20 105,30 105,45 C 105,60 95,70 80,70 L 35,70 Z"/>
+        <path fill="#FFFFFF" d="M 120,0 L 120,160 L 155,160 L 185,100 L 225,160 L 265,160 L 220,95 C 245,90 265,70 265,40 C 265,10 240,-10 205,-10 L 120,-10 Z M 155,20 L 205,20 C 220,20 230,30 230,45 C 230,60 220,70 205,70 L 155,70 Z"/>
+      </svg>
+      <div>
+        <div class="login-logo-name"><span class="g">P&amp;R</span> SOLUTIONS</div>
+        <div class="login-logo-sub">Job Management</div>
+      </div>
+    </div>
+    <div class="login-field">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="your@email.com" autocomplete="email" inputmode="email">
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')signIn()">
+    </div>
+    <button class="login-btn" id="login-btn" onclick="signIn()">Sign In</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
 <!-- ═══════════════════════════════════ JOBS SCREEN ═══ -->
-<div id="screen-jobs" class="screen active">
+<div id="screen-jobs" class="screen">
   <div class="hdr">
     <button class="logo-lockup" onclick="navTo('jobs')">
       <svg viewBox="-2 -12 270 175" xmlns="http://www.w3.org/2000/svg">
@@ -725,7 +779,32 @@ function tlFullscreen() {
 // ══════════════════════════════════════════════════════════
 var SB_URL = 'https://ngakblcdnuqectjappkl.supabase.co';
 var SB_KEY = 'sb_publishable_wX0TOGQTtNWi0ex14ux6Hw_eKVge5cJ';
-var sb = supabase.createClient(SB_URL, SB_KEY);
+var sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true } });
+
+async function signIn() {
+  var btn = document.getElementById('login-btn');
+  var err = document.getElementById('login-err');
+  var email = document.getElementById('login-email').value.trim();
+  var password = document.getElementById('login-password').value;
+  err.textContent = '';
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+  var result = await sb.auth.signInWithPassword({ email: email, password: password });
+  if (result.error) {
+    err.textContent = 'Incorrect email or password.';
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+  } else {
+    showApp();
+  }
+}
+
+function showApp() {
+  document.getElementById('screen-login').classList.remove('active');
+  document.getElementById('screen-jobs').classList.add('active');
+  document.getElementById('jobs-count').textContent = 'Loading…';
+  loadJobs().then(renderJobs);
+}
 
 var jobs = [];
 var currentJobId = null;
@@ -2075,14 +2154,21 @@ function copyCalcTotal() {
 (async function(){
   sessionStorage.setItem('pr_app_active', '1');
   loadMaterials();
-  document.getElementById('jobs-count').textContent = 'Loading…';
-  await loadJobs();
-  renderJobs();
-  var openId = new URLSearchParams(location.search).get('openJob');
-  if (openId) {
-    var j = jobs.find(function(x){ return x.id === openId; });
-    if (j) openJob(openId);
+
+  // Check for existing session — if found, skip login screen entirely
+  var { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    showApp();
+    var openId = new URLSearchParams(location.search).get('openJob');
+    if (openId) {
+      // Wait briefly for jobs to load before attempting to open
+      setTimeout(function() {
+        var j = jobs.find(function(x){ return x.id === openId; });
+        if (j) openJob(openId);
+      }, 800);
+    }
   }
+  // No session → login screen is already shown (active by default)
 })();
 </script>
 </body>
