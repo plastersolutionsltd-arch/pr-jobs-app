@@ -1216,6 +1216,19 @@
         const m2 = parseFloat((sv.combinedM2 || '').replace(/[^\d.]/g, ''));
         if (m2 > 0 && fid) { const qtyEl = document.querySelector(`[data-id="${fid}"][data-field="qty"]`); if (qtyEl) { qtyEl.value = m2; calcRow(fid); } }
       }
+      rows.fees = rows.fees.filter(id => {
+        const el = document.querySelector(`[data-id="${id}"][data-field="desc"]`);
+        if (el && /skip hire/i.test(el.value)) { document.getElementById('row-' + id)?.remove(); return false; }
+        return true;
+      });
+      if (sv.skipTons && sv.skipCost) {
+        addRow('fees');
+        const sfid = rows.fees[rows.fees.length - 1];
+        const sdesc = document.querySelector(`[data-id="${sfid}"][data-field="desc"]`);
+        const scost = document.querySelector(`[data-id="${sfid}"][data-field="cost"]`);
+        if (sdesc) sdesc.value = 'Skip hire (' + sv.skipTons + ' ton)';
+        if (scost) scost.value = parseFloat(sv.skipCost.replace(/[^0-9.]/g, '')) || '';
+      }
       update();
       document.getElementById('sv-update-banner').style.display = 'none';
     }
@@ -1385,6 +1398,13 @@
               }
             }
             addRow('fees');
+            if (sv.skipTons && sv.skipCost) {
+              const sfid = rows.fees[rows.fees.length - 1];
+              const sdesc = document.querySelector(`[data-id="${sfid}"][data-field="desc"]`);
+              const scost = document.querySelector(`[data-id="${sfid}"][data-field="cost"]`);
+              if (sdesc) sdesc.value = 'Skip hire (' + sv.skipTons + ' ton)';
+              if (scost) scost.value = parseFloat(sv.skipCost.replace(/[^0-9.]/g, '')) || '';
+            }
           } else {
             // No site visit yet
             addRow('labour');
