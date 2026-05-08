@@ -553,7 +553,7 @@
     (id.worksRows || []).forEach(function(r) {
       addRow('works');
       var id2 = rows.works[rows.works.length - 1];
-      setRowVal(id2, 'works', r.desc || '', r.qty || '', r.unit || '');
+      setRowVal(id2, 'works', r.desc || '', r.qty || '', r.unit || '', r.total || '');
     });
     (id.itemsRows || []).forEach(function(r) {
       addRow('items');
@@ -610,7 +610,7 @@
     (qd.labourRows || []).forEach(function(r) {
       addRow('works');
       var id2 = rows.works[rows.works.length - 1];
-      setRowVal(id2, 'works', r.desc || '', r.qty || '', r.unit || '');
+      setRowVal(id2, 'works', r.desc || '', r.qty || '', r.unit || '', r.total || '');
     });
 
     // Additional items from quote fees rows
@@ -628,7 +628,7 @@
     update();
   }
 
-  function setRowVal(id, type, desc, qty, unit) {
+  function setRowVal(id, type, desc, qty, unit, total) {
     var d = document.querySelector('[data-id="'+id+'"][data-field="desc"]');
     var q = document.querySelector('[data-id="'+id+'"][data-field="qty"]');
     var u = document.querySelector('[data-id="'+id+'"][data-field="unit"]');
@@ -636,6 +636,11 @@
     if (q) q.value = qty;
     if (u) u.value = unit;
     calcRow(id);
+    if (total) {
+      var t = document.getElementById('row-total-' + id);
+      var autoAmt = (parseFloat(qty) || 0) * (parseFloat(unit) || 0);
+      if (!autoAmt && t) t.value = parseFloat(String(total).replace(/[^0-9.]/g, '')) || '';
+    }
   }
 
   document.addEventListener('DOMContentLoaded', async function() {
@@ -680,7 +685,7 @@
               qd.labourRows.forEach(function(r) {
                 addRow('works');
                 var id2 = rows.works[rows.works.length - 1];
-                setRowVal(id2, 'works', r.desc || '', r.qty || '', r.unit || '');
+                setRowVal(id2, 'works', r.desc || '', r.qty || '', r.unit || '', r.total || '');
               });
             }
           }
@@ -756,7 +761,7 @@
         '<input type="text"   placeholder="e.g. Silicone render — no hack off" data-id="'+id+'" data-field="desc" oninput="update()">' +
         '<input type="number" placeholder="0"    data-id="'+id+'" data-field="qty"  step="0.1"  oninput="calcRow('+id+')">' +
         '<input type="number" placeholder="0.00" data-id="'+id+'" data-field="unit" step="0.01" oninput="calcRow('+id+')">' +
-        '<input type="text"   id="row-total-'+id+'" placeholder="£0.00" readonly style="background:#f8f8f8;color:#888">' +
+        '<input type="text" inputmode="decimal" id="row-total-'+id+'" placeholder="0.00" data-id="'+id+'" data-field="total" oninput="update()" style="color:#111">' +
         '<button class="btn-remove" onclick="removeRow(\'works\','+id+')" title="Remove">×</button>';
     } else {
       div.innerHTML =
@@ -778,7 +783,7 @@
     var qty  = parseFloat(document.querySelector('[data-id="'+id+'"][data-field="qty"]')?.value)  || 0;
     var unit = parseFloat(document.querySelector('[data-id="'+id+'"][data-field="unit"]')?.value) || 0;
     var el   = document.getElementById('row-total-' + id);
-    if (el) el.value = (qty && unit) ? '£' + (qty * unit).toFixed(2) : '£0.00';
+    if (el && qty && unit) el.value = (qty * unit).toFixed(2);
     update();
   }
 
@@ -789,9 +794,10 @@
     if (!job) { alert('Client not found.'); return null; }
 
     var worksRows = rows.works.map(function(id) { return {
-      desc: (document.querySelector('[data-id="'+id+'"][data-field="desc"]')?.value || '').trim(),
-      qty:  document.querySelector('[data-id="'+id+'"][data-field="qty"]')?.value  || '',
-      unit: document.querySelector('[data-id="'+id+'"][data-field="unit"]')?.value || ''
+      desc:  (document.querySelector('[data-id="'+id+'"][data-field="desc"]')?.value || '').trim(),
+      qty:   document.querySelector('[data-id="'+id+'"][data-field="qty"]')?.value  || '',
+      unit:  document.querySelector('[data-id="'+id+'"][data-field="unit"]')?.value || '',
+      total: document.getElementById('row-total-' + id)?.value || ''
     }; });
     var itemsRows = rows.items.map(function(id) { return {
       desc: (document.querySelector('[data-id="'+id+'"][data-field="desc"]')?.value || '').trim(),
@@ -913,7 +919,8 @@
       var desc = (document.querySelector('[data-id="'+id+'"][data-field="desc"]')?.value || '').trim();
       var qty  = parseFloat(document.querySelector('[data-id="'+id+'"][data-field="qty"]')?.value)  || 0;
       var unit = parseFloat(document.querySelector('[data-id="'+id+'"][data-field="unit"]')?.value) || 0;
-      var amt  = qty * unit;
+      var tEl  = document.getElementById('row-total-' + id);
+      var amt  = parseFloat(tEl?.value?.replace(/[^0-9.]/g, '')) || 0;
       if (desc || amt > 0) {
         hasRows = true;
         total += amt;
