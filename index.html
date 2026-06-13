@@ -686,7 +686,7 @@
     <button onclick="showMatForm(null)" style="background:none;border:none;color:var(--green);font-size:14px;font-weight:700;cursor:pointer;font-family:var(--brand);letter-spacing:0.5px">+ Add</button>
   </div>
   <div class="scroll">
-    <div onclick="renderCalc();showScreen('screen-mat-calc')" style="background:#0f2a0f;border:1px solid rgba(102,255,51,0.25);border-radius:14px;padding:16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;cursor:pointer;">
+    <div onclick="openCalc()" style="background:#0f2a0f;border:1px solid rgba(102,255,51,0.25);border-radius:14px;padding:16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;cursor:pointer;">
       <div style="color:var(--green);flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h8M8 14h5"/><path d="M15 18l2 2 4-4"/></svg></div>
       <div style="flex:1">
         <div style="font-size:15px;font-weight:700;color:var(--green)">Cost Calculator</div>
@@ -727,9 +727,9 @@
 <!-- ═══════════════════════════════════════════════════════ MAT CALC SCREEN ═══ -->
 <div id="screen-mat-calc" class="screen">
   <div class="hdr">
-    <button class="hdr-back" onclick="showScreen('screen-materials')">
+    <button class="hdr-back" onclick="calcBack()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      Materials
+      <span id="calc-back-label">Materials</span>
     </button>
     <div style="font-size:16px;font-weight:600">Cost Calculator</div>
     <button onclick="clearCalc()" style="background:none;border:none;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--brand);letter-spacing:0.5px">Clear</button>
@@ -744,6 +744,7 @@
       </div>
       <div id="calc-total-val" class="calc-total-val">£0.00</div>
     </div>
+    <button id="calc-save-job-btn" class="btn btn-green" style="margin-top:12px;display:none" onclick="saveCalcToJob()">Save Total to Job</button>
     <button class="btn btn-outline" style="margin-top:12px" onclick="copyCalcTotal()">Copy Total</button>
   </div>
 </div>
@@ -1302,9 +1303,20 @@ function openJob(id) {
   html += '<div class="section-hdr">Tools</div>';
   html += '<div class="tools-grid">';
   html += toolBtn(ruleSVG(),    'Measure',       "showTool('measure')");
+  html += toolBtn('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h8M8 14h5"/><path d="M15 18l2 2 4-4"/></svg>', 'Materials', "openCalcForJob('"+j.id+"')");
   html += toolBtn(areaSVG(),    'Area Tool',     "openTemplate('area-tool.html')");
   html += toolBtn(imgSVG(),     'Render Preview',"openTemplate('render-preview.html')");
   html += '</div>';
+
+  // Saved materials cost for this job (set via the Materials calculator)
+  if (j.materialsCalc && j.materialsCalc.total > 0) {
+    html += '<div class="section-hdr">Materials Cost</div>';
+    html += '<div class="card" style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center">'
+      + '<div><div style="font-size:14px;font-weight:600">Estimated materials</div>'
+      + '<div style="font-size:12px;color:#888;margin-top:2px">Before markup · tap Materials to edit</div></div>'
+      + '<div style="font-size:20px;font-weight:900;color:var(--green);font-family:var(--brand)">£' + j.materialsCalc.total.toFixed(2) + '</div>'
+      + '</div>';
+  }
 
   // Render previews — read directly from localStorage so imageDataUrl is available
   var lsJob = lsLoad().find(function(x){ return x.id === j.id; });
@@ -2037,6 +2049,7 @@ async function saveEdit() {
 var materials = [];
 var calcQtys = {};
 var editingMatId = null;
+var calcForJobId = null; // when set, the cost calculator is costing up this specific job
 
 var DEFAULT_MATERIALS = [
   { id: 'm_ecorend_x32',       name: 'Ecorend X32',                    supplier: 'ProTec',      unit: '25kg bag',   price: 12.90 },
@@ -2227,6 +2240,46 @@ function copyCalcTotal() {
   } else {
     toast('Total: ' + text);
   }
+}
+
+// Open the calculator as a standalone scratchpad (from the Mats tab)
+function openCalc() {
+  calcForJobId = null;
+  document.getElementById('calc-save-job-btn').style.display = 'none';
+  document.getElementById('calc-back-label').textContent = 'Materials';
+  renderCalc();
+  showScreen('screen-mat-calc');
+}
+
+// Open the calculator to cost up a specific job — pre-fills any quantities saved on that job
+function openCalcForJob(jobId) {
+  calcForJobId = jobId;
+  var j = jobs.find(function(x){ return x.id === jobId; });
+  calcQtys = (j && j.materialsCalc && j.materialsCalc.qtys) ? Object.assign({}, j.materialsCalc.qtys) : {};
+  document.getElementById('calc-save-job-btn').style.display = 'block';
+  document.getElementById('calc-back-label').textContent = 'Job';
+  renderCalc();
+  showScreen('screen-mat-calc');
+}
+
+// Save the calculated total (and the chosen quantities) onto the job, then return to it
+function saveCalcToJob() {
+  if (!calcForJobId) return;
+  var j = jobs.find(function(x){ return x.id === calcForJobId; });
+  if (!j) { toast('Job not found'); return; }
+  var total = materials.reduce(function(sum, m){ return sum + ((calcQtys[m.id] || 0) * m.price); }, 0);
+  var qtys = {};
+  Object.keys(calcQtys).forEach(function(k){ if (calcQtys[k] > 0) qtys[k] = calcQtys[k]; });
+  j.materialsCalc = { total: total, qtys: qtys, savedAt: Date.now() };
+  upsertJob(j);
+  toast('Materials cost saved: £' + total.toFixed(2));
+  openJob(calcForJobId);
+}
+
+// Back button: return to the job if we came from one, otherwise to the Materials list
+function calcBack() {
+  if (calcForJobId) { openJob(calcForJobId); }
+  else { showScreen('screen-materials'); }
 }
 
 // ── INIT ──
