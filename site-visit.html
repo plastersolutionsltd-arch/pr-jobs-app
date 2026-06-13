@@ -1011,7 +1011,7 @@
               // Display them in the UI
               remote.siteVisit.photos.forEach(function(p, i) {
                 var pc = i + 1;
-                if (p.dataUrl && !photoData[pc]) {
+                if (p.dataUrl && (!photoData[pc] || !photoData[pc].dataUrl)) {
                   var slot = document.getElementById('photo-slot-' + pc);
                   if (!slot) { addPhotoSlot(); }
                   displayPhoto(pc, p.dataUrl);
@@ -1020,6 +1020,7 @@
                   if (capEl && p.caption) capEl.value = p.caption;
                 }
               });
+              _photosStripped = false; // cloud photos are now loaded in the form
             }
           }
         }
@@ -1029,6 +1030,7 @@
     let roomCount = 0;
     let photoCount = 0;
     let photoData = {}; // { slotIndex: { dataUrl, caption } }
+    let _photosStripped = false; // true when this job has photos in the cloud that haven't loaded into the form yet
 
     /* ===== EMAIL IMPORT ===== */
     function toggleImport() {
@@ -1270,10 +1272,13 @@ function parseFreetextMessage(raw) {
       // Restore saved photos
       try {
         if (isRestore && sv.photos && sv.photos.length) {
+          // If the local copy has photo records but no image data, the images live only in
+          // the cloud and will arrive via syncFromSupabase. Flag it so we never save over them.
+          if (sv.photos.some(p => !p.dataUrl)) _photosStripped = true;
           sv.photos.forEach(p => {
             addPhotoSlot();
             const pc = photoCount;
-            displayPhoto(pc, p.dataUrl);
+            if (p.dataUrl) displayPhoto(pc, p.dataUrl);
             photoData[pc] = { dataUrl: p.dataUrl, caption: p.caption || '' };
             const capEl = document.getElementById('ph-caption-' + pc);
             if (capEl && p.caption) capEl.value = p.caption;
@@ -1814,6 +1819,28 @@ function parseFreetextMessage(raw) {
       if (phoneEl?.value) job.phone   = phoneEl.value;
       if (emailEl?.value) job.email   = emailEl.value;
       if (addrEl?.value)  job.address = addrEl.value;
+
+      // PHOTO-LOSS GUARD: if we're about to save without any photo image data but the cloud
+      // still holds photos for this job, the images simply hadn't finished downloading yet.
+      // Pull the cloud copy back in so a quick re-save never wipes existing photos.
+      const haveImages = job.siteVisit.photos.some(p => p.dataUrl);
+      if (!haveImages && _photosStripped) {
+        try {
+          const cloud = await sbGetJob(jobId);
+          const cloudPhotos = (cloud?.siteVisit?.photos || []).filter(p => p.dataUrl);
+          if (cloudPhotos.length) {
+            job.siteVisit.photos = cloudPhotos;
+            // Reflect them in the form too
+            cloudPhotos.forEach((p, i) => {
+              const pc = i + 1;
+              if (!document.getElementById('photo-slot-' + pc)) addPhotoSlot();
+              displayPhoto(pc, p.dataUrl);
+              photoData[pc] = { dataUrl: p.dataUrl, caption: p.caption || '' };
+            });
+            _photosStripped = false;
+          }
+        } catch(e) {}
+      }
 
       const btn = document.getElementById('save-app-btn');
       // Always save to localStorage immediately so data is never lost
