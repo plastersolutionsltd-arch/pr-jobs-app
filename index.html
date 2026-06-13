@@ -737,12 +737,19 @@
   <div class="scroll">
     <div style="font-size:13px;color:var(--muted2);margin-bottom:14px;line-height:1.6">Enter quantities for each material — total updates as you type.</div>
     <div id="calc-rows"></div>
-    <div class="calc-total-bar">
-      <div>
-        <div class="calc-total-lbl">Total Materials Cost</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:3px">Before markup</div>
+    <div class="calc-total-bar" style="flex-direction:column;align-items:stretch;gap:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="calc-total-lbl">Subtotal (ex VAT)</div>
+        <div id="calc-subtotal-val" style="font-size:16px;font-weight:700;color:#ccc;font-family:var(--brand)">£0.00</div>
       </div>
-      <div id="calc-total-val" class="calc-total-val">£0.00</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="calc-total-lbl">VAT (20%)</div>
+        <div id="calc-vat-val" style="font-size:16px;font-weight:700;color:#ccc;font-family:var(--brand)">£0.00</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(102,255,51,0.25);padding-top:10px">
+        <div class="calc-total-lbl">Total inc VAT</div>
+        <div id="calc-total-val" class="calc-total-val">£0.00</div>
+      </div>
     </div>
     <button id="calc-save-job-btn" class="btn btn-green" style="margin-top:12px;display:none" onclick="saveCalcToJob()">Save Total to Job</button>
     <button class="btn btn-outline" style="margin-top:12px" onclick="copyCalcTotal()">Copy Total</button>
@@ -1313,7 +1320,7 @@ function openJob(id) {
     html += '<div class="section-hdr">Materials Cost</div>';
     html += '<div class="card" style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center">'
       + '<div><div style="font-size:14px;font-weight:600">Estimated materials</div>'
-      + '<div style="font-size:12px;color:#888;margin-top:2px">Before markup · tap Materials to edit</div></div>'
+      + '<div style="font-size:12px;color:#888;margin-top:2px">Inc VAT · tap Materials to edit</div></div>'
       + '<div style="font-size:20px;font-weight:900;color:var(--green);font-family:var(--brand)">£' + j.materialsCalc.total.toFixed(2) + '</div>'
       + '</div>';
   }
@@ -2223,9 +2230,14 @@ function updateCalcQty(matId, val) {
   updateCalcTotal();
 }
 
+var VAT_RATE = 0.20; // 20% UK standard rate
+
 function updateCalcTotal() {
-  var total = materials.reduce(function(sum, m){ return sum + ((calcQtys[m.id] || 0) * m.price); }, 0);
-  document.getElementById('calc-total-val').textContent = '£' + total.toFixed(2);
+  var subtotal = materials.reduce(function(sum, m){ return sum + ((calcQtys[m.id] || 0) * m.price); }, 0);
+  var vat = subtotal * VAT_RATE;
+  document.getElementById('calc-subtotal-val').textContent = '£' + subtotal.toFixed(2);
+  document.getElementById('calc-vat-val').textContent = '£' + vat.toFixed(2);
+  document.getElementById('calc-total-val').textContent = '£' + (subtotal + vat).toFixed(2);
 }
 
 function clearCalc() {
@@ -2267,12 +2279,14 @@ function saveCalcToJob() {
   if (!calcForJobId) return;
   var j = jobs.find(function(x){ return x.id === calcForJobId; });
   if (!j) { toast('Job not found'); return; }
-  var total = materials.reduce(function(sum, m){ return sum + ((calcQtys[m.id] || 0) * m.price); }, 0);
+  var subtotal = materials.reduce(function(sum, m){ return sum + ((calcQtys[m.id] || 0) * m.price); }, 0);
+  var vat = subtotal * VAT_RATE;
+  var total = subtotal + vat; // inc VAT
   var qtys = {};
   Object.keys(calcQtys).forEach(function(k){ if (calcQtys[k] > 0) qtys[k] = calcQtys[k]; });
-  j.materialsCalc = { total: total, qtys: qtys, savedAt: Date.now() };
+  j.materialsCalc = { subtotal: subtotal, vat: vat, total: total, qtys: qtys, savedAt: Date.now() };
   upsertJob(j);
-  toast('Materials cost saved: £' + total.toFixed(2));
+  toast('Materials cost saved: £' + total.toFixed(2) + ' inc VAT');
   openJob(calcForJobId);
 }
 
