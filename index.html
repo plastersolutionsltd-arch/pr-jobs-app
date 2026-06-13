@@ -637,6 +637,10 @@
       <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></div>
       <div class="tool-info"><h3>New Job</h3><p>Add a new enquiry or job</p></div>
     </div>
+    <div class="tool-list-item" onclick="exportBackup()">
+      <div class="tool-icon" style="background:#0f2a0f"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></div>
+      <div class="tool-info"><h3>Backup / Export Data</h3><p>Download all jobs &amp; materials as a file</p></div>
+    </div>
   </div>
 </div>
 
@@ -931,6 +935,39 @@ async function removeJob(id) {
 }
 
 function newId() { return Date.now() + Math.random().toString(36).slice(2,6); }
+
+// Export a full backup (jobs + materials + current client) as a downloadable JSON file.
+// In-memory `jobs` is preferred — after a Supabase sync it holds the full photo data,
+// whereas localStorage may have had photos stripped to stay under quota.
+function exportBackup() {
+  try {
+    function lsRead(key, fallback) {
+      try { return JSON.parse(localStorage.getItem(key) || fallback); } catch(e) { return JSON.parse(fallback); }
+    }
+    var localJobs = lsRead('pr_jobs', '[]');
+    var data = {
+      app: 'pr-jobs-app',
+      exportedAt: new Date().toISOString(),
+      jobs: (typeof jobs !== 'undefined' && jobs && jobs.length) ? jobs : localJobs,
+      materials: lsRead('pr_materials', 'null'),
+      currentClient: lsRead('pr_current_client', 'null')
+    };
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var d = new Date();
+    var stamp = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'pr-jobs-backup-' + stamp + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 2000);
+    toast('Backup ready — ' + (data.jobs || []).length + ' jobs. Save to Files / iCloud.');
+  } catch(e) {
+    toast('Backup failed: ' + (e && e.message ? e.message : e));
+  }
+}
 
 // ══════════════════════════════════════════════════════════
 // NAVIGATION
