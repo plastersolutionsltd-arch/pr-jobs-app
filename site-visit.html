@@ -927,7 +927,7 @@
     <!-- General Notes -->
     <div class="sec">General Notes</div>
     <div class="f">
-      <textarea placeholder="Any other observations from the visit..." style="min-height:80px"></textarea>
+      <textarea id="general-notes" placeholder="Any other observations from the visit..." style="min-height:80px"></textarea>
     </div>
 
     <!-- Footer -->
@@ -1188,8 +1188,7 @@ function parseFreetextMessage(raw) {
       // Description → General Notes
       const notes = data['description'] || data['message'] || data['details'] || data['project details'] || '';
       if (notes) {
-        const textareas = document.querySelectorAll('textarea');
-        const notesTA = textareas[textareas.length - 1]; // last textarea = General Notes
+        const notesTA = document.getElementById('general-notes');
         if (notesTA) { notesTA.value = notes; filled++; }
       }
 
@@ -1379,6 +1378,7 @@ function parseFreetextMessage(raw) {
         if (sv.existingSurface) { const el = document.getElementById('existing-surface'); if (el) el.value = sv.existingSurface; }
         if (sv.prepRequired)    { const el = document.getElementById('prep-required');    if (el) el.value = sv.prepRequired; }
         if (sv.surfaceNotes)    { const el = document.getElementById('surface-notes');    if (el) el.value = sv.surfaceNotes; }
+        if (sv.generalNotes)    { const el = document.getElementById('general-notes');    if (el) el.value = sv.generalNotes; }
         // Restore skip hire
         if (sv.skipTons) {
           const yesRadio = document.querySelector('input[name="skip"][value="yes"]');
@@ -1765,6 +1765,7 @@ function parseFreetextMessage(raw) {
         existingSurface: document.getElementById('existing-surface')?.value || '',
         prepRequired:   document.getElementById('prep-required')?.value || '',
         surfaceNotes:   document.getElementById('surface-notes')?.value || '',
+        generalNotes:   document.getElementById('general-notes')?.value || '',
         savedAt:        new Date().toISOString(),
         photos:         Object.entries(photoData).map(([, v]) => ({ dataUrl: v.dataUrl, caption: v.caption || '' })),
         rooms:          (function() {
