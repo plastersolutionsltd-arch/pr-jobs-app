@@ -2054,26 +2054,66 @@ var DEFAULT_MATERIALS = [
   { id: 'm_scrim_tape',        name: 'Bond It Scrim Tape 48mm×90m',    supplier: 'R&J',         unit: '90m roll',   price: 4.46  },
 ];
 
-function lsSaveMaterials() {
-  try { localStorage.setItem('pr_materials', JSON.stringify(materials)); } catch(e) {}
+// Write the materials list locally with a given edit timestamp (ts is only bumped on real edits)
+function persistMaterialsLocal(ts) {
+  try {
+    localStorage.setItem('pr_materials', JSON.stringify(materials));
+    localStorage.setItem('pr_materials_ts', String(ts));
+  } catch(e) {}
 }
+function lsSaveMaterials() { persistMaterialsLocal(Date.now()); } // user edit → newest copy
 function lsLoadMaterials() {
   try { return JSON.parse(localStorage.getItem('pr_materials') || 'null'); } catch(e) { return null; }
 }
-function loadMaterials() {
+function lsMaterialsTs() {
+  try { return parseInt(localStorage.getItem('pr_materials_ts') || '0', 10) || 0; } catch(e) { return 0; }
+}
+
+// Push the price list to Supabase as a single row in app_kv (id='materials').
+// Background only — never blocks, and is harmless if offline or the table doesn't exist yet.
+async function sbSaveMaterials() {
+  try {
+    var r = await sb.from('app_kv').upsert({ id: 'materials', data: materials, updated_at: lsMaterialsTs() });
+    if (r.error) console.warn('Materials cloud save failed (safe locally):', r.error);
+  } catch(e) { console.warn('Materials cloud save error (safe locally):', e); }
+}
+
+// Add any brand-new default materials not already in the list. Returns true if something was added.
+function mergeDefaultMaterials() {
+  var existingIds = materials.map(function(m){ return m.id; });
+  var added = false;
+  DEFAULT_MATERIALS.forEach(function(d) {
+    if (existingIds.indexOf(d.id) === -1) { materials.push(d); added = true; }
+  });
+  return added;
+}
+
+async function loadMaterials() {
+  // Local first — instant and offline-safe
   var saved = lsLoadMaterials();
-  if (saved && saved.length > 0) {
-    materials = saved;
-    // Merge any new defaults not already saved
-    var existingIds = materials.map(function(m){ return m.id; });
-    DEFAULT_MATERIALS.forEach(function(d) {
-      if (existingIds.indexOf(d.id) === -1) { materials.push(d); }
-    });
-    lsSaveMaterials();
-  } else {
-    materials = DEFAULT_MATERIALS.slice();
-    lsSaveMaterials();
-  }
+  var localTs = lsMaterialsTs();
+  if (saved && saved.length > 0) { materials = saved; }
+  else { materials = DEFAULT_MATERIALS.slice(); localTs = 0; }
+  if (mergeDefaultMaterials() || !(saved && saved.length)) persistMaterialsLocal(localTs); // save array, keep ts
+  renderMaterials();
+
+  // Then reconcile with the cloud — newest edit wins
+  try {
+    var r = await sb.from('app_kv').select('*').eq('id', 'materials').single();
+    if (!r.error && r.data && Array.isArray(r.data.data) && r.data.data.length) {
+      var cloudTs = r.data.updated_at || 0;
+      if (cloudTs > 0 && cloudTs >= localTs) {
+        materials = r.data.data;
+        mergeDefaultMaterials();
+        persistMaterialsLocal(cloudTs);
+        renderMaterials();
+      } else {
+        sbSaveMaterials(); // local is newer — push it up
+      }
+    } else {
+      sbSaveMaterials(); // no cloud row yet — seed it
+    }
+  } catch(e) { /* offline or app_kv table not created yet — local copy is fine */ }
 }
 
 function renderMaterials() {
@@ -2122,6 +2162,7 @@ function saveMaterial() {
   var idx = materials.findIndex(function(x){ return x.id === id; });
   if (idx > -1) { materials[idx] = mat; } else { materials.push(mat); }
   lsSaveMaterials();
+  sbSaveMaterials();
   renderMaterials();
   showScreen('screen-materials');
   toast(editingMatId ? 'Material updated' : 'Material added');
@@ -2131,6 +2172,7 @@ function deleteMaterial() {
   if (!confirm('Delete this material?')) return;
   materials = materials.filter(function(m){ return m.id !== editingMatId; });
   lsSaveMaterials();
+  sbSaveMaterials();
   renderMaterials();
   showScreen('screen-materials');
   toast('Material deleted');
