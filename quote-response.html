@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>P&R Solutions — Quote Response</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     :root { --green: #66FF33; --dark: #111; --card: #1a1a1a; --border: #2a2a2a; }
@@ -64,10 +63,6 @@
   <div id="content"></div>
 
   <script>
-    var SB_URL = 'https://ngakblcdnuqectjappkl.supabase.co';
-    var SB_KEY = 'sb_publishable_wX0TOGQTtNWi0ex14ux6Hw_eKVge5cJ';
-    var sb = supabase.createClient(SB_URL, SB_KEY);
-
     var p         = new URLSearchParams(location.search);
     var action    = p.get('action');
     var jobId     = p.get('jobId');
@@ -79,19 +74,12 @@
       document.getElementById('content').innerHTML =
         '<div class="card"><div class="icon">⚠️</div><h1>Invalid link</h1><p>This link doesn\'t look right. Please contact Chris directly.</p><a href="tel:07595399525" class="btn-call">📞 Call Chris</a></div>';
     } else {
-      // Show loading state, update Supabase, then show result
-      document.getElementById('content').innerHTML = '<div class="card"><p style="text-align:center;color:#888;padding:40px 0">Updating…</p></div>';
+      // Show loading state, email Chris the response, then show the thank-you screen
+      document.getElementById('content').innerHTML = '<div class="card"><p style="text-align:center;color:#888;padding:40px 0">Sending your response…</p></div>';
       (async function() {
-        try {
-          var newStatus = action === 'accept' ? 'booked' : 'declined';
-          var r = await sb.from('jobs').select('*').eq('id', jobId).single();
-          if (r.data) {
-            var job = Object.assign({}, r.data.data, { id: r.data.id, name: r.data.name, status: newStatus, created: r.data.created });
-            job.status = newStatus;
-            await sb.from('jobs').upsert({ id: job.id, name: job.name || '', status: newStatus, created: job.created, data: job });
-          }
-        } catch(e) {}
-        // Notify Chris
+        // No database access here. The customer's click only emails Chris (below); Chris
+        // sets the job status in the app himself. This keeps the database fully private —
+        // nothing without a login can read or change customer data.
         fetch('https://formspree.io/f/mvzdkwvw', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
