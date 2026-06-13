@@ -854,7 +854,7 @@
     </div>
     <div class="f">
       <label>Access / Site Notes</label>
-      <input type="text" placeholder="Any restrictions, key pickup, dogs on site, fragile areas to protect...">
+      <input type="text" id="access-notes" placeholder="Any restrictions, key pickup, dogs on site, fragile areas to protect...">
     </div>
 
     <!-- Photos -->
@@ -890,7 +890,7 @@
     <div class="sec" style="margin-top:6mm">Pricing Notes</div>
     <div class="f">
       <label>Notes</label>
-      <input type="text" placeholder="Any cost considerations, difficult access uplift, disposal etc.">
+      <input type="text" id="pricing-notes" placeholder="Any cost considerations, difficult access uplift, disposal etc.">
     </div>
 
     <!-- Scope of Works -->
@@ -1383,6 +1383,8 @@ function parseFreetextMessage(raw) {
         if (sv.existingSurface) { const el = document.getElementById('existing-surface'); if (el) el.value = sv.existingSurface; }
         if (sv.prepRequired)    { const el = document.getElementById('prep-required');    if (el) el.value = sv.prepRequired; }
         if (sv.surfaceNotes)    { const el = document.getElementById('surface-notes');    if (el) el.value = sv.surfaceNotes; }
+        if (sv.accessNotes)     { const el = document.getElementById('access-notes');     if (el) el.value = sv.accessNotes; }
+        if (sv.pricingNotes)    { const el = document.getElementById('pricing-notes');    if (el) el.value = sv.pricingNotes; }
         if (sv.generalNotes)    { const el = document.getElementById('general-notes');    if (el) el.value = sv.generalNotes; }
         // Restore skip hire
         if (sv.skipTons) {
@@ -1770,6 +1772,8 @@ function parseFreetextMessage(raw) {
         existingSurface: document.getElementById('existing-surface')?.value || '',
         prepRequired:   document.getElementById('prep-required')?.value || '',
         surfaceNotes:   document.getElementById('surface-notes')?.value || '',
+        accessNotes:    document.getElementById('access-notes')?.value || '',
+        pricingNotes:   document.getElementById('pricing-notes')?.value || '',
         generalNotes:   document.getElementById('general-notes')?.value || '',
         savedAt:        new Date().toISOString(),
         photos:         Object.entries(photoData).map(([, v]) => ({ dataUrl: v.dataUrl, caption: v.caption || '' })),
