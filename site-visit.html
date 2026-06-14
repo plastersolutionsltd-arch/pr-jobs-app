@@ -1700,7 +1700,7 @@ function parseFreetextMessage(raw) {
       const cards = [].slice.call(document.querySelectorAll('#rooms-cards .room-card'));
 
       const grand = {}; const order = [];
-      let anyMethod = false, anyBoardLike = false, anyBond = false, grandCostEx = 0;
+      let anyMethod = false, anyBoardLike = false, anyBond = false, anySkim = false, grandCostEx = 0;
       const copyRooms = [];
 
       function addInto(map, list, mats) {
@@ -1725,6 +1725,7 @@ function parseFreetextMessage(raw) {
           anyMethod = true;
           if (method === 'board' || method === 'dd') anyBoardLike = true;
           if (method === 'bond') anyBond = true;
+          if (method === 'skim') anySkim = true;
           surfaces.push([label, method, area, mats]);
         }
         surface('Walls', wM, wallV);
@@ -1749,7 +1750,7 @@ function parseFreetextMessage(raw) {
 
       // Job-level consumables (one purchase for the whole job)
       if (anyBoardLike && !grand.screws) { grand.screws = { label:'Drywall screws', unit:'box', qty:1 }; order.push('screws'); }
-      if (anyBond     && !grand.pva)    { grand.pva    = { label:'PVA (5L)',       unit:'tub', qty:1 }; order.push('pva'); }
+      if ((anyBond || anySkim) && !grand.pva) { grand.pva = { label:'PVA (5L)', unit:'tub', qty:1 }; order.push('pva'); }
 
       if (!anyMethod || !order.length) { out.style.display = 'none'; _matCopyText = ''; _matCost = { subtotal:0, vat:0, total:0 }; return; }
 
@@ -1800,7 +1801,7 @@ function parseFreetextMessage(raw) {
           + '<input type="text" class="rp-cap" placeholder="caption" value="' + cap + '" oninput="setPhotoCaption(' + pc + ', this.value)">'
           + '</div>';
       });
-      html += '<label class="rp-add"><span>+</span>photo<input type="file" accept="image/*" onchange="loadRoomPhoto(this)"></label>';
+      html += '<label class="rp-add"><span>+</span>photo<input type="file" accept="image/*" multiple onchange="loadRoomPhoto(this)"></label>';
       wrap.innerHTML = html;
     }
 
@@ -1815,20 +1816,22 @@ function parseFreetextMessage(raw) {
     }
 
     function loadRoomPhoto(input) {
-      const file = input.files[0];
-      if (!file) return;
+      const files = input.files;
+      if (!files || !files.length) return;
       const card = input.closest('.room-card');
       if (!card) return;
       const rid = card.dataset.rid;
-      const reader = new FileReader();
-      reader.onload = e => {
-        compressImage(e.target.result, 1100, 0.6, compressed => {
-          photoCount++;
-          photoData[photoCount] = { dataUrl: compressed, caption: '', room: rid };
-          renderRoomPhotos(card);
-        });
-      };
-      reader.readAsDataURL(file);
+      [].slice.call(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          compressImage(e.target.result, 1100, 0.6, compressed => {
+            photoCount++;
+            photoData[photoCount] = { dataUrl: compressed, caption: '', room: rid };
+            renderRoomPhotos(card);
+          });
+        };
+        reader.readAsDataURL(file);
+      });
     }
 
     function setPhotoCaption(pc, val) { if (photoData[pc]) photoData[pc].caption = val; }
