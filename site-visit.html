@@ -699,7 +699,7 @@
         </select>
       </div>
       <div class="f">
-        <label>Area to cover (m²) <span style="font-weight:400;text-transform:none;color:#999;font-size:7pt">(blank = total above)</span></label>
+        <label>Area to cover (m²) <span style="font-weight:400;text-transform:none;color:#999;font-size:7pt">(blank = from room ticks)</span></label>
         <input type="number" id="mat-area" step="0.1" min="0" placeholder="auto from total" oninput="calcMaterials()">
       </div>
     </div>
@@ -1570,6 +1570,7 @@ function parseFreetextMessage(raw) {
       tr.querySelector('#l-' + rc).addEventListener('input', () => calcRoom(rc));
       tr.querySelector('#w-' + rc).addEventListener('input', () => calcRoom(rc));
       tr.querySelector('#h-' + rc).addEventListener('input', () => calcRoom(rc));
+      tr.querySelectorAll('.work-checks input[type="checkbox"]').forEach(cb => cb.addEventListener('change', calcMaterials));
       tr.querySelector('.btn-remove-row').addEventListener('click', () => { tr.remove(); calcTotals(); });
     }
 
@@ -1624,9 +1625,16 @@ function parseFreetextMessage(raw) {
       const method = methodEl.value;
       if (!method) { out.style.display = 'none'; return; }
 
-      // Area: manual override if entered, else the combined room total
+      // Area: manual override if entered, else derived from each room's work ticks
       let area = parseFloat(document.getElementById('mat-area').value);
-      if (!(area > 0)) area = parseFloat(document.getElementById('total-combined').textContent) || 0;
+      let basisLabel = '';
+      if (!(area > 0)) {
+        const w = roomWorkArea();
+        area = w.area;
+        basisLabel = (w.hasWalls && w.hasCeil) ? 'walls + ceilings'
+                   : w.hasWalls ? 'walls only'
+                   : w.hasCeil  ? 'ceilings only' : '';
+      }
       if (!(area > 0)) { out.style.display = 'none'; return; }
 
       const rate = (id, def) => { const v = parseFloat(document.getElementById(id).value); return v > 0 ? v : def; };
@@ -1674,8 +1682,29 @@ function parseFreetextMessage(raw) {
       document.getElementById('mat-list').innerHTML = items.map(function(it) {
         return '<tr><td>' + it[0] + '</td><td class="area-cell" style="text-align:right;font-weight:700">' + it[1] + '</td></tr>';
       }).join('');
-      document.getElementById('mat-area-used').textContent = area.toFixed(1) + ' m²';
+      document.getElementById('mat-area-used').textContent = area.toFixed(1) + ' m²' + (basisLabel ? ' · ' + basisLabel : '');
       out.style.display = 'block';
+    }
+
+    // Sum room areas based on each room's Walls / Ceil / Both ticks.
+    // A room with nothing ticked counts both surfaces (so it's never silently dropped).
+    function roomWorkArea() {
+      let area = 0, hasWalls = false, hasCeil = false;
+      document.querySelectorAll('#rooms-tbody tr').forEach(function(tr) {
+        const checks = tr.querySelectorAll('input[type="checkbox"]');
+        const walls = checks[0] && checks[0].checked;
+        const ceil  = checks[1] && checks[1].checked;
+        const both  = checks[2] && checks[2].checked;
+        const wallEl = tr.querySelector('td[id^="wall-"]');
+        const ceilEl = tr.querySelector('td[id^="ceil-"]');
+        const wallV = parseFloat(wallEl ? wallEl.textContent : '') || 0;
+        const ceilV = parseFloat(ceilEl ? ceilEl.textContent : '') || 0;
+        const wantWall = walls || both || (!walls && !ceil && !both);
+        const wantCeil = ceil  || both || (!walls && !ceil && !both);
+        if (wantWall && wallV) { area += wallV; hasWalls = true; }
+        if (wantCeil && ceilV) { area += ceilV; hasCeil = true; }
+      });
+      return { area: area, hasWalls: hasWalls, hasCeil: hasCeil };
     }
 
     function copyMaterials() {
