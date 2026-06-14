@@ -1738,9 +1738,14 @@ function parseFreetextMessage(raw) {
             const roomEx = roomOrder.reduce((sum, k) => sum + roomMap[k].qty * priceFor(k), 0);
             const roomInc = roomEx * (1 + MAT_VAT);
             grandCostEx += roomEx;
+            const extra = [];
+            if (surfaces.some(sf => sf[1] === 'board' || sf[1] === 'dd')) extra.push('1 box \u2014 Drywall screws');
+            if (surfaces.some(sf => sf[1] === 'skim'  || sf[1] === 'bond')) extra.push('1 tub \u2014 PVA (5L)');
+            const extraHtml = extra.map(x => '<div style="color:#888">' + x + ' <span style="font-size:10px">(job)</span></div>').join('');
             md.style.display = 'block';
             md.innerHTML = '<div class="rm-hdr">Materials</div>'
               + roomOrder.map(k => '<div>' + plural(roomMap[k].qty, roomMap[k].unit) + ' \u2014 ' + roomMap[k].label + '</div>').join('')
+              + extraHtml
               + '<div class="rm-cost">Room cost: \u00a3' + roomInc.toFixed(2) + ' inc VAT</div>';
             copyRooms.push(name + '\n' + surfaces.map(sf => '  ' + sf[0] + ' [' + (METHOD_LABELS[sf[1]] || sf[1]) + '] ' + sf[2].toFixed(1) + ' m\u00b2: ' + sf[3].map(m => plural(m[3], m[2]) + ' ' + m[1]).join(', ')).join('\n')
               + '\n  Room cost: \u00a3' + roomInc.toFixed(2) + ' inc VAT');
