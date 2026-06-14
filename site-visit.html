@@ -1802,7 +1802,7 @@ function parseFreetextMessage(raw) {
       slot.className = 'photo-slot';
       slot.id = 'photo-slot-' + pc;
       slot.innerHTML = `
-        <input type="file" accept="image/*" capture="environment" onchange="loadPhoto(${pc}, this)">
+        <input type="file" accept="image/*" onchange="loadPhoto(${pc}, this)">
         <div class="photo-placeholder" id="ph-placeholder-${pc}">
           <div class="ph-icon">📷</div>
           <div class="ph-num">PHOTO ${pc}</div>
