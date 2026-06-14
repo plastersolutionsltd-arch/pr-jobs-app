@@ -245,6 +245,13 @@
     .btn-add-room { width: 100%; background: none; border: 1px dashed var(--green); border-radius: 4px; padding: 11px; color: #5a8a4a; font-family: 'Fjalla One', sans-serif; font-size: 13px; letter-spacing: 1px; cursor: pointer; margin-bottom: 6px; }
     .area-summary { background: #111; color: #fff; border-radius: 4px; padding: 9px 12px; font-size: 13px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
     .area-summary b { color: var(--green); font-family: 'Fjalla One', sans-serif; letter-spacing: 1px; }
+    .room-surface { margin-bottom: 8px; }
+    .surf-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 0; }
+    .surf-lbl { font-size: 13px; color: #333; }
+    .surf-lbl b { color: #5a8a4a; font-weight: 700; }
+    .surf-row select { padding: 7px 9px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 13px; background: white; -webkit-appearance: none; appearance: none; min-width: 150px; }
+    .room-materials .rm-hdr { font-size: 9px; letter-spacing: 1px; color: #999; text-transform: uppercase; margin-bottom: 3px; }
+    .room-materials .rm-cost { margin-top: 5px; padding-top: 5px; border-top: 1px solid #dde8dd; font-weight: 700; color: #111; }
 
     /* Totals row */
     .rooms-table tfoot tr { background: #111; color: white; }
@@ -1349,12 +1356,18 @@ function parseFreetextMessage(raw) {
             if (r.l) document.getElementById('l-' + rc).value = r.l;
             if (r.w) document.getElementById('w-' + rc).value = r.w;
             if (r.h) document.getElementById('h-' + rc).value = r.h;
+            // new per-surface methods, with fallback for older single-method saves
+            let wM = r.wallsMethod, cM = r.ceilMethod;
+            if (wM === undefined && cM === undefined) {
+              const m = r.method || '';
+              const none = !r.walls && !r.ceil && !r.both;
+              wM = (r.walls || r.both || none) ? m : '';
+              cM = (r.ceil  || r.both || none) ? m : '';
+            }
             if (card) {
-              card.querySelector('.wk-walls').checked = !!r.walls;
-              card.querySelector('.wk-ceil').checked  = !!r.ceil;
-              card.querySelector('.wk-both').checked  = !!r.both;
-              if (r.note)   card.querySelector('.room-note').value = r.note;
-              if (r.method) card.querySelector('.room-method').value = r.method;
+              card.querySelector('.method-walls').value = wM || '';
+              card.querySelector('.method-ceil').value  = cM || '';
+              if (r.note) card.querySelector('.room-note').value = r.note;
             }
             calcRoom(rc);
           });
@@ -1561,12 +1574,9 @@ function parseFreetextMessage(raw) {
           '<div class="f"><label>W (m)</label><input type="number" step="0.1" min="0" id="w-' + rc + '" placeholder="0.0"></div>' +
           '<div class="f"><label>H (m)</label><input type="number" step="0.1" min="0" id="h-' + rc + '" placeholder="0.0"></div>' +
         '</div>' +
-        '<div class="room-areas">Wall <b id="wall-' + rc + '">\u2014</b> &nbsp;\u00b7&nbsp; Ceiling <b id="ceil-' + rc + '">\u2014</b></div>' +
-        '<div class="room-work">' +
-          '<label><input type="checkbox" class="wk-walls"> Walls</label>' +
-          '<label><input type="checkbox" class="wk-ceil"> Ceiling</label>' +
-          '<label><input type="checkbox" class="wk-both"> Both</label>' +
-          '<select class="room-method">' + methodOptions('') + '</select>' +
+        '<div class="room-surface">' +
+          '<div class="surf-row"><span class="surf-lbl">Walls <b id="wall-' + rc + '">\u2014</b></span><select class="method-walls">' + methodOptions('') + '</select></div>' +
+          '<div class="surf-row"><span class="surf-lbl">Ceiling <b id="ceil-' + rc + '">\u2014</b></span><select class="method-ceil">' + methodOptions('') + '</select></div>' +
         '</div>' +
         '<div class="room-materials" id="mat-' + rc + '" style="display:none"></div>' +
         '<input type="text" class="room-note" placeholder="Notes for this room">';
@@ -1574,8 +1584,8 @@ function parseFreetextMessage(raw) {
       card.querySelector('#l-' + rc).addEventListener('input', () => calcRoom(rc));
       card.querySelector('#w-' + rc).addEventListener('input', () => calcRoom(rc));
       card.querySelector('#h-' + rc).addEventListener('input', () => calcRoom(rc));
-      card.querySelectorAll('.room-work input[type="checkbox"]').forEach(cb => cb.addEventListener('change', calcMaterials));
-      card.querySelector('.room-method').addEventListener('change', calcMaterials);
+      card.querySelector('.method-walls').addEventListener('change', calcMaterials);
+      card.querySelector('.method-ceil').addEventListener('change', calcMaterials);
       card.querySelector('.room-del').addEventListener('click', () => { card.remove(); calcTotals(); });
       return rc;
     }
@@ -1657,7 +1667,7 @@ function parseFreetextMessage(raw) {
     function plural(n, u) { return n + ' ' + u + (n !== 1 ? 's' : ''); }
 
     function methodOptions(sel) {
-      const opts = [['','— skip —'],['skim','Skim only'],['board','Board & Skim'],['dd','Dot & Dab & Skim'],['bond','Bond & Skim']];
+      const opts = [['','— none —'],['skim','Skim only'],['board','Board & Skim'],['dd','Dot & Dab & Skim'],['bond','Bond & Skim']];
       return opts.map(o => '<option value="'+o[0]+'"'+(o[0] === (sel || '') ? ' selected' : '')+'>'+o[1]+'</option>').join('');
     }
 
@@ -1674,21 +1684,6 @@ function parseFreetextMessage(raw) {
     }
 
     // Area for a single room based on its Walls / Ceil / Both ticks (no tick = both).
-    function roomAreaFromTicks(card) {
-      const walls = card.querySelector('.wk-walls') && card.querySelector('.wk-walls').checked;
-      const ceil  = card.querySelector('.wk-ceil')  && card.querySelector('.wk-ceil').checked;
-      const both  = card.querySelector('.wk-both')  && card.querySelector('.wk-both').checked;
-      const wallEl = card.querySelector('[id^="wall-"]');
-      const ceilEl = card.querySelector('[id^="ceil-"]');
-      const wallV = parseFloat(wallEl ? wallEl.textContent : '') || 0;
-      const ceilV = parseFloat(ceilEl ? ceilEl.textContent : '') || 0;
-      const none = !walls && !ceil && !both;
-      let area = 0; const lbl = [];
-      if (walls || both || none) { area += wallV; if (wallV) lbl.push('walls'); }
-      if (ceil  || both || none) { area += ceilV; if (ceilV) lbl.push('ceil'); }
-      return { area: area, label: lbl.join(' + ') };
-    }
-
     const matUp = n => Math.max(1, Math.ceil(n - 1e-9));
 
     // Returns [ [key, label, unit, qty], ... ] of area-scaled materials for one room.
@@ -1710,60 +1705,75 @@ function parseFreetextMessage(raw) {
       const R = ratesObj();
       const cards = [].slice.call(document.querySelectorAll('#rooms-cards .room-card'));
 
-      const totals = {}; const order = [];
-      let anyMethod = false, anyBoardLike = false, anyBond = false;
+      const grand = {}; const order = [];
+      let anyMethod = false, anyBoardLike = false, anyBond = false, grandCostEx = 0;
       const copyRooms = [];
+
+      function addInto(map, list, mats) {
+        mats.forEach(m => { if (!map[m[0]]) { map[m[0]] = { label:m[1], unit:m[2], qty:0 }; list.push(m[0]); } map[m[0]].qty += m[3]; });
+      }
 
       cards.forEach(card => {
         const rc = card.id.replace('room-', '');
+        const wallV = parseFloat((document.getElementById('wall-' + rc) || {}).textContent) || 0;
+        const ceilV = parseFloat((document.getElementById('ceil-' + rc) || {}).textContent) || 0;
+        const wM = (card.querySelector('.method-walls') || {}).value || '';
+        const cM = (card.querySelector('.method-ceil')  || {}).value || '';
         const nameEl = card.querySelector('.room-name');
         const name = (nameEl && nameEl.value.trim()) || 'Room';
-        const ra = roomAreaFromTicks(card);
-        const methodEl = card.querySelector('.room-method');
-        const method = methodEl ? methodEl.value : '';
-        if (method) anyMethod = true;
-        if (method === 'board' || method === 'dd') anyBoardLike = true;
-        if (method === 'bond') anyBond = true;
 
-        const mats = roomMaterials(method, ra.area, R);
-        mats.forEach(m => {
-          if (!totals[m[0]]) { totals[m[0]] = { label: m[1], unit: m[2], qty: 0 }; order.push(m[0]); }
-          totals[m[0]].qty += m[3];
-        });
+        const roomMap = {}; const roomOrder = []; const surfaces = [];
+        function surface(label, method, area) {
+          if (!method || !(area > 0)) return;
+          const mats = roomMaterials(method, area, R);
+          addInto(roomMap, roomOrder, mats);
+          addInto(grand, order, mats);
+          anyMethod = true;
+          if (method === 'board' || method === 'dd') anyBoardLike = true;
+          if (method === 'bond') anyBond = true;
+          surfaces.push([label, method, area, mats]);
+        }
+        surface('Walls', wM, wallV);
+        surface('Ceiling', cM, ceilV);
 
         const md = document.getElementById('mat-' + rc);
         if (md) {
-          if (!method) { md.style.display = 'none'; md.innerHTML = ''; }
-          else if (!(ra.area > 0)) { md.style.display = 'block'; md.innerHTML = '<span style="color:#bbb">Enter measurements / tick a surface</span>'; }
+          if (!roomOrder.length) { md.style.display = 'none'; md.innerHTML = ''; }
           else {
+            const roomEx = roomOrder.reduce((sum, k) => sum + roomMap[k].qty * priceFor(k), 0);
+            const roomInc = roomEx * (1 + MAT_VAT);
+            grandCostEx += roomEx;
             md.style.display = 'block';
-            md.innerHTML = '<div style="font-size:9px;letter-spacing:1px;color:#999;text-transform:uppercase;margin-bottom:3px">Materials \u00b7 ' + ra.area.toFixed(1) + ' m\u00b2' + (ra.label ? ' (' + ra.label + ')' : '') + '</div>'
-              + mats.map(m => '<div>' + plural(m[3], m[2]) + ' \u2014 ' + m[1] + '</div>').join('');
-            copyRooms.push(name + '  [' + (METHOD_LABELS[method] || method) + '] \u00b7 ' + ra.area.toFixed(1) + ' m\u00b2'
-              + (ra.label ? ' (' + ra.label + ')' : '') + '\n  ' + mats.map(m => plural(m[3], m[2]) + ' \u2014 ' + m[1]).join('\n  '));
+            md.innerHTML = '<div class="rm-hdr">Materials</div>'
+              + roomOrder.map(k => '<div>' + plural(roomMap[k].qty, roomMap[k].unit) + ' \u2014 ' + roomMap[k].label + '</div>').join('')
+              + '<div class="rm-cost">Room cost: \u00a3' + roomInc.toFixed(2) + ' inc VAT</div>';
+            copyRooms.push(name + '\n' + surfaces.map(sf => '  ' + sf[0] + ' [' + (METHOD_LABELS[sf[1]] || sf[1]) + '] ' + sf[2].toFixed(1) + ' m\u00b2: ' + sf[3].map(m => plural(m[3], m[2]) + ' ' + m[1]).join(', ')).join('\n')
+              + '\n  Room cost: \u00a3' + roomInc.toFixed(2) + ' inc VAT');
           }
         }
       });
 
-      if (anyBoardLike && !totals.screws) { totals.screws = { label:'Drywall screws', unit:'box', qty:1 }; order.push('screws'); }
-      if (anyBond     && !totals.pva)    { totals.pva    = { label:'PVA (5L)',       unit:'tub', qty:1 }; order.push('pva'); }
+      // Job-level consumables (one purchase for the whole job)
+      if (anyBoardLike && !grand.screws) { grand.screws = { label:'Drywall screws', unit:'box', qty:1 }; order.push('screws'); }
+      if (anyBond     && !grand.pva)    { grand.pva    = { label:'PVA (5L)',       unit:'tub', qty:1 }; order.push('pva'); }
 
       if (!anyMethod || !order.length) { out.style.display = 'none'; _matCopyText = ''; _matCost = { subtotal:0, vat:0, total:0 }; return; }
 
-      document.getElementById('mat-list').innerHTML = order.map(k => {
-        const t = totals[k];
-        return '<tr><td>' + t.label + '</td><td class="area-cell" style="text-align:right;font-weight:700">' + plural(t.qty, t.unit) + '</td></tr>';
-      }).join('');
+      document.getElementById('mat-list').innerHTML = order.map(k =>
+        '<tr><td>' + grand[k].label + '</td><td class="area-cell" style="text-align:right;font-weight:700">' + plural(grand[k].qty, grand[k].unit) + '</td></tr>').join('');
 
-      const subtotal = order.reduce((s, k) => s + totals[k].qty * priceFor(k), 0);
+      let consumables = 0;
+      if (grand.screws) consumables += grand.screws.qty * priceFor('screws');
+      if (grand.pva)    consumables += grand.pva.qty    * priceFor('pva');
+      const subtotal = grandCostEx + consumables;
       _matCost = { subtotal: subtotal, vat: subtotal * MAT_VAT, total: subtotal * (1 + MAT_VAT) };
       document.getElementById('mat-cost-ex').textContent  = '\u00a3' + _matCost.subtotal.toFixed(2);
       document.getElementById('mat-cost-inc').textContent = '\u00a3' + _matCost.total.toFixed(2);
       out.style.display = 'block';
 
       _matCopyText = 'MATERIALS ESTIMATE\n\n' + copyRooms.join('\n\n')
-        + '\n\nTOTAL TO ORDER\n  ' + order.map(k => plural(totals[k].qty, totals[k].unit) + ' \u2014 ' + totals[k].label).join('\n  ')
-        + '\n\nMaterials cost: \u00a3' + _matCost.subtotal.toFixed(2) + ' ex VAT  (\u00a3' + _matCost.total.toFixed(2) + ' inc VAT)';
+        + '\n\nTOTAL TO ORDER\n  ' + order.map(k => plural(grand[k].qty, grand[k].unit) + ' \u2014 ' + grand[k].label).join('\n  ')
+        + '\n\nTotal materials: \u00a3' + _matCost.subtotal.toFixed(2) + ' ex VAT  (\u00a3' + _matCost.total.toFixed(2) + ' inc VAT)';
     }
 
     function copyMaterials() {
@@ -2015,16 +2025,17 @@ function parseFreetextMessage(raw) {
         rooms:          (function() {
           const rows = [];
           document.querySelectorAll('#rooms-cards .room-card').forEach(card => {
+            const wM = card.querySelector('.method-walls')?.value || '';
+            const cM = card.querySelector('.method-ceil')?.value || '';
             rows.push({
               name:  card.querySelector('.room-name')?.value || '',
               l:     parseFloat(card.querySelector('[id^="l-"]')?.value) || 0,
               w:     parseFloat(card.querySelector('[id^="w-"]')?.value) || 0,
               h:     parseFloat(card.querySelector('[id^="h-"]')?.value) || 0,
-              walls: card.querySelector('.wk-walls')?.checked || false,
-              ceil:  card.querySelector('.wk-ceil')?.checked || false,
-              both:  card.querySelector('.wk-both')?.checked || false,
+              wallsMethod: wM,
+              ceilMethod:  cM,
               note:  card.querySelector('.room-note')?.value || '',
-              method: card.querySelector('.room-method')?.value || ''
+              walls: !!wM, ceil: !!cM, both: !!(wM && cM), method: wM || cM
             });
           });
           return rows;
