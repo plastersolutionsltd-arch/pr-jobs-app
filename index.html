@@ -2068,20 +2068,55 @@ var editingMatId = null;
 var calcForJobId = null; // when set, the cost calculator is costing up this specific job
 
 var DEFAULT_MATERIALS = [
-  { id: 'm_ecorend_x32',       name: 'Ecorend X32',                    supplier: 'ProTec',      unit: '25kg bag',   price: 12.90 },
-  { id: 'm_finish_plaster',    name: 'Thistle Multi Finish Plaster',   supplier: 'R&J / ProTec', unit: '25kg bag',  price: 11.68 },
-  { id: 'm_bonding',           name: 'Siniat Bonding Compound',        supplier: 'R&J',         unit: '25kg bag',   price: 11.60 },
-  { id: 'm_grit',              name: 'Grit Plaster',                   supplier: 'ProTec',      unit: '25kg bag',   price: 8.00  },
-  { id: 'm_pva',               name: 'PVA Primer',                     supplier: 'SIG',         unit: '5L tub',     price: 12.00 },
-  { id: 'm_mesh',              name: 'Fibreglass Mesh',                supplier: 'SIG',         unit: '50m roll',   price: 18.00 },
-  { id: 'm_corner_bead',       name: 'Corner Bead (SS)',               supplier: 'SIG',         unit: '2.5m each',  price: 2.50  },
-  { id: 'm_stop_bead',         name: 'Stop Bead (SS)',                 supplier: 'SIG',         unit: '3m each',    price: 4.00  },
-  { id: 'm_orange_tape',       name: 'Orange Dolphin Tape',            supplier: 'ProTec',      unit: 'roll',       price: 6.00  },
-  { id: 'm_blue_tape',         name: 'Blue Dolphin Tape',              supplier: 'ProTec',      unit: 'roll',       price: 4.92  },
-  { id: 'm_ecotherm_pir',      name: 'Ecotherm Eco-Liner PIR Board',   supplier: 'R&J',         unit: 'board',      price: 40.20 },
-  { id: 'm_plasterboard',      name: 'Siniat Plasterboard 1800×900×12.5mm', supplier: 'R&J',   unit: 'sheet',      price: 8.35  },
-  { id: 'm_scrim_tape',        name: 'Bond It Scrim Tape 48mm×90m',    supplier: 'R&J',         unit: '90m roll',   price: 4.46  },
+  { id: 'm_ecorend_x32',       name: 'Ecorend X32 One-Coat Base 25kg',              supplier: 'MKM',    unit: '25kg bag',   price: 12.90 },
+  { id: 'm_finish_plaster',    name: 'Thistle Multi Finish Plaster 25kg',           supplier: 'MKM',    unit: '25kg bag',   price: 9.73  },
+  { id: 'm_bonding_coat',      name: 'Thistle Bonding Coat Plaster 25kg',           supplier: 'MKM',    unit: '25kg bag',   price: 12.92 },
+  { id: 'm_bonding',           name: 'Siniat Universal Bonding Compound (dab adhesive) 25kg', supplier: 'MKM', unit: '25kg bag', price: 9.67 },
+  { id: 'm_grit',              name: 'Grit Plaster',                                supplier: 'ProTec', unit: '25kg bag',   price: 8.00  },
+  { id: 'm_pva',               name: 'Bond It PVA Contractors 5L',                  supplier: 'MKM',    unit: '5L tub',     price: 10.36 },
+  { id: 'm_mesh',              name: 'Fibreglass Mesh',                             supplier: 'SIG',    unit: '50m roll',   price: 18.00 },
+  { id: 'm_scrim_tape',        name: 'Bond It Monster Scrim Tape 48mm×90m',         supplier: 'MKM',    unit: '90m roll',   price: 3.72  },
+  { id: 'm_corner_bead',       name: 'Corner Bead (SS)',                            supplier: 'SIG',    unit: '2.5m each',  price: 2.50  },
+  { id: 'm_stop_bead',         name: 'Stop Bead (SS)',                              supplier: 'SIG',    unit: '3m each',    price: 4.00  },
+  { id: 'm_angle_bead',        name: 'Thin-Coat Angle Bead galv 2400mm',            supplier: 'MKM',    unit: 'each',       price: 1.80  },
+  { id: 'm_orange_tape',       name: 'Orange Dolphin Tape',                         supplier: 'ProTec', unit: 'roll',       price: 6.00  },
+  { id: 'm_blue_tape',         name: 'Blue Dolphin Tape',                           supplier: 'ProTec', unit: 'roll',       price: 4.92  },
+  { id: 'm_ecotherm_pir',      name: 'Ecotherm Eco-Liner PIR Board 2440×1200',      supplier: 'MKM',    unit: 'board',      price: 33.50 },
+  { id: 'm_plasterboard',      name: 'Siniat Standard Plasterboard 1800×900×12.5mm', supplier: 'MKM',   unit: 'sheet',      price: 6.96  },
+  { id: 'm_fireboard',         name: 'Siniat Fire Board 1800×900×12.5mm',           supplier: 'MKM',    unit: 'sheet',      price: 8.58  },
+  { id: 'm_screw_38',          name: 'Drywall Screws 38mm (box 1000)',              supplier: 'MKM',    unit: 'box',        price: 7.70  },
+  { id: 'm_screw_50',          name: 'Drywall Screws 50mm (box 1000)',              supplier: 'MKM',    unit: 'box',        price: 8.68  },
+  { id: 'm_screw_75',          name: 'Drywall Screws 75mm (box 500)',               supplier: 'MKM',    unit: 'box',        price: 16.04 },
+  { id: 'm_screw_100',         name: 'Drywall Screws 100mm (box 200)',              supplier: 'MKM',    unit: 'box',        price: 16.38 },
 ];
+
+// One-time price correction from MKM invoices (June 2026). Updates the price/name/unit of these
+// invoice-backed items on lists already saved before this build, and adds any that are missing.
+// Runs once per device (gated by the version flag), then syncs to the cloud. Non-invoice items
+// (grit, mesh, beads, tapes) are left untouched so any manual prices survive.
+var MATERIALS_SYNC_VERSION = 'mkm-2026-06';
+var MKM_PRICE_SYNC = [
+  'm_ecorend_x32','m_finish_plaster','m_bonding_coat','m_bonding','m_pva','m_scrim_tape',
+  'm_angle_bead','m_ecotherm_pir','m_plasterboard','m_fireboard',
+  'm_screw_38','m_screw_50','m_screw_75','m_screw_100'
+];
+function applyMkmPriceSync() {
+  try { if (localStorage.getItem('pr_materials_sync') === MATERIALS_SYNC_VERSION) return false; } catch(e) {}
+  var defById = {}; DEFAULT_MATERIALS.forEach(function(d){ defById[d.id] = d; });
+  var curById = {}; materials.forEach(function(m){ curById[m.id] = m; });
+  var changed = false;
+  MKM_PRICE_SYNC.forEach(function(id) {
+    var d = defById[id]; if (!d) return;
+    var m = curById[id];
+    if (m) {
+      if (m.price !== d.price || m.name !== d.name || m.unit !== d.unit) {
+        m.price = d.price; m.name = d.name; m.unit = d.unit; changed = true;
+      }
+    } else { materials.push({ id: d.id, name: d.name, supplier: d.supplier, unit: d.unit, price: d.price }); changed = true; }
+  });
+  try { localStorage.setItem('pr_materials_sync', MATERIALS_SYNC_VERSION); } catch(e) {}
+  return changed;
+}
 
 // Write the materials list locally with a given edit timestamp (ts is only bumped on real edits)
 function persistMaterialsLocal(ts) {
@@ -2143,6 +2178,14 @@ async function loadMaterials() {
       sbSaveMaterials(); // no cloud row yet — seed it
     }
   } catch(e) { /* offline or app_kv table not created yet — local copy is fine */ }
+
+  // One-time MKM invoice price correction — runs after cloud reconcile so the corrected
+  // list wins (fresh ts) and is pushed back up for the other devices.
+  if (applyMkmPriceSync()) {
+    persistMaterialsLocal(Date.now());
+    renderMaterials();
+    try { sbSaveMaterials(); } catch(e) {}
+  }
 }
 
 function renderMaterials() {
