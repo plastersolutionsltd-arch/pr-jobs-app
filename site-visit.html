@@ -687,28 +687,14 @@
 
     <!-- Materials Estimate -->
     <div class="sec">Materials Estimate</div>
-    <div class="grid-2">
-      <div class="f">
-        <label>Method</label>
-        <select id="mat-method" onchange="calcMaterials()">
-          <option value="">— select —</option>
-          <option value="skim">Skim only</option>
-          <option value="board">Board &amp; Skim</option>
-          <option value="dd">Dot &amp; Dab &amp; Skim</option>
-          <option value="bond">Bond &amp; Skim</option>
-        </select>
-      </div>
-      <div class="f">
-        <label>Area to cover (m²) <span style="font-weight:400;text-transform:none;color:#999;font-size:7pt">(blank = from room ticks)</span></label>
-        <input type="number" id="mat-area" step="0.1" min="0" placeholder="auto from total" oninput="calcMaterials()">
-      </div>
-    </div>
+    <div style="font-size:8pt;color:#999;margin-bottom:8px;line-height:1.5">Pick a method for each room below — quantities use that room's ticked surfaces (Walls / Ceil / Both; none ticked = both).</div>
+    <div id="mat-rooms"></div>
     <details style="margin-bottom:8px">
       <summary style="cursor:pointer;color:#5a8a4a;font-size:8pt;letter-spacing:1px;text-transform:uppercase;font-weight:700">Coverage rates — tap to adjust</summary>
       <div class="grid-3" style="margin-top:8px">
         <div class="f"><label>Skim m²/bag</label><input type="number" id="cov-skim" value="10" step="0.5" min="0.1" oninput="calcMaterials()"></div>
         <div class="f"><label>Bonding m²/bag</label><input type="number" id="cov-bond" value="3" step="0.5" min="0.1" oninput="calcMaterials()"></div>
-        <div class="f"><label>Board m² each</label><input type="number" id="cov-board" value="2.88" step="0.01" min="0.1" oninput="calcMaterials()"></div>
+        <div class="f"><label>Board m² each</label><input type="number" id="cov-board" value="1.62" step="0.01" min="0.1" oninput="calcMaterials()"></div>
         <div class="f"><label>Board waste %</label><input type="number" id="cov-waste" value="10" step="1" min="0" oninput="calcMaterials()"></div>
         <div class="f"><label>D&amp;D adhesive m²/bag</label><input type="number" id="cov-dd" value="5" step="0.5" min="0.1" oninput="calcMaterials()"></div>
         <div class="f"><label>Scrim m²/roll</label><input type="number" id="cov-scrim" value="40" step="1" min="0.1" oninput="calcMaterials()"></div>
@@ -716,9 +702,8 @@
     </details>
     <div id="mat-estimate-output" style="display:none">
       <table class="rooms-table">
-        <thead><tr><th>Material</th><th class="c" style="width:90px">Qty</th></tr></thead>
+        <thead><tr><th>Total materials to order</th><th class="c" style="width:90px">Qty</th></tr></thead>
         <tbody id="mat-list"></tbody>
-        <tfoot><tr><td class="total-label">BASED ON</td><td class="total-val" id="mat-area-used">—</td></tr></tfoot>
       </table>
       <button type="button" id="mat-copy-btn" onclick="copyMaterials()" style="margin-top:6px;background:#111;color:var(--green);border:1px solid var(--green);padding:6px 14px;font-family:'Fjalla One',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer;border-radius:2px">COPY LIST</button>
     </div>
@@ -1352,6 +1337,7 @@ function parseFreetextMessage(raw) {
             if (checks) { checks[0].checked = r.walls; checks[1].checked = r.ceil; checks[2].checked = r.both; }
             const noteEl = tr?.querySelector('input[placeholder="Notes"]');
             if (noteEl && r.note) noteEl.value = r.note;
+            if (r.method) roomMethods['room-' + rc] = r.method;
             calcRoom(rc);
           });
         } else { addRoom('Living Room'); addRoom(''); addRoom(''); }
@@ -1361,8 +1347,6 @@ function parseFreetextMessage(raw) {
       try {
         const me = sv && sv.materialsEstimate;
         if (isRestore && me) {
-          if (me.method) document.getElementById('mat-method').value = me.method;
-          if (me.area)   document.getElementById('mat-area').value   = me.area;
           const r = me.rates || {};
           const setRate = (id, val) => { if (val) document.getElementById(id).value = val; };
           setRate('cov-skim', r.skim); setRate('cov-bond', r.bond); setRate('cov-board', r.board);
@@ -1617,107 +1601,133 @@ function parseFreetextMessage(raw) {
       calcMaterials();
     }
 
-    // ===== MATERIALS ESTIMATE =====
-    function calcMaterials() {
-      const methodEl = document.getElementById('mat-method');
-      const out = document.getElementById('mat-estimate-output');
-      if (!methodEl || !out) return;
-      const method = methodEl.value;
-      if (!method) { out.style.display = 'none'; return; }
+    // ===== MATERIALS ESTIMATE (per room) =====
+    // Each room picks its own method; quantities use that room's ticked surfaces.
+    const roomMethods = {};           // keyed by room <tr> id, e.g. 'room-3'
+    const METHOD_LABELS = { skim:'Skim only', board:'Board & Skim', dd:'Dot & Dab & Skim', bond:'Bond & Skim' };
+    let _matCopyText = '';
 
-      // Area: manual override if entered, else derived from each room's work ticks
-      let area = parseFloat(document.getElementById('mat-area').value);
-      let basisLabel = '';
-      if (!(area > 0)) {
-        const w = roomWorkArea();
-        area = w.area;
-        basisLabel = (w.hasWalls && w.hasCeil) ? 'walls + ceilings'
-                   : w.hasWalls ? 'walls only'
-                   : w.hasCeil  ? 'ceilings only' : '';
-      }
-      if (!(area > 0)) { out.style.display = 'none'; return; }
+    function setRoomMethod(id, val) { roomMethods[id] = val; calcMaterials(); }
 
-      const rate = (id, def) => { const v = parseFloat(document.getElementById(id).value); return v > 0 ? v : def; };
-      const skimCov  = rate('cov-skim', 10);
-      const bondCov  = rate('cov-bond', 3);
-      const boardA   = rate('cov-board', 2.88);
-      const wastePct = parseFloat(document.getElementById('cov-waste').value) || 0;
-      const ddCov    = rate('cov-dd', 5);
-      const scrimCov = rate('cov-scrim', 40);
+    function matEsc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function plural(n, u) { return n + ' ' + u + (n !== 1 ? 's' : ''); }
 
-      const up = n => Math.max(1, Math.ceil(n - 1e-9));
-      const bagWord  = n => n + ' bag'  + (n > 1 ? 's' : '');
-      const rollWord = n => n + ' roll' + (n > 1 ? 's' : '');
-      const boardWord= n => n + ' board'+ (n > 1 ? 's' : '');
-
-      const boards   = up(area / boardA * (1 + wastePct / 100));
-      const skimBags = up(area / skimCov);
-      const scrim    = up(area / scrimCov);
-
-      let items = [];
-      if (method === 'skim') {
-        items = [['Multi-finish skim (25kg)', bagWord(skimBags)]];
-      } else if (method === 'board') {
-        items = [
-          ['Plasterboard (2.4m × 1.2m)', boardWord(boards)],
-          ['Drywall screws', '1 box'],
-          ['Scrim tape (90m)', rollWord(scrim)],
-          ['Multi-finish skim (25kg)', bagWord(skimBags)]
-        ];
-      } else if (method === 'dd') {
-        items = [
-          ['Plasterboard (2.4m × 1.2m)', boardWord(boards)],
-          ['Drywall adhesive (25kg)', bagWord(up(area / ddCov))],
-          ['Scrim tape (90m)', rollWord(scrim)],
-          ['Multi-finish skim (25kg)', bagWord(skimBags)]
-        ];
-      } else if (method === 'bond') {
-        items = [
-          ['Bonding coat (25kg)', bagWord(up(area / bondCov))],
-          ['PVA (5L)', '1 tub'],
-          ['Multi-finish skim (25kg)', bagWord(skimBags)]
-        ];
-      }
-
-      document.getElementById('mat-list').innerHTML = items.map(function(it) {
-        return '<tr><td>' + it[0] + '</td><td class="area-cell" style="text-align:right;font-weight:700">' + it[1] + '</td></tr>';
-      }).join('');
-      document.getElementById('mat-area-used').textContent = area.toFixed(1) + ' m²' + (basisLabel ? ' · ' + basisLabel : '');
-      out.style.display = 'block';
+    function methodOptions(sel) {
+      const opts = [['','— skip —'],['skim','Skim only'],['board','Board & Skim'],['dd','Dot & Dab & Skim'],['bond','Bond & Skim']];
+      return opts.map(o => '<option value="'+o[0]+'"'+(o[0] === (sel || '') ? ' selected' : '')+'>'+o[1]+'</option>').join('');
     }
 
-    // Sum room areas based on each room's Walls / Ceil / Both ticks.
-    // A room with nothing ticked counts both surfaces (so it's never silently dropped).
-    function roomWorkArea() {
-      let area = 0, hasWalls = false, hasCeil = false;
-      document.querySelectorAll('#rooms-tbody tr').forEach(function(tr) {
-        const checks = tr.querySelectorAll('input[type="checkbox"]');
-        const walls = checks[0] && checks[0].checked;
-        const ceil  = checks[1] && checks[1].checked;
-        const both  = checks[2] && checks[2].checked;
-        const wallEl = tr.querySelector('td[id^="wall-"]');
-        const ceilEl = tr.querySelector('td[id^="ceil-"]');
-        const wallV = parseFloat(wallEl ? wallEl.textContent : '') || 0;
-        const ceilV = parseFloat(ceilEl ? ceilEl.textContent : '') || 0;
-        const wantWall = walls || both || (!walls && !ceil && !both);
-        const wantCeil = ceil  || both || (!walls && !ceil && !both);
-        if (wantWall && wallV) { area += wallV; hasWalls = true; }
-        if (wantCeil && ceilV) { area += ceilV; hasCeil = true; }
-      });
-      return { area: area, hasWalls: hasWalls, hasCeil: hasCeil };
+    function ratesObj() {
+      const rate = (id, def) => { const v = parseFloat(document.getElementById(id).value); return v > 0 ? v : def; };
+      return {
+        skim:  rate('cov-skim', 10),
+        bond:  rate('cov-bond', 3),
+        board: rate('cov-board', 1.62),
+        waste: parseFloat(document.getElementById('cov-waste').value) || 0,
+        dd:    rate('cov-dd', 5),
+        scrim: rate('cov-scrim', 40)
+      };
+    }
+
+    // Area for a single room based on its Walls / Ceil / Both ticks (no tick = both).
+    function roomAreaFromTicks(tr) {
+      const checks = tr.querySelectorAll('input[type="checkbox"]');
+      const walls = checks[0] && checks[0].checked;
+      const ceil  = checks[1] && checks[1].checked;
+      const both  = checks[2] && checks[2].checked;
+      const wallEl = tr.querySelector('td[id^="wall-"]');
+      const ceilEl = tr.querySelector('td[id^="ceil-"]');
+      const wallV = parseFloat(wallEl ? wallEl.textContent : '') || 0;
+      const ceilV = parseFloat(ceilEl ? ceilEl.textContent : '') || 0;
+      const none = !walls && !ceil && !both;
+      let area = 0; const lbl = [];
+      if (walls || both || none) { area += wallV; if (wallV) lbl.push('walls'); }
+      if (ceil  || both || none) { area += ceilV; if (ceilV) lbl.push('ceil'); }
+      return { area: area, label: lbl.join(' + ') };
+    }
+
+    const matUp = n => Math.max(1, Math.ceil(n - 1e-9));
+
+    // Returns [ [key, label, unit, qty], ... ] of area-scaled materials for one room.
+    function roomMaterials(method, area, R) {
+      if (!method || !(area > 0)) return [];
+      const boards = matUp(area / R.board * (1 + R.waste / 100));
+      const skim   = matUp(area / R.skim);
+      const scrim  = matUp(area / R.scrim);
+      if (method === 'skim')  return [['skim','Multi-finish skim (25kg)','bag',skim]];
+      if (method === 'board') return [['board','Plasterboard (6ft × 3ft)','board',boards],['scrim','Scrim tape (90m)','roll',scrim],['skim','Multi-finish skim (25kg)','bag',skim]];
+      if (method === 'dd')    return [['board','Plasterboard (6ft × 3ft)','board',boards],['dd','Drywall adhesive (25kg)','bag',matUp(area / R.dd)],['scrim','Scrim tape (90m)','roll',scrim],['skim','Multi-finish skim (25kg)','bag',skim]];
+      if (method === 'bond')  return [['bond','Bonding coat (25kg)','bag',matUp(area / R.bond)],['skim','Multi-finish skim (25kg)','bag',skim]];
+      return [];
+    }
+
+    function calcMaterials() {
+      const wrap = document.getElementById('mat-rooms');
+      const out  = document.getElementById('mat-estimate-output');
+      if (!wrap || !out) return;
+      const R = ratesObj();
+      const trs = [].slice.call(document.querySelectorAll('#rooms-tbody tr'));
+
+      const totals = {}; const order = [];
+      let anyMethod = false, anyBoardLike = false, anyBond = false;
+      const copyRooms = [];
+
+      const blocks = trs.map(tr => {
+        const id = tr.id;
+        const nameEl = tr.querySelector('input[type="text"]');
+        const name = (nameEl && nameEl.value.trim()) || 'Room';
+        const ra = roomAreaFromTicks(tr);
+        const method = roomMethods[id] || '';
+        if (method) anyMethod = true;
+        if (method === 'board' || method === 'dd') anyBoardLike = true;
+        if (method === 'bond') anyBond = true;
+
+        const mats = roomMaterials(method, ra.area, R);
+        mats.forEach(m => {
+          if (!totals[m[0]]) { totals[m[0]] = { label: m[1], unit: m[2], qty: 0 }; order.push(m[0]); }
+          totals[m[0]].qty += m[3];
+        });
+
+        let lines;
+        if (!method) lines = '<div style="color:#bbb">No method selected</div>';
+        else if (!(ra.area > 0)) lines = '<div style="color:#bbb">Enter measurements above</div>';
+        else {
+          lines = mats.map(m => '<div>' + plural(m[3], m[2]) + ' — ' + m[1] + '</div>').join('');
+          copyRooms.push(name + '  [' + (METHOD_LABELS[method] || method) + '] · ' + ra.area.toFixed(1) + ' m²'
+            + (ra.label ? ' (' + ra.label + ')' : '') + '\n  ' + mats.map(m => plural(m[3], m[2]) + ' — ' + m[1]).join('\n  '));
+        }
+
+        const areaTxt = ra.area > 0 ? ' · ' + ra.area.toFixed(1) + ' m²' + (ra.label ? ' (' + ra.label + ')' : '') : '';
+        return '<div style="border:1px solid #e0e0e0;border-radius:3px;padding:8px 10px;margin-bottom:8px">'
+          + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px">'
+          + '<strong style="font-size:13px">' + matEsc(name) + '<span style="color:#999;font-weight:400">' + areaTxt + '</span></strong>'
+          + '<select onchange="setRoomMethod(\'' + id + '\',this.value)" style="padding:6px 8px;border:1px solid var(--border);border-radius:2px;font-family:Lato,sans-serif;font-size:13px;background:white;-webkit-appearance:none;appearance:none;max-width:170px">' + methodOptions(method) + '</select>'
+          + '</div>'
+          + '<div style="font-size:13px;color:#333;line-height:1.5">' + lines + '</div>'
+          + '</div>';
+      }).join('');
+      wrap.innerHTML = blocks;
+
+      // Job-level extras (not area-scaled)
+      if (anyBoardLike && !totals.screws) { totals.screws = { label:'Drywall screws', unit:'box', qty:1 }; order.push('screws'); }
+      if (anyBond     && !totals.pva)    { totals.pva    = { label:'PVA (5L)',       unit:'tub', qty:1 }; order.push('pva'); }
+
+      if (!anyMethod || !order.length) { out.style.display = 'none'; _matCopyText = ''; return; }
+
+      document.getElementById('mat-list').innerHTML = order.map(k => {
+        const t = totals[k];
+        return '<tr><td>' + t.label + '</td><td class="area-cell" style="text-align:right;font-weight:700">' + plural(t.qty, t.unit) + '</td></tr>';
+      }).join('');
+      out.style.display = 'block';
+
+      _matCopyText = 'MATERIALS ESTIMATE\n\n' + copyRooms.join('\n\n')
+        + '\n\nTOTAL TO ORDER\n  ' + order.map(k => plural(totals[k].qty, totals[k].unit) + ' — ' + totals[k].label).join('\n  ');
     }
 
     function copyMaterials() {
-      const methodEl = document.getElementById('mat-method');
-      const method = methodEl.selectedOptions[0] ? methodEl.selectedOptions[0].textContent : '';
-      const area = document.getElementById('mat-area-used').textContent;
-      const lines = [];
-      document.querySelectorAll('#mat-list tr').forEach(function(tr) {
-        const td = tr.querySelectorAll('td');
-        if (td.length >= 2) lines.push(td[1].textContent.trim() + '  —  ' + td[0].textContent.trim());
-      });
-      const text = 'MATERIALS — ' + method + ' (' + area + ')\n' + lines.join('\n');
-      const done = () => { const b = document.getElementById('mat-copy-btn'); const o = b.textContent; b.textContent = 'COPIED!'; setTimeout(function(){ b.textContent = o; }, 1500); };
+      const text = _matCopyText;
+      if (!text) return;
+      const done = () => { const b = document.getElementById('mat-copy-btn'); const o = b.textContent; b.textContent = 'COPIED!'; setTimeout(() => { b.textContent = o; }, 1500); };
       if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(done, done); }
       else { try { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(); } catch(e){} }
     }
@@ -1962,14 +1972,13 @@ function parseFreetextMessage(raw) {
               walls: checks[0]?.checked || false,
               ceil:  checks[1]?.checked || false,
               both:  checks[2]?.checked || false,
-              note:  noteEl?.value || ''
+              note:  noteEl?.value || '',
+              method: roomMethods[tr.id] || ''
             });
           });
           return rows;
         })(),
         materialsEstimate: {
-          method: document.getElementById('mat-method')?.value || '',
-          area:   document.getElementById('mat-area')?.value || '',
           rates: {
             skim:  document.getElementById('cov-skim')?.value || '',
             bond:  document.getElementById('cov-bond')?.value || '',
