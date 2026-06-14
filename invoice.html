@@ -308,6 +308,7 @@
       </div>
       <div id="items-rows"></div>
       <button class="btn-add" onclick="addRow('items')">+ Add item</button>
+      <button class="btn-add" id="btn-add-materials" onclick="addMaterialsItem()" style="display:none;border-color:#c0e8b0;color:#5a8a4a">+ Add materials cost from job</button>
     </div>
 
     <div class="form-section">
@@ -731,6 +732,13 @@
 
     update();
 
+    // Show "add materials cost" button if this job has a saved materials calc
+    if (_cachedJob && _cachedJob.materialsCalc && _cachedJob.materialsCalc.total > 0) {
+      var mb = document.getElementById('btn-add-materials');
+      mb.textContent = '+ Add materials cost (£' + _cachedJob.materialsCalc.total.toFixed(2) + ' inc VAT)';
+      mb.style.display = '';
+    }
+
     // Get invoice number (async)
     try {
       var cr = await sb.from('counters').select('value').eq('id', 'inv_last').single();
@@ -800,6 +808,22 @@
     rows[type] = rows[type].filter(function(r) { return r !== id; });
     var el = document.getElementById('row-' + id);
     if (el) el.remove();
+    update();
+  }
+
+  function addMaterialsItem() {
+    var mc = _cachedJob && _cachedJob.materialsCalc;
+    if (!mc || !(mc.total > 0)) { alert('No materials cost saved for this job. Save a total from the Materials calculator first.'); return; }
+    // Reuse an existing "Materials" line if one's already there, else add a row
+    var id = rows.items.find(function(rid) {
+      var d = document.querySelector('[data-id="'+rid+'"][data-field="desc"]');
+      return d && /^materials$/i.test((d.value || '').trim());
+    });
+    if (!id) { addRow('items'); id = rows.items[rows.items.length - 1]; }
+    var d = document.querySelector('[data-id="'+id+'"][data-field="desc"]');
+    var c = document.querySelector('[data-id="'+id+'"][data-field="cost"]');
+    if (d && !d.value.trim()) d.value = 'Materials';
+    if (c) c.value = mc.total.toFixed(2);
     update();
   }
 
