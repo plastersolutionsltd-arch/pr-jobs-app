@@ -255,8 +255,10 @@
     .room-materials .rm-labour { color: #555; font-weight: 400; }
     .room-extras { margin-bottom: 8px; }
     .room-extras .ex-hdr { font-size: 9px; letter-spacing: 1px; color: #999; text-transform: uppercase; margin-bottom: 4px; }
-    .extra-line { display: flex; gap: 6px; align-items: center; margin-bottom: 5px; }
-    .extra-line .ex-desc { flex: 1; min-width: 0; padding: 7px 8px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 13px; }
+    .extra-line { margin-bottom: 5px; }
+    .extra-line .ex-row1 { display: flex; gap: 6px; align-items: center; }
+    .extra-line .ex-mat { flex: 1; min-width: 0; padding: 7px 8px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 13px; background: white; -webkit-appearance: none; appearance: none; }
+    .extra-line .ex-desc { width: 100%; margin-top: 5px; padding: 7px 8px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 13px; }
     .extra-line .ex-qty { width: 48px; padding: 7px 6px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 13px; text-align: center; }
     .extra-line .ex-price { width: 64px; padding: 7px 6px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 13px; text-align: right; }
     .extra-line .ex-del { width: 24px; height: 24px; flex: none; border-radius: 50%; background: #eee; color: #777; border: none; font-size: 14px; line-height: 1; cursor: pointer; }
@@ -1610,22 +1612,75 @@ function parseFreetextMessage(raw) {
       return rc;
     }
 
+    // ---- Extra-material picker: pulls the main app's price list (pr_materials), ex-VAT ----
+    // Seed list used only if the app's saved list isn't on this device yet.
+    const EXTRA_MAT_DEFAULTS = [
+      { name: 'Siniat Bonding Compound', unit: '25kg bag', price: 11.60 },
+      { name: 'Thistle Multi Finish Plaster', unit: '25kg bag', price: 11.68 },
+      { name: 'PVA Primer', unit: '5L tub', price: 12.00 },
+      { name: 'Corner Bead (SS)', unit: '2.5m each', price: 2.50 },
+      { name: 'Stop Bead (SS)', unit: '3m each', price: 4.00 },
+      { name: 'Fibreglass Mesh', unit: '50m roll', price: 18.00 },
+      { name: 'Bond It Scrim Tape 48mm×90m', unit: '90m roll', price: 4.46 },
+      { name: 'Siniat Plasterboard 1800×900×12.5mm', unit: 'sheet', price: 8.35 },
+      { name: 'Grit Plaster', unit: '25kg bag', price: 8.00 }
+    ];
+    let _extraMats = null;
+    function extraMaterialsList() {
+      if (_extraMats) return _extraMats;
+      let saved = null;
+      try { saved = JSON.parse(localStorage.getItem('pr_materials') || 'null'); } catch(e) {}
+      _extraMats = (saved && saved.length) ? saved : EXTRA_MAT_DEFAULTS.slice();
+      return _extraMats;
+    }
+    function extraMatByName(name) { return extraMaterialsList().find(m => m.name === name); }
+    function extraMatOptions(selected) {
+      const opts = ['<option value="">— pick material —</option>'];
+      extraMaterialsList().forEach(m => {
+        const lbl = m.name + (m.price != null ? '  (£' + Number(m.price).toFixed(2) + (m.unit ? ' / ' + m.unit : '') + ')' : '');
+        const sel = (m.name === selected) ? ' selected' : '';
+        opts.push('<option value="' + String(m.name).replace(/"/g, '&quot;') + '"' + sel + '>' + lbl + '</option>');
+      });
+      opts.push('<option value="__other__"' + (selected === '__other__' ? ' selected' : '') + '>Other (type it)</option>');
+      return opts.join('');
+    }
+
     // Add one editable "extra material" line to a room card (optionally pre-filled on restore).
     function addExtraLine(card, d) {
       d = d || {};
       const wrap = card.querySelector('.extra-lines');
       if (!wrap) return;
+      // Decide initial dropdown state: known material name, blank, or custom "Other"
+      const known = d.desc ? extraMatByName(d.desc) : null;
+      const selVal = d.desc ? (known ? d.desc : '__other__') : '';
       const line = document.createElement('div');
       line.className = 'extra-line';
       line.innerHTML =
-        '<input type="text" class="ex-desc" placeholder="e.g. Angle bead" value="' + String(d.desc || '').replace(/"/g, '&quot;') + '">' +
-        '<input type="number" class="ex-qty" step="1" min="0" placeholder="1" value="' + (d.qty != null ? d.qty : '') + '">' +
-        '<input type="number" class="ex-price" step="0.01" min="0" placeholder="0.00" value="' + (d.price != null ? d.price : '') + '">' +
-        '<button type="button" class="ex-del" title="Remove">&times;</button>';
+        '<div class="ex-row1">' +
+          '<select class="ex-mat">' + extraMatOptions(selVal) + '</select>' +
+          '<input type="number" class="ex-qty" step="1" min="0" placeholder="1" value="' + (d.qty != null ? d.qty : '') + '">' +
+          '<input type="number" class="ex-price" step="0.01" min="0" placeholder="0.00" value="' + (d.price != null ? d.price : '') + '">' +
+          '<button type="button" class="ex-del" title="Remove">&times;</button>' +
+        '</div>' +
+        '<input type="text" class="ex-desc" placeholder="Material name" value="' + String(d.desc || '').replace(/"/g, '&quot;') + '" style="display:' + (selVal === '__other__' ? '' : 'none') + '">';
       wrap.appendChild(line);
+      const sel = line.querySelector('.ex-mat');
+      const descEl = line.querySelector('.ex-desc');
+      sel.addEventListener('change', () => {
+        if (sel.value === '__other__') {
+          descEl.style.display = ''; descEl.value = ''; descEl.focus();
+        } else if (sel.value) {
+          const m = extraMatByName(sel.value);
+          descEl.value = sel.value; descEl.style.display = 'none';
+          if (m && m.price != null) line.querySelector('.ex-price').value = m.price;  // auto-fill ex-VAT price
+        } else {
+          descEl.value = ''; descEl.style.display = 'none';
+        }
+        calcMaterials();
+      });
       line.querySelector('.ex-qty').addEventListener('input', calcMaterials);
       line.querySelector('.ex-price').addEventListener('input', calcMaterials);
-      line.querySelector('.ex-desc').addEventListener('input', calcMaterials);
+      descEl.addEventListener('input', calcMaterials);
       line.querySelector('.ex-del').addEventListener('click', () => { line.remove(); calcMaterials(); });
     }
 
