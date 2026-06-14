@@ -1296,7 +1296,8 @@ function openJob(id) {
   // Workflow templates
   html += '<div class="section-hdr">Workflow</div>';
   html += '<div class="tools-grid">';
-  html += toolBtn(noteSVG(),    'Site Visit',    "openTemplate('site-visit.html')");
+  html += toolBtn(noteSVG(),    'Plaster Visit', "openTemplate('site-visit.html')");
+  html += toolBtn(noteSVG(),    'Render Visit',  "openTemplate('site-visit-render.html')");
   html += toolBtn(quoteSVG(),   'Quote Plaster', "openTemplate('quote-plastering.html')");
   html += toolBtn(quoteSVG(),   'Quote Render',  "openTemplate('quote-rendering.html')");
   html += toolBtn(calSVG(),     'Book Date',     'scheduleJob()');
