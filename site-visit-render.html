@@ -743,6 +743,7 @@
         <div class="f"><label>Monocouche £/bag</label><input type="number" id="price-mono" value="11.30" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
         <div class="f"><label>EWI EPS £/board</label><input type="number" id="price-eps" value="5.30" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
         <div class="f"><label>EWI fixings £/box</label><input type="number" id="price-fixings" value="19.57" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
+        <div class="f"><label>Dark colour £/tub</label><input type="number" id="price-surcharge" value="16.67" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
       </div>
       <div style="font-size:7pt;color:#bbb;margin-top:4px">Prices remembered on this device — set once, used for every job.</div>
     </details>
@@ -754,7 +755,8 @@
           <tr><td class="total-label">MATERIALS COST (EX VAT)</td><td class="total-val" id="mat-cost-ex">£0.00</td></tr>
           <tr><td class="total-label" style="font-weight:400;color:#aaa">Inc VAT (20%)</td><td class="total-val" id="mat-cost-inc" style="font-weight:400">£0.00</td></tr>
           <tr id="mat-labour-row" style="display:none"><td class="total-label" style="font-weight:400;color:#aaa">Labour</td><td class="total-val" id="mat-labour-val" style="font-weight:400">£0.00</td></tr>
-          <tr id="mat-grand-row" style="display:none"><td class="total-label">JOB TOTAL (materials inc VAT + labour)</td><td class="total-val" id="mat-grand-val">£0.00</td></tr>
+          <tr id="mat-grand-row" style="display:none"><td class="total-label">MY COST (materials inc VAT + labour)</td><td class="total-val" id="mat-grand-val">£0.00</td></tr>
+          <tr id="mat-quote-row" style="display:none"><td class="total-label" style="color:#0a7a0a">CUSTOMER QUOTE (£/m² × area)</td><td class="total-val" id="mat-quote-val" style="color:#0a7a0a">£0.00</td></tr>
         </tfoot>
       </table>
       <label style="display:flex;align-items:center;gap:8px;margin:8px 0;font-size:13px;color:#000;cursor:pointer">
@@ -1368,6 +1370,9 @@ function parseFreetextMessage(raw) {
             if (r.openings) document.getElementById('o-' + rc).value = r.openings;
             if (card) {
               card.querySelector('.method-walls').value = r.system || '';
+              if (r.rate)   card.querySelector('.elev-rate').value = r.rate;
+              if (r.colour) card.querySelector('.elev-colour').value = r.colour;
+              if (r.dark)   card.querySelector('.elev-dark').checked = true;
               if (r.note) card.querySelector('.room-note').value = r.note;
               if (Array.isArray(r.extras)) r.extras.forEach(x => addExtraLine(card, x));
               if (r.labour) card.querySelector('.room-labour').value = r.labour;
@@ -1583,6 +1588,11 @@ function parseFreetextMessage(raw) {
         '<div class="room-surface">' +
           '<div class="surf-row"><span class="surf-lbl">Area <b id="wall-' + rc + '">\u2014</b></span><select class="method-walls">' + methodOptions('') + '</select></div>' +
         '</div>' +
+        '<div class="room-dims" style="margin-bottom:8px">' +
+          '<div class="f"><label>Price \u00a3/m\u00b2</label><input type="number" step="1" min="0" class="elev-rate" placeholder="0"></div>' +
+          '<div class="f"><label>Colour</label><input type="text" class="elev-colour" placeholder="e.g. White"></div>' +
+          '<div class="f"><label>Dark colour</label><label style="display:flex;align-items:center;gap:6px;height:38px"><input type="checkbox" class="elev-dark" style="width:16px;height:16px;accent-color:var(--green)"><span style="font-size:12px;color:#555">+surcharge</span></label></div>' +
+        '</div>' +
         '<div class="room-materials" id="mat-' + rc + '" style="display:none"></div>' +
         '<div class="room-extras">' +
           '<div class="ex-hdr">Extra materials (£ ea, ex VAT)</div>' +
@@ -1596,7 +1606,15 @@ function parseFreetextMessage(raw) {
       card.querySelector('#w-' + rc).addEventListener('input', () => calcRoom(rc));
       card.querySelector('#h-' + rc).addEventListener('input', () => calcRoom(rc));
       card.querySelector('#o-' + rc).addEventListener('input', () => calcRoom(rc));
-      card.querySelector('.method-walls').addEventListener('change', calcMaterials);
+      card.querySelector('.method-walls').addEventListener('change', (e) => {
+        // Auto-fill the customer £/m² rate from the chosen template (editable afterwards)
+        const rateEl = card.querySelector('.elev-rate');
+        const def = templateRate(e.target.value);
+        if (def) rateEl.value = def;
+        calcMaterials();
+      });
+      card.querySelector('.elev-rate').addEventListener('input', calcMaterials);
+      card.querySelector('.elev-dark').addEventListener('change', calcMaterials);
       card.querySelector('.room-del').addEventListener('click', () => { card.remove(); calcTotals(); });
       card.querySelector('.extra-add').addEventListener('click', () => { addExtraLine(card); calcMaterials(); });
       card.querySelector('.room-labour').addEventListener('input', calcMaterials);
@@ -1756,17 +1774,32 @@ function parseFreetextMessage(raw) {
       calcMaterials();
     }
 
-    // ===== MATERIALS ESTIMATE (per room) =====
-    // Each room picks its own method; quantities use that room's ticked surfaces.
-    const METHOD_LABELS = { 'Silicone':'Silicone', 'Monocouche':'Monocouche', 'K-Rend':'K-Rend', 'EWI':'EWI System', 'Sand & Cement':'Sand & Cement', 'External Render':'External Render' };
+    // ===== RENDER ESTIMATE (per elevation) =====
+    // Each elevation picks a TEMPLATE: drives the material recipe (its base system) AND a default
+    // customer £/m² rate (editable per job). Hack-off variants share materials but cost more labour.
+    const RENDER_TEMPLATES = [
+      { key:'silicone',           label:'Silicone — No Hack Off',   system:'Silicone',        rate:90 },
+      { key:'silicone_hackoff',   label:'Silicone — Hack Off',      system:'Silicone',        rate:105 },
+      { key:'monocouche',         label:'Monocouche — No Hack Off', system:'Monocouche',      rate:80 },
+      { key:'monocouche_hackoff', label:'Monocouche — Hack Off',    system:'Monocouche',      rate:95 },
+      { key:'krend',              label:'K-Rend',                   system:'K-Rend',          rate:80 },
+      { key:'ewi',                label:'EWI System',               system:'EWI',             rate:120 },
+      { key:'sand_cement',        label:'Sand & Cement',            system:'Sand & Cement',   rate:50 },
+      { key:'external',           label:'External Render',          system:'External Render', rate:85 }
+    ];
+    const TEMPLATE_BY_KEY = {}; RENDER_TEMPLATES.forEach(t => TEMPLATE_BY_KEY[t.key] = t);
+    const METHOD_LABELS = {}; RENDER_TEMPLATES.forEach(t => METHOD_LABELS[t.key] = t.label);
+    function templateSystem(key) { return (TEMPLATE_BY_KEY[key] || {}).system || ''; }
+    function templateRate(key)   { return (TEMPLATE_BY_KEY[key] || {}).rate || 0; }
     let _matCopyText = '';
+    let _jobPrice = 0;                                  // sum of per-elevation customer price (rate × area)
     let _matCost = { subtotal: 0, vat: 0, total: 0 };   // ex-VAT subtotal, VAT, inc-VAT total (materials, incl. extras)
     let _jobLabour = 0;                                 // sum of per-elevation labour (on-site estimate only, NOT sent to invoice)
     const MAT_VAT = 0.20;
 
     // Default ProTec/MKM ex-VAT render prices (latest invoices to Jun 2026) — overridable, remembered per device.
-    const PRICE_DEFAULTS = { base:12.90, mesh:64.19, primer:75.90, top:87.83, beads:3.10, mono:11.30, eps:5.30, fixings:19.57 };
-    const PRICE_IDS = { base:'price-base', mesh:'price-mesh', primer:'price-primer', top:'price-top', beads:'price-beads', mono:'price-mono', eps:'price-eps', fixings:'price-fixings' };
+    const PRICE_DEFAULTS = { base:12.90, mesh:64.19, primer:75.90, top:87.83, beads:3.10, mono:11.30, eps:5.30, fixings:19.57, surcharge:16.67 };
+    const PRICE_IDS = { base:'price-base', mesh:'price-mesh', primer:'price-primer', top:'price-top', beads:'price-beads', mono:'price-mono', eps:'price-eps', fixings:'price-fixings', surcharge:'price-surcharge' };
 
     function priceFor(key) {
       const el = document.getElementById(PRICE_IDS[key]);
@@ -1791,7 +1824,7 @@ function parseFreetextMessage(raw) {
     function plural(n, u) { return n + ' ' + u + (n !== 1 ? 's' : ''); }
 
     function methodOptions(sel) {
-      const opts = [['','— pick system —'],['Silicone','Silicone'],['Monocouche','Monocouche'],['K-Rend','K-Rend'],['EWI','EWI System'],['Sand & Cement','Sand & Cement'],['External Render','External Render']];
+      const opts = [['','— pick system —']].concat(RENDER_TEMPLATES.map(t => [t.key, t.label]));
       return opts.map(o => '<option value="'+o[0]+'"'+(o[0] === (sel || '') ? ' selected' : '')+'>'+o[1]+'</option>').join('');
     }
 
@@ -1842,6 +1875,7 @@ function parseFreetextMessage(raw) {
       const grandExtras = {}; const extrasOrder = [];   // ad-hoc materials aggregated by description
       let grandCostEx = 0;
       let grandLabour = 0;
+      let grandPrice = 0;                                // customer quote (\u03a3 rate \u00d7 area)
       const copyRooms = [];
 
       function addInto(map, list, mats) {
@@ -1851,16 +1885,27 @@ function parseFreetextMessage(raw) {
       cards.forEach(card => {
         const rc = card.id.replace('room-', '');
         const area = parseFloat((document.getElementById('wall-' + rc) || {}).textContent) || 0;
-        const sys = (card.querySelector('.method-walls') || {}).value || '';
+        const tplKey = (card.querySelector('.method-walls') || {}).value || '';
+        const system = templateSystem(tplKey);
         const nameEl = card.querySelector('.room-name');
         const name = (nameEl && nameEl.value.trim()) || 'Elevation';
 
+        // Customer price for this elevation = \u00a3/m\u00b2 \u00d7 area
+        const rate = parseFloat(card.querySelector('.elev-rate')?.value) || 0;
+        const elevPrice = rate * area;
+        grandPrice += elevPrice;
+
         const roomMap = {}; const roomOrder = []; const surfaces = [];
-        if (sys && area > 0) {
-          const mats = renderMaterials(sys, area, R);
+        if (system && area > 0) {
+          const mats = renderMaterials(system, area, R);
+          // Dark-colour surcharge: one per topcoat tub
+          if (card.querySelector('.elev-dark')?.checked) {
+            const topLine = mats.find(m => m[0] === 'top');
+            if (topLine) mats.push(['surcharge','Dark colour surcharge','tub', topLine[3]]);
+          }
           addInto(roomMap, roomOrder, mats);
           addInto(grand, order, mats);
-          surfaces.push([name, sys, area, mats]);
+          surfaces.push([name, tplKey, area, mats]);
         }
 
         // Extra (ad-hoc) materials for this elevation \u2014 fold into the materials cost + order list
@@ -1884,35 +1929,33 @@ function parseFreetextMessage(raw) {
 
         const md = document.getElementById('mat-' + rc);
         if (md) {
-          if (!roomOrder.length && !extras.length && !(labour > 0)) { md.style.display = 'none'; md.innerHTML = ''; }
+          if (!roomOrder.length && !extras.length && !(labour > 0) && !(elevPrice > 0)) { md.style.display = 'none'; md.innerHTML = ''; }
           else {
-            const consumHtml = '';
             const extrasHtml = extras.map(x => '<div>' + x.qty + ' \u00d7 ' + x.desc
               + ' <span style="color:#888;font-size:11px">\u00a3' + (x.qty * x.price).toFixed(2) + '</span></div>').join('');
-            let costHtml;
-            if (labour > 0) {
-              costHtml = '<div class="rm-cost">Materials: \u00a3' + roomMatInc.toFixed(2) + ' inc VAT'
-                + '<div class="rm-labour">Labour: \u00a3' + labour.toFixed(2) + '</div>'
-                + 'Elevation total: \u00a3' + roomTotal.toFixed(2) + '</div>';
-            } else {
-              costHtml = '<div class="rm-cost">Elevation cost: \u00a3' + roomMatInc.toFixed(2) + ' inc VAT</div>';
-            }
+            let costHtml = '<div class="rm-cost">';
+            if (roomOrder.length || extras.length) costHtml += 'Materials cost: \u00a3' + roomMatInc.toFixed(2) + ' inc VAT';
+            if (labour > 0) costHtml += '<div class="rm-labour">Labour: \u00a3' + labour.toFixed(2) + '</div>';
+            if (elevPrice > 0) costHtml += '<div style="margin-top:4px;color:#111;font-size:15px">Price: ' + area.toFixed(1) + ' m\u00b2 \u00d7 \u00a3' + rate + ' = \u00a3' + elevPrice.toFixed(2) + '</div>';
+            costHtml += '</div>';
             md.style.display = 'block';
-            md.innerHTML = '<div class="rm-hdr">Materials</div>'
+            md.innerHTML = (roomOrder.length ? '<div class="rm-hdr">Materials</div>' : '')
               + roomOrder.map(k => '<div>' + plural(roomMap[k].qty, roomMap[k].unit) + ' \u2014 ' + roomMap[k].label + '</div>').join('')
-              + extrasHtml + consumHtml + costHtml;
+              + extrasHtml + costHtml;
 
             const lines = surfaces.map(sf => '  ' + sf[0] + ' [' + (METHOD_LABELS[sf[1]] || sf[1]) + '] ' + sf[2].toFixed(1) + ' m\u00b2: ' + sf[3].map(m => plural(m[3], m[2]) + ' ' + m[1]).join(', '));
             extras.forEach(x => lines.push('  + ' + x.qty + ' \u00d7 ' + x.desc + ' (\u00a3' + (x.qty * x.price).toFixed(2) + ')'));
-            let footer = '\n  Materials: \u00a3' + roomMatInc.toFixed(2) + ' inc VAT';
-            if (labour > 0) footer += '\n  Labour: \u00a3' + labour.toFixed(2) + '\n  Elevation total: \u00a3' + roomTotal.toFixed(2);
+            let footer = '';
+            if (roomOrder.length || extras.length) footer += '\n  Materials cost: \u00a3' + roomMatInc.toFixed(2) + ' inc VAT';
+            if (labour > 0) footer += '\n  Labour: \u00a3' + labour.toFixed(2);
+            if (elevPrice > 0) footer += '\n  Price: ' + area.toFixed(1) + ' m\u00b2 \u00d7 \u00a3' + rate + ' = \u00a3' + elevPrice.toFixed(2);
             copyRooms.push(name + (lines.length ? '\n' + lines.join('\n') : '') + footer);
           }
         }
       });
 
-      if (!order.length && !extrasOrder.length && !(grandLabour > 0)) {
-        out.style.display = 'none'; _matCopyText = ''; _matCost = { subtotal:0, vat:0, total:0 }; _jobLabour = 0; return;
+      if (!order.length && !extrasOrder.length && !(grandLabour > 0) && !(grandPrice > 0)) {
+        out.style.display = 'none'; _matCopyText = ''; _matCost = { subtotal:0, vat:0, total:0 }; _jobLabour = 0; _jobPrice = 0; return;
       }
 
       document.getElementById('mat-list').innerHTML =
@@ -1922,6 +1965,7 @@ function parseFreetextMessage(raw) {
       const subtotal = grandCostEx;
       _matCost = { subtotal: subtotal, vat: subtotal * MAT_VAT, total: subtotal * (1 + MAT_VAT) };
       _jobLabour = grandLabour;
+      _jobPrice = grandPrice;
       document.getElementById('mat-cost-ex').textContent  = '\u00a3' + _matCost.subtotal.toFixed(2);
       document.getElementById('mat-cost-inc').textContent = '\u00a3' + _matCost.total.toFixed(2);
       // Labour + grand-total rows (on-site estimate only \u2014 not sent to the invoice)
@@ -1934,14 +1978,21 @@ function parseFreetextMessage(raw) {
       } else {
         labourRow.style.display = 'none'; grandRow.style.display = 'none';
       }
+      // Customer quote row (\u03a3 \u00a3/m\u00b2 \u00d7 area)
+      const quoteRow = document.getElementById('mat-quote-row');
+      if (grandPrice > 0) {
+        document.getElementById('mat-quote-val').textContent = '\u00a3' + grandPrice.toFixed(2);
+        quoteRow.style.display = '';
+      } else { quoteRow.style.display = 'none'; }
       out.style.display = 'block';
 
       const orderLines = order.map(k => plural(grand[k].qty, grand[k].unit) + ' \u2014 ' + grand[k].label)
         .concat(extrasOrder.map(k => grandExtras[k].qty + ' \u2014 ' + grandExtras[k].label));
-      _matCopyText = 'MATERIALS ESTIMATE\n\n' + copyRooms.join('\n\n')
+      _matCopyText = 'RENDER ESTIMATE\n\n' + copyRooms.join('\n\n')
         + '\n\nTOTAL TO ORDER\n  ' + orderLines.join('\n  ')
-        + '\n\nTotal materials: \u00a3' + _matCost.subtotal.toFixed(2) + ' ex VAT  (\u00a3' + _matCost.total.toFixed(2) + ' inc VAT)'
-        + (grandLabour > 0 ? '\nLabour: \u00a3' + grandLabour.toFixed(2) + '\nJOB TOTAL: \u00a3' + (_matCost.total + grandLabour).toFixed(2) : '');
+        + '\n\nMaterials cost: \u00a3' + _matCost.subtotal.toFixed(2) + ' ex VAT  (\u00a3' + _matCost.total.toFixed(2) + ' inc VAT)'
+        + (grandLabour > 0 ? '\nLabour: \u00a3' + grandLabour.toFixed(2) : '')
+        + (grandPrice > 0 ? '\n\nCUSTOMER QUOTE: \u00a3' + grandPrice.toFixed(2) : '');
     }
 
     function copyMaterials() {
@@ -2188,6 +2239,9 @@ function parseFreetextMessage(raw) {
               h:     parseFloat(document.getElementById('h-' + rc)?.value) || 0,
               openings: parseFloat(document.getElementById('o-' + rc)?.value) || 0,
               system: sys,
+              rate:   parseFloat(card.querySelector('.elev-rate')?.value) || 0,
+              colour: card.querySelector('.elev-colour')?.value || '',
+              dark:   !!card.querySelector('.elev-dark')?.checked,
               note:  card.querySelector('.room-note')?.value || '',
               extras: cardExtras(card),
               labour: parseFloat(card.querySelector('.room-labour')?.value) || 0
