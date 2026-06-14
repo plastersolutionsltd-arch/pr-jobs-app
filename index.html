@@ -1579,18 +1579,17 @@ function findPostcode(s) {
   return m ? m[0].toUpperCase() : '';
 }
 function findAddress(s, postcode) {
-  var types = 'Road|Street|Avenue|Lane|Close|Drive|Way|Crescent|Place|Gardens|Grove|Hill|View|Park|Court|Terrace|Row|Walk|Rise|Mews|Square|Green|Fields';
-  // Stop at newline or at known Formspree field label words
-  var stopWords = 'postcode|property|work_type|work type|description|timescale|phone|email|name';
-  var re = new RegExp('(\\d+[a-zA-Z]?[,\\s]+[\\w\\s,\\.\\-]{0,50}?(?:'+types+')(?:[\\w\\s,]{0,20})?)', 'i');
-  // Strip postcode from singleLine first so e.g. "S35 4HF, 9 Holland Road" doesn't grab "35" as house number
+  var types = 'Road|Street|Avenue|Lane|Close|Drive|Way|Crescent|Place|Gardens|Grove|Hill|View|Park|Court|Terrace|Row|Walk|Rise|Mews|Square|Green|Fields|Rd|Ave|Cres|Gdns|Grn|Ln|Dr|Pl|Sq|Ct|Ter';
+  // Cut the address off at any sign-off so "14 Oak Road cheers John" doesn't keep the name
+  var signoff = /\b(cheers|thanks|thank\s*you|regards|kind\s*regards|many\s*thanks|best|ta|from)\b[\s\S]*$/i;
+  var re = new RegExp('(\\d+[a-zA-Z]?[,\\s]+[\\w\\s,\\.\\-]{0,50}?(?:'+types+')\\b(?:,\\s*[A-Z][a-z]+){0,2})', 'i');
   var pcPattern = /\b[A-Za-z]{1,2}\d{1,2}[A-Za-z]?\s*\d[A-Za-z]{2}\b/g;
-  var singleLine = s.replace(new RegExp('\\s+(?:'+stopWords+')\\b.*','i'),' ').split('\n')[0].replace(pcPattern, '');
+  var singleLine = s.replace(new RegExp('\\s+(?:postcode|property|work_type|work type|description|timescale|phone|email|name)\\b.*','i'),' ').split('\n')[0].replace(pcPattern, '');
   var m = singleLine.match(re) || s.split('\n').reduce(function(found, line){
     return found || line.match(re);
   }, null);
   if (m) {
-    var addr = m[0].replace(/\s+/g,' ').trim().replace(/,\s*$/,'');
+    var addr = m[0].replace(signoff,'').replace(/\s+/g,' ').trim().replace(/[,\s]+$/,'');
     if (postcode && addr.toUpperCase().indexOf(postcode.replace(/\s/,''))===-1) addr += ', '+postcode;
     return addr;
   }
@@ -1599,16 +1598,18 @@ function findAddress(s, postcode) {
     var pcM  = s.match(pcRe);
     if (pcM) {
       var pcIdx = s.search(pcRe);
-      var skipW = ['semi','detached','terraced','house','flat','bungalow','its','the','and','for','with','a','an','is'];
-      var after = s.substring(pcIdx+pcM[0].length, pcIdx+pcM[0].length+60).replace(/[^a-zA-Z0-9\s]/g,' ').trim();
-      var afterPart = after.split(/\s{2,}|\n/)[0].trim();
-      var before = s.substring(Math.max(0,pcIdx-60),pcIdx).replace(/[^a-zA-Z0-9\s,]/g,' ').trim();
+      var skipW = ['semi','detached','terraced','house','flat','bungalow','its','the','and','for','with','a','an','is','postcode','call','me','on','number','quote','please','my','need','want','renderer','plasterer','price'];
+      var after = s.substring(pcIdx+pcM[0].length, pcIdx+pcM[0].length+40).replace(/[^a-zA-Z0-9\s]/g,' ').trim();
+      var afterPart = (after.split(/\s{2,}|\n/)[0].trim().match(/^[A-Z][a-z]+(\s+[A-Z][a-z]+)?/)||[''])[0];
+      if (afterPart && skipW.indexOf(afterPart.split(/\s+/)[0].toLowerCase())>-1) afterPart='';
+      var before = s.substring(Math.max(0,pcIdx-50),pcIdx).replace(/[^a-zA-Z0-9\s,]/g,' ').trim();
       var bChunks = before.split(/[,\n]+/);
       var bPart = bChunks[bChunks.length-1].trim();
-      var bWords = bPart.split(/\s+/).filter(function(w){ return w.length>2 && skipW.indexOf(w.toLowerCase())===-1; });
+      var hasNum = /\d/.test(bPart);
+      var bWords = bPart.split(/\s+/).filter(function(w){ return w.length>1 && skipW.indexOf(w.toLowerCase())===-1; });
       bPart = bWords.join(' ');
       var parts = [];
-      if (bPart.length>2) parts.push(bPart);
+      if (hasNum && bPart.length>2) parts.push(bPart);   // only use pre-postcode text if it has a house number
       if (afterPart.length>2) parts.push(afterPart);
       if (parts.length>0) return parts.join(', ')+', '+postcode;
       return postcode;
@@ -1617,9 +1618,11 @@ function findAddress(s, postcode) {
   return '';
 }
 function findName(s) {
-  var skip=['looking','wondering','hoping','wanting','calling','writing','ringing','contacting','regarding','regards','kind','best','many','warm','sincerely','hello','hi','hey','good','dear','could','would','please','can','just','sheffield','leeds','manchester','bradford','birmingham','detached','semi','terraced','bungalow','house','flat','apartment','commercial','silicone','monocouche','roughcast','tyrolean','plastering','rendering','external','internal','new','quote','free','whatsapp','message','pictures','photos','address','road','street','avenue','close','drive','enquiry','quoted','booked','inprogress','done','declined','invoiced','paid','details','workflow','status','notes','tools','unknown'];
-  function ok(c){ return c && !skip.some(function(w){ return c.toLowerCase().indexOf(w)===0; }); }
+  var skip=['looking','wondering','hoping','wanting','calling','writing','ringing','contacting','regarding','regards','kind','best','many','warm','sincerely','hello','hi','hey','good','dear','could','would','please','can','just','sheffield','leeds','manchester','bradford','birmingham','detached','semi','terraced','bungalow','house','flat','apartment','commercial','silicone','monocouche','roughcast','tyrolean','plastering','rendering','external','internal','new','quote','free','whatsapp','message','pictures','photos','address','road','street','avenue','close','drive','enquiry','quoted','booked','inprogress','done','declined','invoiced','paid','details','workflow','status','notes','tools','unknown','chris','glover','morning','afternoon','evening','alright','hiya','yo','from','its','it','ok','okay','cheers','ta','thanks','thank','mate','there','price','number','quotes','quoting','on','after','about','need','want','wanted','am','im','is','are','was','if','my','me','we','our','your','here','speaking'];
+  var trailFiller=['here','speaking','calling','please','now','today','asap','again','mate','cheers','thanks','and','i','the','a'];
+  function ok(c){ return c && !skip.some(function(w){ return c.toLowerCase().split(/\s+/)[0]===w; }); }
   function cap(n){ return n.trim().replace(/\b\w/g, function(ch){ return ch.toUpperCase(); }); }
+  function clean(n){ var w=n.trim().split(/\s+/); while(w.length>1 && trailFiller.indexOf(w[w.length-1].toLowerCase())>-1) w.pop(); return w.join(' '); }
   var m;
   // "Name, address" format — e.g. "Mick Swindells, 52 Wheel Lane S35 8RN"
   var commaIdx = s.indexOf(',');
@@ -1636,23 +1639,29 @@ function findName(s) {
   var lines = s.split('\n');
   for (var i=0;i<lines.length;i++){
     var line=lines[i].trim();
-    if (/^[A-Z][a-z]{1,25}(\s+[A-Z][a-z]{1,25}){1,2}$/.test(line) && ok(line)) return line;
+    if (/^[A-Z][a-z]{1,25}(\s+[A-Z][a-z]{1,25}){1,2}$/.test(line) && ok(line)) return clean(line);
   }
-  // Sign-off with keyword (thanks, regards, cheers etc) — accept any case
+  // Sign-off with keyword (thanks, regards, cheers etc)
   m=s.match(/(?:thanks|thank\s+you|regards|cheers|kind\s+regards)[,\s!]+([A-Za-z][a-zA-Z]{1,}(?:\s+[A-Za-z][a-zA-Z]{1,})?)\s*$/im);
-  if(m&&ok(m[1])) return cap(m[1]);
-  // "From Name" sign-off at end
-  m=s.match(/(?:^|\n)\s*(?:from|[-–])\s+([A-Za-z][a-zA-Z]{1,}(?:\s+[A-Za-z][a-zA-Z]{1,})?)\s*$/im);
-  if(m&&ok(m[1])) return cap(m[1]);
-  // Sign-off at end of message — name alone after sentence punctuation (e.g. "...on WhatsApp. Greg")
+  if(m&&ok(m[1])) return cap(clean(m[1]));
+  // "From Name" / "- Name" sign-off at line start
+  m=s.match(/(?:^|\n)\s*(?:from|[-\u2013])\s+([A-Za-z][a-zA-Z]{1,}(?:\s+[A-Za-z][a-zA-Z]{1,})?)\s*$/im);
+  if(m&&ok(m[1])) return cap(clean(m[1]));
+  // "from Name" anywhere at the very end
+  m=s.match(/\bfrom\s+([A-Z][a-z]{1,}(?:\s+[A-Z][a-z]{1,})?)\s*$/im);
+  if(m&&ok(m[1])) return cap(clean(m[1]));
+  // dash sign-off at end: "...777 - Tina"
+  m=s.match(/[-\u2013]\s*([A-Z][a-z]{1,}(?:\s+[A-Z][a-z]{1,})?)\s*$/m);
+  if(m&&ok(m[1])) return cap(clean(m[1]));
+  // Sign-off at end — name alone after sentence punctuation
   m=s.match(/[.!?]\s+([A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})?)\s*$/m);
-  if(m&&ok(m[1])) return m[1].trim();
-  // Explicit: "my name is", "I'm", "it's", "this is" — accept any case then capitalise
-  m=s.match(/(?:my name(?:'s|\s+is)?|i['']m|i am|it['']s|this is|name[:\s]+)\s+([A-Za-z][a-zA-Z]{1,}(?:\s+[A-Za-z][a-zA-Z]{1,}){0,2})/i);
-  if(m&&ok(m[1])) return cap(m[1]);
-  // Greeting: "Hi, John" or "Hi mate, Dave" — accept any case then capitalise
-  m=s.match(/^(?:hi|hello|hey|good\s+\w+)[,\s!]+(?:(?:mate|there|chris|it['']s|i['']m)[,\s]+)?([A-Za-z][a-zA-Z]{2,}(?:\s+[A-Za-z][a-zA-Z]{2,})?)/im);
-  if(m&&ok(m[1])) return cap(m[1]);
+  if(m&&ok(m[1])) return clean(m[1]);
+  // Explicit: "my name is", "I'm", "it's"/"its", "this is" (straight or curly apostrophe)
+  m=s.match(/(?:my name(?:['\u2019]s|\s+is)?|i['\u2019]?m|i am|it['\u2019]?s|this is|name[:\s]+)\s+([A-Za-z][a-zA-Z]{1,}(?:\s+[A-Za-z][a-zA-Z]{1,}){0,2})/i);
+  if(m&&ok(m[1])) return cap(clean(m[1]));
+  // Greeting: "Hi John" / "Alright Chris, Dave" — captured name must be Capitalised to avoid grabbing filler
+  m=s.match(/^(?:hi|hello|hey|hiya|alright|good\s+\w+|morning|afternoon|evening)[,\s!]+(?:(?:mate|there|chris|it['\u2019]?s|i['\u2019]?m)[,\s]+)?([A-Z][a-zA-Z]{2,}(?:\s+[A-Z][a-zA-Z]{2,})?)/m);
+  if(m&&ok(m[1])) return cap(clean(m[1]));
   return '';
 }
 function findNotes(s) {
