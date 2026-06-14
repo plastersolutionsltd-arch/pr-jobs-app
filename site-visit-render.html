@@ -722,11 +722,10 @@
     <details style="margin-bottom:8px">
       <summary style="cursor:pointer;color:#5a8a4a;font-size:8pt;letter-spacing:1px;text-transform:uppercase;font-weight:700">Coverage rates — tap to adjust</summary>
       <div class="grid-3" style="margin-top:8px">
-        <div class="f"><label>X32 base m²/bag</label><input type="number" id="cov-base" value="5" step="0.5" min="0.1" oninput="calcMaterials()"></div>
+        <div class="f"><label>X32 base m²/bag (~10mm)</label><input type="number" id="cov-base" value="1.5" step="0.1" min="0.1" oninput="calcMaterials()"></div>
         <div class="f"><label>M160 mesh m²/roll</label><input type="number" id="cov-mesh" value="50" step="1" min="0.1" oninput="calcMaterials()"></div>
-        <div class="f"><label>SFP15 primer m²/tub</label><input type="number" id="cov-primer" value="25" step="0.5" min="0.1" oninput="calcMaterials()"></div>
-        <div class="f"><label>SR15 topcoat m²/tub</label><input type="number" id="cov-top" value="10" step="0.5" min="0.1" oninput="calcMaterials()"></div>
-        <div class="f"><label>Beads per m²</label><input type="number" id="cov-beads" value="0.1" step="0.01" min="0" oninput="calcMaterials()"></div>
+        <div class="f"><label>SFP15 primer m²/tub</label><input type="number" id="cov-primer" value="80" step="0.5" min="0.1" oninput="calcMaterials()"></div>
+        <div class="f"><label>SR15 topcoat m²/tub</label><input type="number" id="cov-top" value="9" step="0.5" min="0.1" oninput="calcMaterials()"></div>
         <div class="f"><label>Monocouche m²/bag</label><input type="number" id="cov-mono" value="4" step="0.5" min="0.1" oninput="calcMaterials()"></div>
         <div class="f"><label>EWI EPS m²/board</label><input type="number" id="cov-eps" value="0.72" step="0.01" min="0.1" oninput="calcMaterials()"></div>
         <div class="f"><label>EWI fixings m²/box</label><input type="number" id="cov-fixings" value="10" step="1" min="0.1" oninput="calcMaterials()"></div>
@@ -739,7 +738,6 @@
         <div class="f"><label>M160 mesh £/roll</label><input type="number" id="price-mesh" value="64.19" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
         <div class="f"><label>SFP15 primer £/tub</label><input type="number" id="price-primer" value="75.90" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
         <div class="f"><label>SR15 topcoat £/tub</label><input type="number" id="price-top" value="87.83" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
-        <div class="f"><label>Beads £ each</label><input type="number" id="price-beads" value="3.10" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
         <div class="f"><label>Monocouche £/bag</label><input type="number" id="price-mono" value="11.30" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
         <div class="f"><label>EWI EPS £/board</label><input type="number" id="price-eps" value="5.30" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
         <div class="f"><label>EWI fixings £/box</label><input type="number" id="price-fixings" value="19.57" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
@@ -1391,7 +1389,7 @@ function parseFreetextMessage(raw) {
           const r = me.rates || {};
           const setRate = (id, val) => { const el = document.getElementById(id); if (val && el) el.value = val; };
           setRate('cov-base', r.base); setRate('cov-mesh', r.mesh); setRate('cov-primer', r.primer);
-          setRate('cov-top', r.top); setRate('cov-beads', r.beads); setRate('cov-mono', r.mono);
+          setRate('cov-top', r.top); setRate('cov-mono', r.mono);
           setRate('cov-eps', r.eps); setRate('cov-fixings', r.fixings);
           if (me.toInvoice === false) document.getElementById('mat-to-invoice').checked = false;
         }
@@ -1798,8 +1796,8 @@ function parseFreetextMessage(raw) {
     const MAT_VAT = 0.20;
 
     // Default ProTec/MKM ex-VAT render prices (latest invoices to Jun 2026) — overridable, remembered per device.
-    const PRICE_DEFAULTS = { base:12.90, mesh:64.19, primer:75.90, top:87.83, beads:3.10, mono:11.30, eps:5.30, fixings:19.57, surcharge:16.67 };
-    const PRICE_IDS = { base:'price-base', mesh:'price-mesh', primer:'price-primer', top:'price-top', beads:'price-beads', mono:'price-mono', eps:'price-eps', fixings:'price-fixings', surcharge:'price-surcharge' };
+    const PRICE_DEFAULTS = { base:12.90, mesh:64.19, primer:75.90, top:87.83, mono:11.30, eps:5.30, fixings:19.57, surcharge:16.67 };
+    const PRICE_IDS = { base:'price-base', mesh:'price-mesh', primer:'price-primer', top:'price-top', mono:'price-mono', eps:'price-eps', fixings:'price-fixings', surcharge:'price-surcharge' };
 
     function priceFor(key) {
       const el = document.getElementById(PRICE_IDS[key]);
@@ -1821,7 +1819,7 @@ function parseFreetextMessage(raw) {
     }
 
     function matEsc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-    function plural(n, u) { return n + ' ' + u + (n !== 1 ? 's' : ''); }
+    function plural(n, u) { if (n === 1) return n + ' ' + u; const irr = { each:'each', box:'boxes' }; return n + ' ' + (irr[u] || (u + 's')); }
 
     function methodOptions(sel) {
       const opts = [['','— pick system —']].concat(RENDER_TEMPLATES.map(t => [t.key, t.label]));
@@ -1831,11 +1829,10 @@ function parseFreetextMessage(raw) {
     function ratesObj() {
       const rate = (id, def) => { const el = document.getElementById(id); const v = el ? parseFloat(el.value) : NaN; return v > 0 ? v : def; };
       return {
-        base:    rate('cov-base', 5),
+        base:    rate('cov-base', 1.5),
         mesh:    rate('cov-mesh', 50),
-        primer:  rate('cov-primer', 25),
-        top:     rate('cov-top', 10),
-        beads:   (function(){ const el=document.getElementById('cov-beads'); const v=el?parseFloat(el.value):NaN; return (v>=0&&!isNaN(v))?v:0.1; })(),
+        primer:  rate('cov-primer', 80),
+        top:     rate('cov-top', 9),
         mono:    rate('cov-mono', 4),
         eps:     rate('cov-eps', 0.72),
         fixings: rate('cov-fixings', 10)
@@ -1847,22 +1844,20 @@ function parseFreetextMessage(raw) {
     // Returns [ [key, label, unit, qty], ... ] of area-scaled render materials for one elevation + system.
     function renderMaterials(system, area, R) {
       if (!system || !(area > 0)) return [];
+      // Beads are NOT auto-calculated — added manually via extras (corners, reveals, doors vary per job).
       const base   = ['base','Ecorend X32 basecoat (25kg)','bag', matUp(area / R.base)];
       const mesh   = ['mesh','EcoRend M160 mesh','roll', matUp(area / R.mesh)];
       const primer = ['primer','SFP15 Sil-Flex primer (25kg)','tub', matUp(area / R.primer)];
       const top    = ['top','SR15 silicone topcoat (25kg)','tub', matUp(area / R.top)];
-      const beads  = ['beads','Render beads (2.7m)','each', Math.max(2, Math.round(area * R.beads))];
       if (system === 'Silicone' || system === 'K-Rend' || system === 'External Render')
-        return [base, mesh, primer, top, beads];
+        return [base, mesh, primer, top];
       if (system === 'EWI')
         return [['eps','EPS insulation board','board', matUp(area / R.eps)],
                 ['fixings','EWI fixings (box)','box', matUp(area / R.fixings)],
-                base, mesh, primer, top, beads];
+                base, mesh, primer, top];
       if (system === 'Monocouche')
-        return [['mono','Monocouche render (25kg)','bag', matUp(area / R.mono)], mesh, beads];
-      if (system === 'Sand & Cement')
-        return [beads];   // sand/cement bought elsewhere — add via extras
-      return [];
+        return [['mono','Monocouche render (25kg)','bag', matUp(area / R.mono)], mesh];
+      return [];   // Sand & Cement / unknown — add materials via extras
     }
 
     function calcMaterials() {
@@ -2256,7 +2251,6 @@ function parseFreetextMessage(raw) {
             mesh:    document.getElementById('cov-mesh')?.value || '',
             primer:  document.getElementById('cov-primer')?.value || '',
             top:     document.getElementById('cov-top')?.value || '',
-            beads:   document.getElementById('cov-beads')?.value || '',
             mono:    document.getElementById('cov-mono')?.value || '',
             eps:     document.getElementById('cov-eps')?.value || '',
             fixings: document.getElementById('cov-fixings')?.value || ''
