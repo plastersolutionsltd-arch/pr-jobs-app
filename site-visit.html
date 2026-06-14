@@ -1302,6 +1302,9 @@ function parseFreetextMessage(raw) {
       // Kick off background Supabase sync (updates localStorage for next open)
       if (jobId) syncFromSupabase(jobId);
 
+      // Pull the latest Materials price list from the cloud so the extras picker is always current
+      loadExtraMaterialsFromCloud();
+
       const sv = _svJob?.siteVisit;
       const isRestore = !!sv;
 
@@ -1650,6 +1653,39 @@ function parseFreetextMessage(raw) {
       });
       opts.push('<option value="__other__"' + (selected === '__other__' ? ' selected' : '') + '>Other (type it)</option>');
       return opts.join('');
+    }
+
+    // Rebuild every existing extra-line dropdown against the current materials list, keeping selections.
+    function refreshExtraDropdowns() {
+      document.querySelectorAll('.extra-line .ex-mat').forEach(sel => {
+        const cur = sel.value;
+        sel.innerHTML = extraMatOptions(cur);
+        // if the previously-picked material is no longer in the list, fall back to "Other" keeping its text
+        if (cur && cur !== '__other__' && sel.value !== cur) {
+          sel.value = '__other__';
+          const descEl = sel.closest('.extra-line').querySelector('.ex-desc');
+          if (descEl) descEl.style.display = '';
+        }
+      });
+    }
+
+    // Pull the latest Materials list straight from the cloud so the picker is current even if the
+    // main app hasn't run its sync on this device yet. Newest-wins vs the local copy; offline-safe.
+    async function loadExtraMaterialsFromCloud() {
+      try {
+        const r = await sb.from('app_kv').select('*').eq('id', 'materials').single();
+        if (r.error || !r.data || !Array.isArray(r.data.data) || !r.data.data.length) return;
+        let localTs = 0;
+        try { localTs = parseInt(localStorage.getItem('pr_materials_ts') || '0', 10) || 0; } catch(e) {}
+        const cloudTs = r.data.updated_at || 0;
+        if (cloudTs < localTs) return;               // local copy is newer — keep it
+        _extraMats = r.data.data;
+        try {
+          localStorage.setItem('pr_materials', JSON.stringify(r.data.data));
+          localStorage.setItem('pr_materials_ts', String(cloudTs));
+        } catch(e) {}
+        refreshExtraDropdowns();
+      } catch(e) { /* offline or table missing — local/default list is fine */ }
     }
 
     // Add one editable "extra material" line to a room card (optionally pre-filled on restore).
