@@ -1835,7 +1835,7 @@ function parseFreetextMessage(raw) {
       if (!file) return;
       const reader = new FileReader();
       reader.onload = e => {
-        compressImage(e.target.result, 1200, 0.75, compressed => {
+        compressImage(e.target.result, 1100, 0.6, compressed => {
           displayPhoto(pc, compressed);
           photoData[pc] = { dataUrl: compressed, caption: '' };
         });
@@ -1843,16 +1843,31 @@ function parseFreetextMessage(raw) {
       reader.readAsDataURL(file);
     }
 
+    // Downscale + shrink until the photo is small enough to upload reliably.
+    // All photos live in one Supabase row, so each must stay light (~150KB target).
+    const PHOTO_TARGET_BYTES = 150 * 1024;            // ~150KB per photo
     function compressImage(dataUrl, maxW, quality, cb) {
       const img = new Image();
       img.onload = () => {
-        const scale = Math.min(1, maxW / img.naturalWidth);
-        const w = Math.round(img.naturalWidth * scale);
-        const h = Math.round(img.naturalHeight * scale);
-        const c = document.createElement('canvas');
-        c.width = w; c.height = h;
-        c.getContext('2d').drawImage(img, 0, 0, w, h);
-        cb(c.toDataURL('image/jpeg', quality));
+        function render(w, q) {
+          const scale = Math.min(1, w / img.naturalWidth);
+          const cw = Math.max(1, Math.round(img.naturalWidth * scale));
+          const ch = Math.max(1, Math.round(img.naturalHeight * scale));
+          const c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          c.getContext('2d').drawImage(img, 0, 0, cw, ch);
+          return c.toDataURL('image/jpeg', q);
+        }
+        // approx bytes from a base64 data URL length
+        const bytes = s => Math.round((s.length - (s.indexOf(',') + 1)) * 0.75);
+        let w = maxW, q = quality, out = render(w, q), guard = 0;
+        while (bytes(out) > PHOTO_TARGET_BYTES && guard < 8) {
+          if (q > 0.4) q -= 0.1;            // first drop quality
+          else w = Math.round(w * 0.85);    // then shrink dimensions
+          out = render(w, q);
+          guard++;
+        }
+        cb(out);
       };
       img.src = dataUrl;
     }
