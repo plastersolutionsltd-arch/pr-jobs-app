@@ -1,0 +1,2604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P&R Solutions — Render Visit Form</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fjalla+One&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root { --green: #66FF33; --dark: #111; --border: #ccc; }
+
+    body {
+      font-family: 'Lato', Arial, sans-serif;
+      background: #e8e8e8;
+      color: var(--dark);
+      padding: 20px;
+    }
+
+    /* ===== TOP BAR ===== */
+    .top-bar {
+      background: #111;
+      color: white;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      border-radius: 3px;
+    }
+
+    .top-bar-title {
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 16px;
+      letter-spacing: 2px;
+    }
+
+    .top-bar-title span { color: var(--green); }
+
+    .btn-pdf {
+      background: var(--green);
+      color: #111;
+      border: none;
+      padding: 9px 20px;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 13px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+
+    /* ===== FORM SHEET ===== */
+    .sheet {
+      background: white;
+      width: 210mm;
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 14mm 15mm;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+    }
+
+    /* Header */
+    .doc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 6mm;
+      border-bottom: 3px solid var(--green);
+      margin-bottom: 6mm;
+    }
+
+    .doc-logo { width: 100px; }
+
+    .doc-title-block { text-align: right; }
+
+    .doc-company-name {
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 14pt;
+      letter-spacing: 2px;
+    }
+
+    .doc-company-name .g { color: var(--green); }
+
+    .doc-company-tag {
+      font-size: 6pt;
+      letter-spacing: 3px;
+      color: #999;
+      margin: 2px 0 5px;
+    }
+
+    .doc-company-contact {
+      font-size: 7.5pt;
+      color: #666;
+      line-height: 1.6;
+    }
+
+    .doc-type {
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 22pt;
+      letter-spacing: 3px;
+      margin-bottom: 3mm;
+    }
+
+    /* Section headings */
+    .sec {
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 7.5pt;
+      letter-spacing: 3px;
+      color: #999;
+      text-transform: uppercase;
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 3px;
+      margin: 6mm 0 4mm;
+    }
+
+    /* Grid layouts */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+
+    /* Field */
+    .f { margin-bottom: 8px; }
+
+    .f label {
+      display: block;
+      font-size: 8pt;
+      letter-spacing: 1px;
+      color: #333;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+
+    .f input[type="text"],
+    .f input[type="date"],
+    .f input[type="tel"],
+    .f input[type="email"],
+    .f input[type="number"],
+    .f textarea,
+    .f select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      font-family: 'Lato', sans-serif;
+      font-size: 14px;
+      color: #000;
+      background: white;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .f input:focus,
+    .f textarea:focus,
+    .f select:focus {
+      outline: none;
+      border-color: var(--green);
+      box-shadow: 0 0 0 2px rgba(102,255,51,0.15);
+    }
+
+    .f textarea { resize: vertical; min-height: 60px; line-height: 1.5; }
+
+    /* Checkboxes */
+    .checks { display: flex; flex-wrap: wrap; gap: 10px; padding: 6px 0; }
+    .checks label { display: flex; align-items: center; gap: 5px; font-size: 14px; color: #000; cursor: pointer; }
+    .checks input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--green); cursor: pointer; margin: 0; }
+
+    /* Radio */
+    .radios { display: flex; flex-wrap: wrap; gap: 12px; padding: 6px 0; }
+    .radios label { display: flex; align-items: center; gap: 5px; font-size: 14px; color: #000; cursor: pointer; }
+    .radios input[type="radio"] { width: 15px; height: 15px; accent-color: var(--green); cursor: pointer; margin: 0; }
+
+    /* Rooms table */
+    .rooms-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8.5pt;
+      margin-bottom: 4px;
+    }
+
+    .rooms-table thead tr { background: #111; color: white; }
+
+    .rooms-table th {
+      padding: 6px 8px;
+      text-align: left;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 7pt;
+      letter-spacing: 1.5px;
+      font-weight: normal;
+    }
+
+    .rooms-table th.c { text-align: center; }
+
+    .rooms-table td {
+      padding: 3px 4px;
+      border-bottom: 1px solid #eee;
+      vertical-align: middle;
+    }
+
+    .rooms-table td input[type="text"],
+    .rooms-table td input[type="number"] {
+      width: 100%;
+      padding: 6px 7px;
+      border: 1px solid #e0e0e0;
+      border-radius: 2px;
+      font-size: 13px;
+      font-family: 'Lato', sans-serif;
+      color: #000;
+      background: #fafafa;
+    }
+
+    .rooms-table td input:focus { outline: none; border-color: var(--green); background: white; }
+
+    .rooms-table td.area-cell {
+      font-weight: 700;
+      font-size: 9pt;
+      text-align: center;
+      color: #333;
+      min-width: 48px;
+    }
+
+    .rooms-table td .work-checks { display: flex; justify-content: center; gap: 6px; }
+    .rooms-table td .work-checks label { display: flex; align-items: center; gap: 3px; font-size: 10px; cursor: pointer; }
+    .rooms-table td .work-checks input { width: 13px; height: 13px; accent-color: var(--green); }
+
+    /* Per-room cards */
+    .room-card { border: 1px solid var(--border); border-radius: 6px; padding: 12px 12px 10px; margin-bottom: 12px; background: #fff; }
+    .room-card-head { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+    .room-card-head .room-name { flex: 1; padding: 8px 10px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 15px; font-weight: 700; color: #000; background: white; }
+    .room-card-head .room-name:focus { outline: none; border-color: var(--green); }
+    .room-del { width: 32px; height: 34px; flex-shrink: 0; border: 1px solid #e8e8e8; background: #f8f8f8; border-radius: 2px; color: #bbb; font-size: 18px; cursor: pointer; }
+    .room-del:hover { background: #fff0f0; border-color: #f99; color: #c33; }
+    .room-dims { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+    .room-dims .f { margin-bottom: 0; }
+    .room-areas { font-size: 12px; color: #666; margin-bottom: 8px; }
+    .room-areas b { color: #5a8a4a; font-weight: 700; }
+    .room-work { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 8px; }
+    .room-work label { display: flex; align-items: center; gap: 5px; font-size: 13px; color: #000; cursor: pointer; }
+    .room-work input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--green); }
+    .room-method { padding: 8px 10px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 14px; background: white; -webkit-appearance: none; appearance: none; margin-left: auto; min-width: 150px; }
+    .room-materials { font-size: 13px; color: #333; line-height: 1.6; background: #f7faf7; border: 1px solid #e6f0e6; border-radius: 4px; padding: 7px 10px; margin-bottom: 8px; }
+    .room-note { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 14px; color: #000; background: white; }
+    .room-note:focus { outline: none; border-color: var(--green); }
+    .btn-add-room { width: 100%; background: none; border: 1px dashed var(--green); border-radius: 4px; padding: 11px; color: #5a8a4a; font-family: 'Fjalla One', sans-serif; font-size: 13px; letter-spacing: 1px; cursor: pointer; margin-bottom: 6px; }
+    .area-summary { background: #111; color: #fff; border-radius: 4px; padding: 9px 12px; font-size: 13px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .area-summary b { color: var(--green); font-family: 'Fjalla One', sans-serif; letter-spacing: 1px; }
+    .room-surface { margin-bottom: 8px; }
+    .surf-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 0; }
+    .surf-lbl { font-size: 13px; color: #333; }
+    .surf-lbl b { color: #5a8a4a; font-weight: 700; }
+    .surf-row select { padding: 7px 9px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 13px; background: white; -webkit-appearance: none; appearance: none; min-width: 150px; }
+    .room-materials .rm-hdr { font-size: 9px; letter-spacing: 1px; color: #999; text-transform: uppercase; margin-bottom: 3px; }
+    .room-materials .rm-cost { margin-top: 5px; padding-top: 5px; border-top: 1px solid #dde8dd; font-weight: 700; color: #111; }
+    .room-materials .rm-labour { color: #555; font-weight: 400; }
+    .room-extras { margin-bottom: 8px; }
+    .room-extras .ex-hdr { font-size: 9px; letter-spacing: 1px; color: #999; text-transform: uppercase; margin-bottom: 4px; }
+    .extra-line { margin-bottom: 5px; }
+    .extra-line .ex-row1 { display: flex; gap: 6px; align-items: center; }
+    .extra-line .ex-mat { flex: 1; min-width: 0; padding: 7px 8px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 13px; background: white; -webkit-appearance: none; appearance: none; }
+    .extra-line .ex-desc { width: 100%; margin-top: 5px; padding: 7px 8px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 13px; }
+    .extra-line .ex-qty { width: 48px; padding: 7px 6px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 13px; text-align: center; }
+    .extra-line .ex-price { width: 64px; padding: 7px 6px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 13px; text-align: right; }
+    .extra-line .ex-del { width: 24px; height: 24px; flex: none; border-radius: 50%; background: #eee; color: #777; border: none; font-size: 14px; line-height: 1; cursor: pointer; }
+    .extra-line input:focus { outline: none; border-color: var(--green); }
+    .extra-add { background: none; border: 1px dashed var(--border); border-radius: 4px; padding: 7px; color: #5a8a4a; font-family: 'Fjalla One', sans-serif; font-size: 11px; letter-spacing: 1px; cursor: pointer; width: 100%; }
+    .room-labour-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .room-labour-row label { font-size: 13px; color: #333; font-family: 'Lato', sans-serif; }
+    .room-labour { width: 100px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 14px; text-align: right; }
+    .room-labour:focus { outline: none; border-color: var(--green); }
+    .room-photos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .rp-item { width: 84px; }
+    .rp-thumb { position: relative; width: 84px; height: 64px; border-radius: 4px; overflow: hidden; border: 1px solid var(--border); background: #f4f4f4; }
+    .rp-thumb img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; display: block; }
+    .rp-loading { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #bbb; font-size: 18px; }
+    .rp-del { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border-radius: 50%; background: rgba(0,0,0,0.6); color: #fff; border: none; font-size: 12px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .rp-cap { width: 84px; font-size: 10px; padding: 3px 4px; border: 1px solid var(--border); border-radius: 2px; margin-top: 2px; font-family: 'Lato', sans-serif; }
+    .rp-add { width: 84px; height: 64px; border: 1px dashed var(--green); border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #5a8a4a; font-size: 11px; cursor: pointer; position: relative; }
+    .rp-add span { font-size: 22px; line-height: 1; }
+    .rp-add input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+    /* Totals row */
+    .rooms-table tfoot tr { background: #111; color: white; }
+    .rooms-table tfoot td {
+      padding: 7px 8px;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 8pt;
+      letter-spacing: 1px;
+    }
+    .rooms-table tfoot td.total-val {
+      text-align: center;
+      font-size: 9pt;
+      color: var(--green);
+    }
+    .rooms-table tfoot td.total-label {
+      font-size: 7pt;
+      letter-spacing: 2px;
+      color: #aaa;
+    }
+    .rooms-table tfoot td.total-combined {
+      text-align: center;
+      font-size: 9pt;
+      color: var(--green);
+      border-left: 1px solid #333;
+    }
+
+    .btn-add-row {
+      background: none;
+      border: 1px dashed #ccc;
+      border-radius: 2px;
+      padding: 7px 14px;
+      font-size: 12px;
+      color: #aaa;
+      cursor: pointer;
+      font-family: 'Lato', sans-serif;
+      margin-top: 6px;
+    }
+
+    .btn-add-row:hover { border-color: var(--green); color: #666; }
+
+    .btn-remove-row {
+      background: none;
+      border: none;
+      color: #ddd;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+    }
+
+    .btn-remove-row:hover { color: #c33; }
+
+    /* Photos section */
+    .photos-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .photo-slot {
+      border: 1px dashed #ccc;
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+      background: #fafafa;
+      aspect-ratio: 4/3;
+      cursor: pointer;
+    }
+
+    .photo-slot:hover { border-color: var(--green); background: #f5fff0; }
+
+    .photo-slot input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      z-index: 2;
+    }
+
+    .photo-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .photo-placeholder .ph-icon { font-size: 28px; opacity: 0.3; }
+
+    .photo-placeholder .ph-num {
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 9pt;
+      letter-spacing: 2px;
+      color: #bbb;
+    }
+
+    .photo-placeholder .ph-hint {
+      font-size: 8px;
+      color: #ccc;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .photo-slot img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+      display: none;
+      border-radius: 2px;
+    }
+
+    .photo-caption-wrap {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 3;
+      background: rgba(0,0,0,0.55);
+      padding: 4px 6px;
+      display: none;
+    }
+
+    .photo-caption-wrap input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 10px;
+      font-family: 'Lato', sans-serif;
+      outline: none;
+    }
+
+    .photo-caption-wrap input::placeholder { color: rgba(255,255,255,0.5); }
+
+    .photo-remove {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      z-index: 4;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .photo-remove:hover { background: #c33; }
+
+    .photo-add-more {
+      border: 1px dashed #ccc;
+      border-radius: 3px;
+      background: #fafafa;
+      aspect-ratio: 4/3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      color: #bbb;
+      font-size: 12px;
+      font-family: 'Lato', sans-serif;
+    }
+
+    .photo-add-more:hover { border-color: var(--green); color: #666; background: #f5fff0; }
+    .photo-add-more span { font-size: 26px; opacity: 0.35; }
+
+    /* ── LIGHTBOX ── */
+    .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.96); z-index: 9999; display: flex; align-items: center; justify-content: center; touch-action: none; }
+    .lightbox.lb-hidden { display: none; }
+    .lb-img { max-width: 100vw; max-height: 100vh; display: block; transform-origin: center center; user-select: none; -webkit-user-drag: none; pointer-events: none; transition: transform 0.08s ease-out; }
+    .lb-img.lb-animating { transition: transform 0.25s ease-out; }
+    .lb-close { position: absolute; top: max(14px, env(safe-area-inset-top)); right: 14px; width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; -webkit-tap-highlight-color: transparent; }
+    .lb-hint { position: absolute; bottom: max(20px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.4); font-size: 11px; letter-spacing: 0.5px; white-space: nowrap; pointer-events: none; }
+
+    /* Footer */
+    .doc-footer {
+      margin-top: 8mm;
+      padding-top: 5mm;
+      border-top: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      font-size: 7.5pt;
+      color: #888;
+    }
+
+    .doc-footer .sig { font-size: 10pt; font-weight: 700; color: #111; margin-bottom: 2px; }
+    .doc-footer .sig-sub { font-size: 8pt; color: #888; }
+
+    .doc-footer .guarantee {
+      text-align: right;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 9pt;
+      letter-spacing: 1px;
+      color: var(--green);
+    }
+
+    .doc-footer .guarantee-sub {
+      font-size: 6.5pt;
+      color: #bbb;
+      letter-spacing: 1px;
+      font-family: 'Lato', sans-serif;
+      margin-top: 2px;
+    }
+
+    /* Pricing table */
+    .price-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8.5pt;
+      margin-bottom: 4px;
+    }
+    .price-table thead tr { background: #111; color: white; }
+    .price-table th {
+      padding: 6px 8px;
+      text-align: left;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 7pt;
+      letter-spacing: 1.5px;
+      font-weight: normal;
+    }
+    .price-table th.c { text-align: center; }
+    .price-table th.r { text-align: right; }
+    .price-table td {
+      padding: 3px 4px;
+      border-bottom: 1px solid #eee;
+      vertical-align: middle;
+    }
+    .price-table td input[type="text"],
+    .price-table td input[type="number"] {
+      width: 100%;
+      padding: 6px 7px;
+      border: 1px solid #e0e0e0;
+      border-radius: 2px;
+      font-size: 13px;
+      font-family: 'Lato', sans-serif;
+      color: #000;
+      background: #fafafa;
+    }
+    .price-table td input:focus { outline: none; border-color: var(--green); background: white; }
+    .price-table td.price-total-cell {
+      text-align: right;
+      font-weight: 700;
+      font-size: 9pt;
+      color: #333;
+      padding-right: 10px;
+      white-space: nowrap;
+    }
+    .price-table tfoot tr { background: #111; color: white; }
+    .price-table tfoot td {
+      padding: 8px 10px;
+      font-family: 'Fjalla One', sans-serif;
+      font-size: 8pt;
+      letter-spacing: 1.5px;
+    }
+    .price-table tfoot td.grand-label { color: #aaa; font-size: 7pt; letter-spacing: 2px; }
+    .price-table tfoot td.grand-val { text-align: right; font-size: 11pt; color: var(--green); }
+
+    /* ===== PRINT ===== */
+    @media print {
+      body { background: white; padding: 0; }
+      .top-bar { display: none !important; }
+      .sheet { box-shadow: none; width: 100%; padding: 10mm; }
+      .photo-slot input[type="file"] { display: none; }
+      .photo-add-more { display: none !important; }
+      .photo-remove { display: none !important; }
+      .photo-slot { border: 1px solid #ddd; }
+      .photo-slot img { display: block !important; }
+      .photo-caption-wrap { display: block !important; background: rgba(0,0,0,0.45); }
+      @page { margin: 0; size: A4; }
+    }
+
+    @media (max-width: 700px) {
+      body { padding: 0; }
+      .sheet { padding: 10px; }
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+      .photos-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+
+  <div class="top-bar">
+    <span class="top-bar-title"><span>P&R</span> RENDER VISIT FORM</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-pdf" onclick="toggleImport()" style="background:#2a2a2a;color:#aaa;border:1px solid #444">⬇ Import</button>
+      <button class="btn-pdf" id="save-app-btn" onclick="saveToApp()" style="background:#1a3a1a;color:#66FF33;border:1px solid #66FF33">✓ Save to App</button>
+      <button class="btn-pdf" onclick="savePDF()">⬇ PDF</button>
+    </div>
+  </div>
+
+  <!-- Import panel -->
+  <div id="import-panel" style="display:none;background:#1a1a1a;border-bottom:2px solid var(--green);padding:14px 20px">
+    <div style="max-width:800px;margin:0 auto">
+      <div style="color:#aaa;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Paste email, WhatsApp or text message — fields fill automatically</div>
+      <div style="background:#1e3a1e;border:1px solid #66FF33;border-radius:3px;padding:12px 14px;margin-bottom:10px;color:#ccc;font-size:14px;line-height:1.7">
+        1. Copy your WhatsApp or text message<br>
+        2. <strong style="color:white">Hold your finger on the box below</strong><br>
+        3. Tap <strong style="color:white">Paste</strong> — it imports automatically
+      </div>
+      <textarea id="import-text" onpaste="setTimeout(runImport,100)" style="width:100%;height:180px;background:#111;color:#ccc;border:2px solid #66FF33;border-radius:3px;padding:14px;font-size:16px;resize:vertical;-webkit-user-select:text;user-select:text" placeholder="Hold here → Paste"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+        <button onclick="runImport()" style="background:var(--green);color:#111;border:none;padding:10px 24px;font-family:'Fjalla One',sans-serif;font-size:14px;letter-spacing:1px;cursor:pointer;border-radius:2px">IMPORT</button>
+        <button onclick="toggleImport()" style="background:none;border:1px solid #444;color:#aaa;padding:10px 14px;font-size:13px;cursor:pointer;border-radius:2px">Cancel</button>
+        <span id="import-status" style="font-size:12px;color:var(--green);display:none"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sheet">
+
+    <!-- Doc Header -->
+    <div class="doc-header">
+      <div class="doc-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" style="width:100px;display:block">
+          <rect width="600" height="360" fill="#FFFFFF"/>
+          <g transform="translate(167.5, 60)">
+            <path fill="#66FF33" d="M 0,0 L 0,160 L 35,160 L 35,95 L 80,95 C 115,95 140,70 140,40 C 140,10 115,-10 80,-10 L 0,-10 Z M 35,20 L 80,20 C 95,20 105,30 105,45 C 105,60 95,70 80,70 L 35,70 Z"/>
+            <path fill="#000000" d="M 120,0 L 120,160 L 155,160 L 155,100 L 185,100 L 225,160 L 265,160 L 220,95 C 245,90 265,70 265,40 C 265,10 240,-10 205,-10 L 120,-10 Z M 155,20 L 205,20 C 220,20 230,30 230,45 C 230,60 220,70 205,70 L 155,70 Z"/>
+          </g>
+          <line x1="190" y1="245" x2="410" y2="245" stroke="#66FF33" stroke-width="2"/>
+          <text x="300" y="280" font-family="'Fjalla One', Impact, Arial, sans-serif" font-size="36" letter-spacing="4" text-anchor="middle">
+            <tspan fill="#66FF33">P&amp;R</tspan><tspan fill="#000000"> SOLUTIONS</tspan>
+          </text>
+          <text x="300" y="311" font-family="'Lato', Arial, sans-serif" font-size="11" font-weight="300" fill="#666666" letter-spacing="6" text-anchor="middle">PLASTER · RENDER · SPECIALISTS</text>
+        </svg>
+      </div>
+      <div class="doc-title-block">
+        <div class="doc-type">RENDER VISIT</div>
+        <div class="doc-company-name"><span class="g">P&R</span> SOLUTIONS</div>
+        <div class="doc-company-tag">PLASTER · RENDER · SPECIALISTS</div>
+        <div class="doc-company-contact">
+          3 Rocher Close, Grenoside, Sheffield S35 8QP<br>
+          07595 399525 · Plastersolutionsltd@gmail.com
+        </div>
+      </div>
+    </div>
+
+    <!-- Visit Info -->
+    <div class="sec">Visit Details</div>
+    <div class="grid-2">
+      <div class="f">
+        <label>Visit Date</label>
+        <input type="date" id="visit-date">
+      </div>
+      <div class="f">
+        <label>Visit Ref</label>
+        <input type="text" id="visit-ref" placeholder="RV-…">
+      </div>
+    </div>
+
+    <!-- Customer Details -->
+    <div class="sec">Customer Details</div>
+    <div class="grid-2">
+      <div class="f">
+        <label>Customer Name</label>
+        <input type="text" id="customer-name" placeholder="Full name">
+      </div>
+      <div class="f">
+        <label>Phone</label>
+        <input type="tel" placeholder="07xxx xxxxxx">
+      </div>
+    </div>
+    <div class="f">
+      <label>Email</label>
+      <input type="email" placeholder="email@example.com">
+    </div>
+    <div class="f">
+      <label>Site Address</label>
+      <input type="text" placeholder="Street, City, Postcode">
+    </div>
+
+    <!-- Type of Work -->
+    <div class="sec">Type of Work</div>
+    <div class="grid-2">
+      <div class="f">
+        <label>Render Type</label>
+        <select id="wt-rendering" onchange="filterFinish()">
+          <option value="">— None —</option>
+          <option>Silicone Render</option>
+          <option>Monocouche</option>
+          <option>K-Rend</option>
+          <option>EWI System</option>
+          <option>Sand &amp; Cement Render</option>
+          <option>External Render</option>
+        </select>
+      </div>
+      <div class="f">
+        <label>Plaster Type</label>
+        <select id="wt-plastering" onchange="filterFinish()">
+          <option value="">— None —</option>
+          <option>Smooth Skim</option>
+          <option>Board &amp; Skim</option>
+          <option>Dot &amp; Dab &amp; Skim</option>
+          <option>Bond &amp; Skim</option>
+          <option>Patching &amp; Repair</option>
+          <option>Dry Lining</option>
+          <option>Coving</option>
+          <option>Sand &amp; Cement (internal)</option>
+          <option>Artex Removal</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Area Tool import banner (shown if job has photo-measured walls) -->
+    <div id="area-import-banner" style="display:none;background:#0d1a0d;border:1px solid rgba(102,255,51,0.3);border-radius:10px;padding:12px 14px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;gap:10px">
+      <div style="font-size:13px;color:#aaa"><span style="color:#66FF33;font-weight:700" id="area-import-count"></span> walls measured with Area Tool</div>
+      <button onclick="importAreaMeasurements()" style="background:#66FF33;color:#111;border:none;padding:6px 14px;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;letter-spacing:0.5px">Import</button>
+    </div>
+
+    <!-- Rooms -->
+    <div class="sec">Elevations</div>
+    <div style="font-size:8pt;color:#999;margin-bottom:10px;line-height:1.5">One card per elevation — enter width × height (minus openings) and pick the render system; materials work out automatically per elevation.</div>
+    <div id="rooms-cards"></div>
+    <button type="button" class="btn-add-room" onclick="addRoom('')">+ ADD ELEVATION</button>
+    <div class="area-summary">
+      <span>TOTAL AREA</span>
+      <span><b id="total-combined">—</b> &nbsp;·&nbsp; render area <span id="total-wall">—</span><span id="total-ceil" style="display:none"></span></span>
+    </div>
+
+    <!-- Materials settings & order total -->
+    <div class="sec">Materials</div>
+    <details style="margin-bottom:8px">
+      <summary style="cursor:pointer;color:#5a8a4a;font-size:8pt;letter-spacing:1px;text-transform:uppercase;font-weight:700">Coverage rates — tap to adjust</summary>
+      <div class="grid-3" style="margin-top:8px">
+        <div class="f"><label>X32 base m²/bag</label><input type="number" id="cov-base" value="5" step="0.5" min="0.1" oninput="calcMaterials()"></div>
+        <div class="f"><label>M160 mesh m²/roll</label><input type="number" id="cov-mesh" value="50" step="1" min="0.1" oninput="calcMaterials()"></div>
+        <div class="f"><label>SFP15 primer m²/tub</label><input type="number" id="cov-primer" value="25" step="0.5" min="0.1" oninput="calcMaterials()"></div>
+        <div class="f"><label>SR15 topcoat m²/tub</label><input type="number" id="cov-top" value="10" step="0.5" min="0.1" oninput="calcMaterials()"></div>
+        <div class="f"><label>Beads per m²</label><input type="number" id="cov-beads" value="0.1" step="0.01" min="0" oninput="calcMaterials()"></div>
+        <div class="f"><label>Monocouche m²/bag</label><input type="number" id="cov-mono" value="4" step="0.5" min="0.1" oninput="calcMaterials()"></div>
+        <div class="f"><label>EWI EPS m²/board</label><input type="number" id="cov-eps" value="0.72" step="0.01" min="0.1" oninput="calcMaterials()"></div>
+        <div class="f"><label>EWI fixings m²/box</label><input type="number" id="cov-fixings" value="10" step="1" min="0.1" oninput="calcMaterials()"></div>
+      </div>
+    </details>
+    <details style="margin-bottom:8px">
+      <summary style="cursor:pointer;color:#5a8a4a;font-size:8pt;letter-spacing:1px;text-transform:uppercase;font-weight:700">Prices (ProTec/MKM, ex VAT) — tap to adjust</summary>
+      <div class="grid-3" style="margin-top:8px">
+        <div class="f"><label>X32 base £/bag</label><input type="number" id="price-base" value="12.90" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
+        <div class="f"><label>M160 mesh £/roll</label><input type="number" id="price-mesh" value="64.19" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
+        <div class="f"><label>SFP15 primer £/tub</label><input type="number" id="price-primer" value="75.90" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
+        <div class="f"><label>SR15 topcoat £/tub</label><input type="number" id="price-top" value="87.83" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
+        <div class="f"><label>Beads £ each</label><input type="number" id="price-beads" value="3.10" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
+        <div class="f"><label>Monocouche £/bag</label><input type="number" id="price-mono" value="11.30" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
+        <div class="f"><label>EWI EPS £/board</label><input type="number" id="price-eps" value="5.30" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
+        <div class="f"><label>EWI fixings £/box</label><input type="number" id="price-fixings" value="19.57" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
+      </div>
+      <div style="font-size:7pt;color:#bbb;margin-top:4px">Prices remembered on this device — set once, used for every job.</div>
+    </details>
+    <div id="mat-estimate-output" style="display:none">
+      <table class="rooms-table">
+        <thead><tr><th>Total materials to order</th><th class="c" style="width:90px">Qty</th></tr></thead>
+        <tbody id="mat-list"></tbody>
+        <tfoot>
+          <tr><td class="total-label">MATERIALS COST (EX VAT)</td><td class="total-val" id="mat-cost-ex">£0.00</td></tr>
+          <tr><td class="total-label" style="font-weight:400;color:#aaa">Inc VAT (20%)</td><td class="total-val" id="mat-cost-inc" style="font-weight:400">£0.00</td></tr>
+          <tr id="mat-labour-row" style="display:none"><td class="total-label" style="font-weight:400;color:#aaa">Labour</td><td class="total-val" id="mat-labour-val" style="font-weight:400">£0.00</td></tr>
+          <tr id="mat-grand-row" style="display:none"><td class="total-label">JOB TOTAL (materials inc VAT + labour)</td><td class="total-val" id="mat-grand-val">£0.00</td></tr>
+        </tfoot>
+      </table>
+      <label style="display:flex;align-items:center;gap:8px;margin:8px 0;font-size:13px;color:#000;cursor:pointer">
+        <input type="checkbox" id="mat-to-invoice" checked style="width:16px;height:16px;accent-color:var(--green)">
+        Add materials cost (inc VAT) to the invoice when I save
+      </label>
+      <button type="button" id="mat-copy-btn" onclick="copyMaterials()" style="margin-top:2px;background:#111;color:var(--green);border:1px solid var(--green);padding:6px 14px;font-family:'Fjalla One',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer;border-radius:2px">COPY LIST</button>
+    </div>
+
+    <!-- Surface Condition -->
+    <div class="sec">Surface Condition</div>
+    <div class="grid-2">
+      <div class="f">
+        <label>Existing Surface</label>
+        <select id="existing-surface">
+          <option value="">— select —</option>
+          <option>Bare brick</option>
+          <option>Existing plaster</option>
+          <option>Existing render</option>
+          <option>Plasterboard</option>
+          <option>Block / breeze block</option>
+          <option>Stone</option>
+          <option>Mixed</option>
+        </select>
+      </div>
+      <div class="f">
+        <label>Prep Required</label>
+        <select id="prep-required">
+          <option value="">— select —</option>
+          <option>None — ready to go</option>
+          <option>Hack off existing plaster</option>
+          <option>Hack off existing render</option>
+          <option>Bonding coat required</option>
+          <option>PVA required</option>
+          <option>Salt / damp treatment needed</option>
+          <option>Dubbing out required</option>
+          <option>Multiple — see notes</option>
+        </select>
+      </div>
+    </div>
+    <div class="f">
+      <label>Surface Notes</label>
+      <textarea id="surface-notes" placeholder="Describe any issues, cracks, damp, staining, structural concerns..."></textarea>
+    </div>
+
+    <!-- Materials & Finish -->
+    <div class="sec">Materials &amp; Finish</div>
+    <div class="grid-3">
+      <div class="f">
+        <label>Finish Type</label>
+        <select id="finish-type-sel">
+          <option value="">— select —</option>
+          <optgroup label="── Rendering ──" id="finish-render-group">
+            <option data-cat="render">Full Silicone Render</option>
+            <option data-cat="render">Monocouche Render</option>
+            <option data-cat="render">K-Rend</option>
+            <option data-cat="render">EWI System</option>
+            <option data-cat="render">Sand &amp; Cement Render</option>
+            <option data-cat="render">Scratch &amp; Render</option>
+          </optgroup>
+          <optgroup label="── Plastering ──" id="finish-plaster-group">
+            <option data-cat="plaster">Smooth Skim</option>
+            <option data-cat="plaster">Dot &amp; Dab</option>
+            <option data-cat="plaster">Bonding Coat</option>
+            <option data-cat="plaster">Sand &amp; Cement (internal)</option>
+            <option data-cat="plaster">Patching &amp; Repair</option>
+            <option data-cat="plaster">Artex Removal</option>
+            <option data-cat="plaster">Coving</option>
+          </optgroup>
+          <option value="">Other</option>
+        </select>
+      </div>
+      <div class="f">
+        <label>Colour (if render)</label>
+        <select id="colour-render">
+          <option value="">— select —</option>
+          <option>Pure White</option>
+          <option>Off White</option>
+          <option>Cream</option>
+          <option>Ivory</option>
+          <option>Stone</option>
+          <option>Buff</option>
+          <option>Light Grey</option>
+          <option>Mid Grey</option>
+          <option>Dark Grey</option>
+          <option>Anthracite</option>
+          <option>Mocha / Brown</option>
+          <option>Custom (see notes)</option>
+        </select>
+      </div>
+      <div class="f">
+        <label>Coats Required</label>
+        <select id="coats-required">
+          <option value="">—</option>
+          <option>1 coat</option>
+          <option>2 coats</option>
+          <option>3 coats</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Render Preview (shown if a render preview has been saved for this job) -->
+    <div id="render-preview-section" style="display:none;margin-bottom:14px">
+      <div class="sec">Render Preview</div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <img id="render-preview-img" src="" alt="Render preview" style="width:140px;border-radius:8px;border:1px solid #ddd;flex-shrink:0">
+        <div style="flex:1">
+          <div style="font-size:12px;color:#555;margin-bottom:4px">System</div>
+          <div id="render-preview-system" style="font-weight:700;font-size:13px;margin-bottom:8px"></div>
+          <div style="font-size:12px;color:#555;margin-bottom:4px">Colour</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div id="render-preview-hex" style="width:18px;height:18px;border-radius:4px;border:1px solid #ddd;flex-shrink:0"></div>
+            <div id="render-preview-colour" style="font-weight:700;font-size:13px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Site Conditions -->
+    <div class="sec">Site Conditions</div>
+    <div class="grid-2">
+      <div class="f">
+        <label>Access</label>
+        <div class="radios">
+          <label><input type="radio" name="access" value="easy"> Easy</label>
+          <label><input type="radio" name="access" value="restricted"> Restricted</label>
+          <label><input type="radio" name="access" value="difficult"> Difficult</label>
+        </div>
+      </div>
+      <div class="f">
+        <label>Parking</label>
+        <div class="radios">
+          <label><input type="radio" name="parking" value="free"> Free on street</label>
+          <label><input type="radio" name="parking" value="driveway"> Driveway</label>
+          <label><input type="radio" name="parking" value="paid"> Paid / limited</label>
+        </div>
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="f">
+        <label>Scaffold Needed?</label>
+        <div class="radios">
+          <label><input type="radio" name="scaffold" value="no"> No</label>
+          <label><input type="radio" name="scaffold" value="yes"> Yes</label>
+          <label><input type="radio" name="scaffold" value="tower"> Tower only</label>
+        </div>
+      </div>
+      <div class="f">
+        <label>Skip Required?</label>
+        <div class="radios">
+          <label><input type="radio" name="skip" value="no" onchange="toggleSkip(this)"> No</label>
+          <label><input type="radio" name="skip" value="yes" onchange="toggleSkip(this)"> Yes</label>
+        </div>
+        <div id="skip-size-wrap" style="display:none;margin-top:8px">
+          <select id="skip-size" onchange="updateSkipCost()">
+            <option value="">— Select size —</option>
+            <option value="4|240">4 ton skip — £240</option>
+            <option value="6|300">6 ton skip — £300</option>
+            <option value="8|360">8 ton skip — £360</option>
+          </select>
+        </div>
+      </div>
+      <div class="f">
+        <label>Property Type</label>
+        <select id="property-type-sel">
+          <option value="">—</option>
+          <option>Terraced</option>
+          <option>Semi-detached</option>
+          <option>Detached</option>
+          <option>Flat / apartment</option>
+          <option>Commercial</option>
+          <option>New build</option>
+        </select>
+      </div>
+    </div>
+    <div class="f">
+      <label>Access / Site Notes</label>
+      <input type="text" id="access-notes" placeholder="Any restrictions, key pickup, dogs on site, fragile areas to protect...">
+    </div>
+
+
+    <!-- Pricing Calculator -->
+    <div class="sec">Pricing Calculator</div>
+    <table class="price-table" id="price-table">
+      <thead>
+        <tr>
+          <th style="width:35%">Finish / Item</th>
+          <th style="width:15%" class="c">m²</th>
+          <th style="width:15%" class="c">£ / m²</th>
+          <th style="width:18%" class="r">Total £</th>
+          <th style="width:24px"></th>
+        </tr>
+      </thead>
+      <tbody id="price-tbody"></tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3" class="grand-label">GRAND TOTAL</td>
+          <td class="grand-val" id="grand-total">£0.00</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+    <button class="btn-add-row" onclick="addPriceRow()">+ Add line</button>
+
+    <!-- Pricing Notes -->
+    <div class="sec" style="margin-top:6mm">Pricing Notes</div>
+    <div class="f">
+      <label>Notes</label>
+      <input type="text" id="pricing-notes" placeholder="Any cost considerations, difficult access uplift, disposal etc.">
+    </div>
+
+    <!-- Scope of Works -->
+    <div class="sec">Scope of Works</div>
+    <div class="f">
+      <label style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+        <span>Description of Works <span style="font-size:10px;font-weight:normal;color:#888">(transfers to quote &amp; invoice)</span></span>
+        <select onchange="if(this.value){insertScopeTemplate(this.value);this.value=''}" style="font-size:11px;padding:4px 8px;background:#111;color:#66FF33;border:1px solid #333;border-radius:2px;cursor:pointer;font-family:'Lato',sans-serif">
+          <option value="">— Load template —</option>
+          <optgroup label="── Plastering ──">
+            <option value="board_skim">Board &amp; Skim</option>
+            <option value="dot_dab_skim">Dot &amp; Dab &amp; Skim</option>
+            <option value="skim_coat">Skim Coat</option>
+            <option value="bond_skim">Bond &amp; Skim</option>
+            <option value="plaster_repair">Plaster Repair</option>
+          </optgroup>
+          <optgroup label="── Silicone (EcoRend) ──">
+            <option value="silicone_pebbledash">Silicone over Pebble Dash — EcoRend</option>
+            <option value="silicone_brick_block">Full Silicone — Brick &amp; Block — No Hack Off</option>
+            <option value="silicone_hackoff">Full Silicone — Brick &amp; Block — Hack Off</option>
+          </optgroup>
+          <optgroup label="── Monocouche ──">
+            <option value="monocouche_brick_block">Monocouche — Brick &amp; Block — No Hack Off</option>
+            <option value="monocouche_hackoff">Monocouche — Brick &amp; Block — Hack Off</option>
+          </optgroup>
+          <optgroup label="── EWI ──">
+            <option value="ewi_brick_block">EWI — Brick &amp; Block</option>
+          </optgroup>
+        </select>
+      </label>
+      <textarea id="scope-of-works" placeholder="Describe exactly what's being done — this will pre-fill the quote and invoice..." style="min-height:100px"></textarea>
+    </div>
+
+    <!-- General Notes -->
+    <div class="sec">General Notes</div>
+    <div class="f">
+      <textarea id="general-notes" placeholder="Any other observations from the visit..." style="min-height:80px"></textarea>
+    </div>
+
+    <!-- Footer -->
+    <div class="doc-footer">
+      <div>
+        <div class="sig">Chris Glover</div>
+        <div class="sig-sub">Plaster and Rendering Solutions</div>
+      </div>
+      <div class="guarantee">
+        25-YEAR GUARANTEE
+        <div class="guarantee-sub">on materials · 5 years on workmanship</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    var SB_URL = 'https://ngakblcdnuqectjappkl.supabase.co';
+    var SB_KEY = 'sb_publishable_wX0TOGQTtNWi0ex14ux6Hw_eKVge5cJ';
+    var sb = supabase.createClient(SB_URL, SB_KEY);
+    var _svJob = null;
+
+    function lsGetJob(jobId) {
+      try {
+        var all = JSON.parse(localStorage.getItem('pr_jobs') || '[]');
+        return all.find(function(j){ return j.id === jobId; }) || null;
+      } catch(e) { return null; }
+    }
+    function compactJob(j) {
+      if (!j) return j;
+      var c = Object.assign({}, j);
+      if (c.renderVisit && c.renderVisit.photos) {
+        c.renderVisit = Object.assign({}, c.renderVisit, {
+          photos: c.renderVisit.photos.map(function(p){ return { caption: p.caption||'', room: p.room||'' }; })
+        });
+      }
+      if (c.renderPreviews) {
+        c.renderPreviews = c.renderPreviews.map(function(r){ var rc=Object.assign({},r); delete rc.imageDataUrl; return rc; });
+      }
+      return c;
+    }
+    function lsSaveJob(job) {
+      function _write(data) {
+        var all = JSON.parse(localStorage.getItem('pr_jobs') || '[]');
+        var idx = all.findIndex(function(j){ return j.id === data.id; });
+        if (idx >= 0) all[idx] = data; else all.push(data);
+        localStorage.setItem('pr_jobs', JSON.stringify(all));
+      }
+      try { _write(job); }
+      catch(e) { try { _write(compactJob(job)); } catch(e2) {} }
+    }
+
+    async function sbGetJob(jobId) {
+      var r = await sb.from('jobs').select('*').eq('id', jobId).single();
+      if (r.error || !r.data) return null;
+      return Object.assign({}, r.data.data, { id: r.data.id, name: r.data.name, status: r.data.status, created: r.data.created });
+    }
+    async function sbSaveJob(job) {
+      var row = { id: job.id, name: job.name || '', status: job.status || 'enquiry', created: job.created || Date.now(), data: job };
+      var r = await sb.from('jobs').upsert(row);
+      if (r.error) throw r.error;
+    }
+
+    // Background Supabase sync — never blocks the form
+    function syncFromSupabase(jobId) {
+      sbGetJob(jobId).then(function(remote) {
+        if (!remote) return;
+        var localTs  = (_svJob && _svJob.renderVisit && _svJob.renderVisit.savedAt) || '';
+        var remoteTs = (remote.renderVisit && remote.renderVisit.savedAt) || '';
+        if (remoteTs > localTs) {
+          // Remote is newer — use it fully
+          _svJob = remote;
+          lsSaveJob(remote);
+        } else if (remote.renderVisit && remote.renderVisit.photos && remote.renderVisit.photos.length) {
+          // Local is same/newer but photos were stripped from localStorage — restore them
+          if (_svJob && _svJob.renderVisit) {
+            var existingPhotos = _svJob.renderVisit.photos || [];
+            var hasData = existingPhotos.some(function(p){ return p && p.dataUrl; });
+            if (!hasData) {
+              _svJob.renderVisit.photos = remote.renderVisit.photos;
+              remote.renderVisit.photos.forEach(function(p, i) {
+                var pc = i + 1;
+                if (photoData[pc]) { photoData[pc].dataUrl = p.dataUrl; if (p.room) photoData[pc].room = p.room; if (p.caption && !photoData[pc].caption) photoData[pc].caption = p.caption; }
+                else { photoData[pc] = { dataUrl: p.dataUrl, caption: p.caption || '', room: p.room || '' }; if (pc > photoCount) photoCount = pc; }
+              });
+              renderAllRoomPhotos();
+              _photosStripped = false;
+            }
+          }
+        }
+      }).catch(function(){});
+    }
+
+    let roomCount = 0;
+    let photoCount = 0;
+    let photoData = {}; // { slotIndex: { dataUrl, caption } }
+    let _photosStripped = false; // true when this job has photos in the cloud that haven't loaded into the form yet
+
+    /* ===== EMAIL IMPORT ===== */
+    function toggleImport() {
+      const panel = document.getElementById('import-panel');
+      const isHidden = panel.style.display === 'none';
+      panel.style.display = isHidden ? 'block' : 'none';
+      if (isHidden) {
+        document.getElementById('import-text').focus();
+        document.getElementById('import-status').style.display = 'none';
+      }
+    }
+
+function parseFreetextMessage(raw) {
+      // Extracts name, phone, address from a natural WhatsApp/SMS message
+      const data = {};
+
+      // UK mobile phone
+      const phoneMatch = raw.match(/\b(07\d{3}[\s\-]?\d{3}[\s\-]?\d{3,4}|\+44[\s\-]?7\d{3}[\s\-]?\d{6}|07\d{9})\b/);
+      if (phoneMatch) data['phone'] = phoneMatch[0].replace(/\s|\-/g, '');
+
+      // UK postcode
+      const postcodeMatch = raw.match(/\b([A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2})\b/i);
+
+      // Street address: house number + road/street name
+      const streetTypes = 'Road|Street|Avenue|Lane|Close|Drive|Way|Crescent|Place|Gardens|Grove|Hill|View|Park|Court|Terrace|Row|Walk|Rise|Mews|Square|Green';
+      const streetRe = new RegExp(`(\\d+[a-z]?\\s+[\\w\\s]+(?:${streetTypes}))`, 'i');
+      const streetMatch = raw.match(streetRe);
+      if (streetMatch) {
+        data['address'] = streetMatch[0].trim();
+        if (postcodeMatch) data['address'] += ', ' + postcodeMatch[0].toUpperCase();
+      } else if (postcodeMatch) {
+        // No street pattern, but has postcode — grab text before it as address
+        const pcIdx = raw.search(new RegExp(postcodeMatch[0].replace(/\s/, '\\s*'), 'i'));
+        const before = raw.substring(0, pcIdx).replace(/[^a-zA-Z0-9\s,\-]/g, '').trim();
+        // Take the last address-like chunk (starts with a number or follows comma)
+        const addrChunk = before.match(/(?:^|,|\n)\s*(\d+[\s\S]+)$/);
+        if (addrChunk) data['address'] = addrChunk[1].trim() + ' ' + postcodeMatch[0].toUpperCase();
+        else data['address'] = postcodeMatch[0].toUpperCase();
+      }
+
+      // Name — common patterns in conversational messages
+      const namePatterns = [
+        /(?:my name[''s]*\s+is|i[''']m|i am|it[''']s|this is|name is|from)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})/i,
+        /^(?:hi|hello|hey|good\s+\w+)[,\s]+(?:(?:mate|there|chris)[,\s]+)?(?:i[''']m\s+|it[''']s\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+))/im,
+      ];
+      for (const p of namePatterns) {
+        const m = raw.match(p);
+        if (m) {
+          // Exclude obvious non-name matches
+          const candidate = m[1].trim();
+          const skip = ['Looking','Wondering','Hoping','Wanting','Calling','Ringing','Writing','Contacting'];
+          if (!skip.some(w => candidate.startsWith(w))) {
+            data['name'] = candidate; break;
+          }
+        }
+      }
+
+      // Job description — anything after trigger words
+      const descMatch = raw.match(/(?:looking\s+(?:for|to\s+get)|want(?:ing)?(?:\s+a)?|need(?:ing)?(?:\s+a)?|quote\s+(?:for|on)|regarding|about)\s+([\s\S]+?)(?:\.|$)/i);
+      if (descMatch) data['description'] = descMatch[1].trim();
+
+      return data;
+    }
+
+    function runImport() {
+      const raw = document.getElementById('import-text').value;
+      if (!raw.trim()) return;
+
+      // Detect format: structured (key: value) or freetext (WhatsApp/SMS)
+      const structuredLineCount = (raw.match(/^[a-zA-Z _\-]+?\s*:\s*.+$/gm) || []).length;
+      const isStructured = structuredLineCount >= 2;
+
+      const data = {};
+
+      if (isStructured) {
+        // --- Structured: Formspree email format ---
+        const lines = raw.split('\n');
+        lines.forEach(line => {
+          const m = line.match(/^([a-zA-Z _\-]+?)\s*:\s*(.+)$/);
+          if (m) data[m[1].trim().toLowerCase()] = m[2].trim();
+        });
+        // Also try Formspree's label-then-value format (label line, blank, value line)
+        for (let i = 0; i < lines.length - 1; i++) {
+          const key = lines[i].replace(/\*+/g, '').trim().toLowerCase();
+          const val = lines[i + 1].trim();
+          if (key && val && !val.includes(':') && !data[key]) {
+            data[key] = val;
+          }
+        }
+        // Multi-line description
+        const descMatch = raw.match(/description\s*:\s*([\s\S]+?)(?:\n[a-zA-Z]|$)/i);
+        if (descMatch) data['description'] = descMatch[1].trim();
+      } else {
+        // --- Freetext: WhatsApp / SMS / natural message ---
+        const parsed = parseFreetextMessage(raw);
+        Object.assign(data, parsed);
+        // Also try any key: value pairs that happen to be in the message
+        const lines = raw.split('\n');
+        lines.forEach(line => {
+          const m = line.match(/^([a-zA-Z _\-]+?)\s*:\s*(.+)$/);
+          if (m) data[m[1].trim().toLowerCase()] = data[m[1].trim().toLowerCase()] || m[2].trim();
+        });
+      }
+
+      let filled = 0;
+
+      function set(selector, value) {
+        const el = document.querySelector(selector);
+        if (el && value) { el.value = value; filled++; }
+      }
+
+      // Map fields to form inputs
+      set('#customer-name',       data['name'] || data['full name'] || data['your name'] || '');
+      set('input[type="email"]',  data['email'] || data['email address'] || '');
+      set('input[type="tel"]',    data['phone'] || data['telephone'] || data['mobile'] || data['contact number'] || '');
+
+      // Address: combine address + postcode if both present
+      const addr = [data['address'], data['postcode']].filter(Boolean).join(', ');
+      if (addr) set('input[placeholder="Street, City, Postcode"]', addr);
+
+      // Property type select
+      if (data['propertytype'] || data['property type'] || data['property']) {
+        const pt = (data['propertytype'] || data['property type'] || data['property']).toLowerCase();
+        const sel = document.querySelector('select');
+        // find the property type select (3rd select - after weather and existing surface)
+        const selects = document.querySelectorAll('select');
+        selects.forEach(s => {
+          Array.from(s.options).forEach(o => {
+            if (o.text.toLowerCase().includes(pt) || pt.includes(o.text.toLowerCase())) {
+              s.value = o.value; filled++;
+            }
+          });
+        });
+      }
+
+      // Services → tick matching checkboxes in Type of Work
+      const services = data['services'] || data['service'] || data['type of work'] || '';
+      if (services) {
+        const serviceMap = {
+          'silicone': 'K-Rend',
+          'render': 'Rendering',
+          'plaster': 'Plastering',
+          'monocouche': 'Monocouche',
+          'ewi': 'EWI',
+          'dry lin': 'Dry Lining',
+          'patch': 'Patching / Repair',
+          'coving': 'Coving',
+        };
+        document.querySelectorAll('.checks input[type="checkbox"]').forEach(cb => {
+          const label = cb.parentElement.textContent.trim().toLowerCase();
+          if (services.toLowerCase().includes(label) || label.split(' ').some(w => services.toLowerCase().includes(w))) {
+            cb.checked = true; filled++;
+          }
+        });
+      }
+
+      // Description → General Notes
+      const notes = data['description'] || data['message'] || data['details'] || data['project details'] || '';
+      if (notes) {
+        const notesTA = document.getElementById('general-notes');
+        if (notesTA) { notesTA.value = notes; filled++; }
+      }
+
+      // Show result
+      const status = document.getElementById('import-status');
+      const modeLabel = isStructured ? 'email' : 'message';
+      status.textContent = filled > 0 ? `✓ ${filled} fields filled from ${modeLabel}` : '⚠ No fields found — try more detail (name, address, phone)';
+      status.style.color = filled > 0 ? 'var(--green)' : '#f87171';
+      status.style.display = 'inline';
+
+      if (filled > 0) {
+        setTimeout(() => {
+          document.getElementById('import-panel').style.display = 'none';
+          document.getElementById('import-text').value = '';
+        }, 1200);
+      }
+    }
+
+    function savePDF() {
+      const nameInput = document.querySelector('#customer-name');
+      const name = nameInput ? nameInput.value.trim() : '';
+      const original = document.title;
+      document.title = name ? 'Render Visit - ' + name : 'Render Visit Form';
+      window.print();
+      document.title = original;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const jobId = new URLSearchParams(location.search).get('jobId');
+      const _p = new URLSearchParams(location.search);
+
+      // Fill client details from URL params immediately — first thing, no deps
+      if (_p.get('name'))    document.getElementById('customer-name').value = _p.get('name');
+      if (_p.get('phone'))   { const el = document.querySelector('input[type="tel"]');   if (el) el.value = _p.get('phone'); }
+      if (_p.get('email'))   { const el = document.querySelector('input[type="email"]'); if (el) el.value = _p.get('email'); }
+      if (_p.get('address')) { const el = document.querySelector('input[placeholder="Street, City, Postcode"]'); if (el) el.value = _p.get('address'); }
+
+      // Load from localStorage immediately — no network wait
+      if (jobId) _svJob = lsGetJob(jobId);
+
+      // Kick off background Supabase sync (updates localStorage for next open)
+      if (jobId) syncFromSupabase(jobId);
+
+      // Pull the latest Materials price list from the cloud so the extras picker is always current
+      loadExtraMaterialsFromCloud();
+
+      const sv = _svJob?.renderVisit;
+      const isRestore = !!sv;
+
+      // Date — restore or default to today
+      document.getElementById('visit-date').value = sv?.date || new Date().toISOString().split('T')[0];
+
+      // Visit Ref — restore or generate
+      if (sv?.ref) {
+        document.getElementById('visit-ref').value = sv.ref;
+      } else {
+        // Set a default immediately, then update from Supabase counter in background
+        const year = new Date().getFullYear();
+        document.getElementById('visit-ref').value = 'RV-' + year + '-001';
+        sb.from('counters').select('value').eq('id', 'rv_last').single().then(function(cr) {
+          const last = (!cr.error && cr.data) ? (cr.data.value || 0) : 0;
+          document.getElementById('visit-ref').value = 'RV-' + year + '-' + String(last + 1).padStart(3, '0');
+        }).catch(function(){});
+      }
+
+      // Restore saved pricing rows, or add blank defaults
+      try {
+        if (isRestore && sv.priceRows && sv.priceRows.length) {
+          sv.priceRows.forEach(pr => {
+            addPriceRow('');
+            const pc = priceCount;
+            if (pr.desc)     document.getElementById('pdesc-'  + pc).value = pr.desc;
+            if (pr.m2   > 0) document.getElementById('pm2-'    + pc).value = pr.m2;
+            if (pr.rate > 0) document.getElementById('prate-'  + pc).value = pr.rate;
+            if (pr.total > 0) document.getElementById('ptotal-'+ pc).value = pr.total;
+            else if (pr.m2 > 0 && pr.rate > 0) calcPriceRow(pc);
+            calcGrandTotal();
+          });
+        } else { addPriceRow(''); }
+      } catch(e) { try { addPriceRow(''); } catch(e2) {} }
+
+      // Load saved photos into photoData (rendered into the room cards once rooms are built)
+      try {
+        if (isRestore && sv.photos && sv.photos.length) {
+          if (sv.photos.some(p => !p.dataUrl)) _photosStripped = true;
+          sv.photos.forEach(p => { photoCount++; photoData[photoCount] = { dataUrl: p.dataUrl, caption: p.caption || '', room: p.room || '' }; });
+        }
+      } catch(e) {}
+
+      // Rooms — show area import banner if measurements exist
+      try {
+        const areaMeasurements = _svJob?.areaToolMeasurements || [];
+        if (areaMeasurements.length > 0) {
+          const banner = document.getElementById('area-import-banner');
+          banner.style.display = 'flex';
+          document.getElementById('area-import-count').textContent = areaMeasurements.length;
+        }
+      } catch(e) {}
+
+      // Restore saved rooms or add blank defaults
+      try {
+        if (isRestore && sv.rooms && sv.rooms.length) {
+          sv.rooms.forEach(r => {
+            const rc = addRoom(r.name, r.rid);
+            const card = document.getElementById('room-' + rc);
+            if (r.w) document.getElementById('w-' + rc).value = r.w;
+            if (r.h) document.getElementById('h-' + rc).value = r.h;
+            if (r.openings) document.getElementById('o-' + rc).value = r.openings;
+            if (card) {
+              card.querySelector('.method-walls').value = r.system || '';
+              if (r.note) card.querySelector('.room-note').value = r.note;
+              if (Array.isArray(r.extras)) r.extras.forEach(x => addExtraLine(card, x));
+              if (r.labour) card.querySelector('.room-labour').value = r.labour;
+            }
+            calcRoom(rc);
+          });
+        } else { addRoom('Front'); addRoom('Rear'); addRoom('Left Gable'); addRoom('Right Gable'); }
+      } catch(e) { try { addRoom('Front'); addRoom('Rear'); } catch(e2) {} }
+      try { renderAllRoomPhotos(); } catch(e) {}
+
+      // Restore saved materials estimate
+      try {
+        loadMaterialPrices();
+        const me = sv && sv.materialsEstimate;
+        if (isRestore && me) {
+          const r = me.rates || {};
+          const setRate = (id, val) => { const el = document.getElementById(id); if (val && el) el.value = val; };
+          setRate('cov-base', r.base); setRate('cov-mesh', r.mesh); setRate('cov-primer', r.primer);
+          setRate('cov-top', r.top); setRate('cov-beads', r.beads); setRate('cov-mono', r.mono);
+          setRate('cov-eps', r.eps); setRate('cov-fixings', r.fixings);
+          if (me.toInvoice === false) document.getElementById('mat-to-invoice').checked = false;
+        }
+        calcMaterials();
+      } catch(e) {}
+
+      // ── Work type → finish type & price lookup ──
+      const WORK_PRICE_MAP = {
+        'silicone render':              { label: 'Silicone Render — No Hack Off',   finish: 'Full Silicone Render', price: 90 },
+        'k-rend / monocouche':          { label: 'Monocouche — No Hack Off',      finish: 'Monocouche Render',    price: 80 },
+        'k-rend':                       { label: 'K-Rend — No Hack Off',            finish: 'K-Rend',      price: 80 },
+        'monocouche':                   { label: 'Monocouche — No Hack Off',         finish: 'Monocouche Render', price: 80 },
+        'sand & cement render':         { label: 'Sand & Cement Render',             finish: 'Sand & Cement Render', price: 50 },
+        'sand & cement':                { label: 'Sand & Cement',                    finish: 'Sand & Cement Render', price: 50 },
+        'roughcast / pebbledash':       { label: 'Roughcast / Pebbledash',           finish: 'Roughcast / Pebbledash', price: 55 },
+        'roughcast':                    { label: 'Roughcast',                        finish: 'Roughcast / Pebbledash', price: 55 },
+        'ewi (external wall insulation)':{ label: 'EWI System',                     finish: 'EWI System',  price: 120 },
+        'ewi':                          { label: 'EWI System',                       finish: 'EWI System',  price: 120 },
+        'smooth skim plaster':          { label: 'Smooth Skim Coat',                 finish: 'Smooth Skim', price: 70 },
+        'dry lining / stud walls':      { label: 'Dot & Dab Dry Lining',             finish: 'Dot & Dab',   price: 70 },
+        'patching & repair':            { label: 'Patching & Repair',                finish: 'Patching & Repair', price: 70 },
+      };
+
+      // Property type auto-fill
+      const _pt = (_p.get('propertyType') || '').toLowerCase();
+      if (_pt) {
+        const ptSel = document.getElementById('property-type-sel');
+        if (ptSel) {
+          Array.from(ptSel.options).forEach(o => {
+            if (o.text.toLowerCase().includes(_pt) || _pt.includes(o.text.toLowerCase().replace(/[^a-z]/g,''))) {
+              ptSel.value = o.value || o.text;
+            }
+          });
+        }
+      }
+
+      // Pre-fill finish type + pricing row from workType param
+      const _wt = (_p.get('workType') || '').toLowerCase();
+      if (_wt) {
+        let preset = null;
+        for (const [key, val] of Object.entries(WORK_PRICE_MAP)) {
+          if (_wt.includes(key) || key.includes(_wt)) { preset = val; break; }
+        }
+        if (preset) {
+          // Set Finish Type select
+          const finSel = document.getElementById('finish-type-sel');
+          if (finSel) {
+            for (const opt of finSel.options) {
+              if (opt.text.toLowerCase().includes(preset.finish.toLowerCase())) {
+                finSel.value = opt.value; break;
+              }
+            }
+          }
+          // Pre-fill first pricing row description and rate
+          const descEl = document.getElementById('pdesc-1');
+          const rateEl = document.getElementById('prate-1');
+          if (descEl) descEl.value = preset.label;
+          if (rateEl) { rateEl.value = preset.price; calcPriceRow(1); }
+        }
+      }
+
+      // ── Restore saved site visit fields (scope, finish, colour, work types, skip, surface) ──
+      if (isRestore) {
+        if (sv.scopeOfWorks) {
+          const soEl = document.getElementById('scope-of-works');
+          if (soEl) soEl.value = sv.scopeOfWorks;
+        }
+        if (sv.propertyType)    { const el = document.getElementById('property-type-sel'); if (el) el.value = sv.propertyType; }
+        if (sv.existingSurface) { const el = document.getElementById('existing-surface'); if (el) el.value = sv.existingSurface; }
+        if (sv.prepRequired)    { const el = document.getElementById('prep-required');    if (el) el.value = sv.prepRequired; }
+        if (sv.surfaceNotes)    { const el = document.getElementById('surface-notes');    if (el) el.value = sv.surfaceNotes; }
+        if (sv.coatsRequired)   { const el = document.getElementById('coats-required');   if (el) el.value = sv.coatsRequired; }
+        if (sv.access)          { const r = document.querySelector('input[name="access"][value="'   + sv.access   + '"]'); if (r) r.checked = true; }
+        if (sv.parking)         { const r = document.querySelector('input[name="parking"][value="'  + sv.parking  + '"]'); if (r) r.checked = true; }
+        if (sv.scaffold)        { const r = document.querySelector('input[name="scaffold"][value="' + sv.scaffold + '"]'); if (r) r.checked = true; }
+        if (sv.accessNotes)     { const el = document.getElementById('access-notes');     if (el) el.value = sv.accessNotes; }
+        if (sv.pricingNotes)    { const el = document.getElementById('pricing-notes');    if (el) el.value = sv.pricingNotes; }
+        if (sv.generalNotes)    { const el = document.getElementById('general-notes');    if (el) el.value = sv.generalNotes; }
+        // Restore skip hire
+        if (sv.skipTons) {
+          const yesRadio = document.querySelector('input[name="skip"][value="yes"]');
+          if (yesRadio) { yesRadio.checked = true; document.getElementById('skip-size-wrap').style.display = 'block'; }
+          const skipSel = document.getElementById('skip-size');
+          if (skipSel) {
+            for (const opt of skipSel.options) {
+              if (opt.value.startsWith(sv.skipTons + '|')) { skipSel.value = opt.value; break; }
+            }
+            updateSkipCost();
+          }
+        } else {
+          const noRadio = document.querySelector('input[name="skip"][value="no"]');
+          if (noRadio) noRadio.checked = true;
+        }
+        if (sv.finishType) {
+          const finSel = document.getElementById('finish-type-sel');
+          if (finSel) {
+            for (const opt of finSel.options) {
+              if (opt.text === sv.finishType || opt.value === sv.finishType) { finSel.value = opt.value; break; }
+            }
+          }
+        }
+        if (sv.colour) {
+          const colSel = document.getElementById('colour-render');
+          if (colSel) colSel.value = sv.colour;
+        }
+        // Show render preview thumbnail if one has been saved
+        const rp = _svJob?.renderPreviews?.[0];
+        if (rp) {
+          const sec = document.getElementById('render-preview-section');
+          if (sec) {
+            document.getElementById('render-preview-img').src = rp.imageDataUrl || '';
+            document.getElementById('render-preview-system').textContent = rp.system || '—';
+            document.getElementById('render-preview-colour').textContent = rp.colour || '—';
+            document.getElementById('render-preview-hex').style.background = rp.hex || '#ccc';
+            sec.style.display = '';
+          }
+        }
+        if (sv.workTypes) {
+          const types = sv.workTypes.split(',').map(s => s.trim());
+          const renderSel  = document.getElementById('wt-rendering');
+          const plasterSel = document.getElementById('wt-plastering');
+          types.forEach(t => {
+            if (renderSel) {
+              for (const opt of renderSel.options) {
+                if (opt.text === t) { renderSel.value = opt.value || opt.text; break; }
+              }
+            }
+            if (plasterSel) {
+              for (const opt of plasterSel.options) {
+                if (opt.text === t) { plasterSel.value = opt.value || opt.text; break; }
+              }
+            }
+          });
+          filterFinish();
+        }
+      }
+
+      // Auto-save client details to localStorage whenever they change
+      const clientFields = [
+        { sel: '#customer-name',                       key: 'name' },
+        { sel: 'input[type="tel"]',                    key: 'phone' },
+        { sel: 'input[type="email"]',                  key: 'email' },
+        { sel: 'input[placeholder="Street, City, Postcode"]', key: 'address' },
+      ];
+      clientFields.forEach(({ sel, key }) => {
+        const el = document.querySelector(sel);
+        if (el) el.addEventListener('input', () => {
+          const saved = JSON.parse(localStorage.getItem('pr_current_client') || '{}');
+          saved[key] = el.value.trim();
+          localStorage.setItem('pr_current_client', JSON.stringify(saved));
+        });
+      });
+    });
+
+    /* ===== ROOMS ===== */
+    function importAreaMeasurements() {
+      const areas = _svJob?.areaToolMeasurements || [];
+      if (!areas.length) return;
+      // Clear default blank rows first
+      document.querySelectorAll('#rooms-cards .room-card').forEach(r => r.remove());
+      areas.forEach(a => {
+        // Import the measured m² as an elevation (width = m², height = 1 → area = m²)
+        addRoom(a.label || 'Elevation');
+        const rc = roomCount;
+        const wEl = document.getElementById('w-' + rc);
+        const hEl = document.getElementById('h-' + rc);
+        if (wEl) wEl.value = a.m2.toFixed(2);
+        if (hEl) hEl.value = '1';
+        calcRoom(rc);
+      });
+      document.getElementById('area-import-banner').style.display = 'none';
+    }
+
+    function addRoom(defaultName, rid) {
+      roomCount++;
+      const rc = roomCount;
+      rid = rid || genRid();
+      const wrap = document.getElementById('rooms-cards');
+      const card = document.createElement('div');
+      card.className = 'room-card';
+      card.id = 'room-' + rc;
+      card.dataset.rid = rid;
+      const safeName = (defaultName || '').replace(/"/g, '&quot;');
+      card.innerHTML =
+        '<div class="room-card-head">' +
+          '<input type="text" class="room-name" placeholder="Elevation (e.g. Front)" value="' + safeName + '">' +
+          '<button type="button" class="room-del" title="Remove elevation">&times;</button>' +
+        '</div>' +
+        '<div class="room-dims">' +
+          '<div class="f"><label>Width (m)</label><input type="number" step="0.1" min="0" id="w-' + rc + '" placeholder="0.0"></div>' +
+          '<div class="f"><label>Height (m)</label><input type="number" step="0.1" min="0" id="h-' + rc + '" placeholder="0.0"></div>' +
+          '<div class="f"><label>Openings \u2212m\u00b2</label><input type="number" step="0.1" min="0" id="o-' + rc + '" placeholder="0.0"></div>' +
+        '</div>' +
+        '<div class="room-surface">' +
+          '<div class="surf-row"><span class="surf-lbl">Area <b id="wall-' + rc + '">\u2014</b></span><select class="method-walls">' + methodOptions('') + '</select></div>' +
+        '</div>' +
+        '<div class="room-materials" id="mat-' + rc + '" style="display:none"></div>' +
+        '<div class="room-extras">' +
+          '<div class="ex-hdr">Extra materials (£ ea, ex VAT)</div>' +
+          '<div class="extra-lines"></div>' +
+          '<button type="button" class="extra-add">+ Add material</button>' +
+        '</div>' +
+        '<div class="room-labour-row"><label>Labour £</label><input type="number" step="1" min="0" class="room-labour" placeholder="0"></div>' +
+        '<input type="text" class="room-note" placeholder="Notes for this elevation">' +
+        '<div class="room-photos"></div>';
+      wrap.appendChild(card);
+      card.querySelector('#w-' + rc).addEventListener('input', () => calcRoom(rc));
+      card.querySelector('#h-' + rc).addEventListener('input', () => calcRoom(rc));
+      card.querySelector('#o-' + rc).addEventListener('input', () => calcRoom(rc));
+      card.querySelector('.method-walls').addEventListener('change', calcMaterials);
+      card.querySelector('.room-del').addEventListener('click', () => { card.remove(); calcTotals(); });
+      card.querySelector('.extra-add').addEventListener('click', () => { addExtraLine(card); calcMaterials(); });
+      card.querySelector('.room-labour').addEventListener('input', calcMaterials);
+      renderRoomPhotos(card);
+      return rc;
+    }
+
+    // ---- Extra-material picker: pulls the main app's price list (pr_materials), ex-VAT ----
+    // Seed list used only if the app's saved list isn't on this device yet.
+    const EXTRA_MAT_DEFAULTS = [
+      { name: 'Thistle Bonding Coat Plaster 25kg', unit: '25kg bag', price: 12.92 },
+      { name: 'Siniat Universal Bonding Compound (dab adhesive) 25kg', unit: '25kg bag', price: 9.67 },
+      { name: 'Thistle Multi Finish Plaster 25kg', unit: '25kg bag', price: 9.73 },
+      { name: 'Bond It PVA Contractors 5L', unit: '5L tub', price: 10.36 },
+      { name: 'Thin-Coat Angle Bead galv 2400mm', unit: 'each', price: 1.80 },
+      { name: 'Corner Bead (SS)', unit: '2.5m each', price: 2.50 },
+      { name: 'Stop Bead (SS)', unit: '3m each', price: 4.00 },
+      { name: 'Fibreglass Mesh', unit: '50m roll', price: 18.00 },
+      { name: 'Bond It Monster Scrim Tape 48mm×90m', unit: '90m roll', price: 3.72 },
+      { name: 'Siniat Standard Plasterboard 1800×900×12.5mm', unit: 'sheet', price: 6.96 },
+      { name: 'Siniat Fire Board 1800×900×12.5mm', unit: 'sheet', price: 8.58 },
+      { name: 'Drywall Screws 38mm (box 1000)', unit: 'box', price: 7.70 },
+      { name: 'Drywall Screws 50mm (box 1000)', unit: 'box', price: 8.68 },
+      { name: 'Drywall Screws 75mm (box 500)', unit: 'box', price: 16.04 },
+      { name: 'Drywall Screws 100mm (box 200)', unit: 'box', price: 16.38 },
+      { name: 'Grit Plaster', unit: '25kg bag', price: 8.00 }
+    ];
+    let _extraMats = null;
+    function extraMaterialsList() {
+      if (_extraMats) return _extraMats;
+      let saved = null;
+      try { saved = JSON.parse(localStorage.getItem('pr_materials') || 'null'); } catch(e) {}
+      _extraMats = (saved && saved.length) ? saved : EXTRA_MAT_DEFAULTS.slice();
+      return _extraMats;
+    }
+    function extraMatByName(name) { return extraMaterialsList().find(m => m.name === name); }
+    function extraMatOptions(selected) {
+      const opts = ['<option value="">— pick material —</option>'];
+      extraMaterialsList().forEach(m => {
+        const lbl = m.name + (m.price != null ? '  (£' + Number(m.price).toFixed(2) + (m.unit ? ' / ' + m.unit : '') + ')' : '');
+        const sel = (m.name === selected) ? ' selected' : '';
+        opts.push('<option value="' + String(m.name).replace(/"/g, '&quot;') + '"' + sel + '>' + lbl + '</option>');
+      });
+      opts.push('<option value="__other__"' + (selected === '__other__' ? ' selected' : '') + '>Other (type it)</option>');
+      return opts.join('');
+    }
+
+    // Rebuild every existing extra-line dropdown against the current materials list, keeping selections.
+    function refreshExtraDropdowns() {
+      document.querySelectorAll('.extra-line .ex-mat').forEach(sel => {
+        const cur = sel.value;
+        sel.innerHTML = extraMatOptions(cur);
+        // if the previously-picked material is no longer in the list, fall back to "Other" keeping its text
+        if (cur && cur !== '__other__' && sel.value !== cur) {
+          sel.value = '__other__';
+          const descEl = sel.closest('.extra-line').querySelector('.ex-desc');
+          if (descEl) descEl.style.display = '';
+        }
+      });
+    }
+
+    // Pull the latest Materials list straight from the cloud so the picker is current even if the
+    // main app hasn't run its sync on this device yet. Newest-wins vs the local copy; offline-safe.
+    async function loadExtraMaterialsFromCloud() {
+      try {
+        const r = await sb.from('app_kv').select('*').eq('id', 'materials').single();
+        if (r.error || !r.data || !Array.isArray(r.data.data) || !r.data.data.length) return;
+        let localTs = 0;
+        try { localTs = parseInt(localStorage.getItem('pr_materials_ts') || '0', 10) || 0; } catch(e) {}
+        const cloudTs = r.data.updated_at || 0;
+        if (cloudTs < localTs) return;               // local copy is newer — keep it
+        _extraMats = r.data.data;
+        try {
+          localStorage.setItem('pr_materials', JSON.stringify(r.data.data));
+          localStorage.setItem('pr_materials_ts', String(cloudTs));
+        } catch(e) {}
+        refreshExtraDropdowns();
+      } catch(e) { /* offline or table missing — local/default list is fine */ }
+    }
+
+    // Add one editable "extra material" line to a room card (optionally pre-filled on restore).
+    function addExtraLine(card, d) {
+      d = d || {};
+      const wrap = card.querySelector('.extra-lines');
+      if (!wrap) return;
+      // Decide initial dropdown state: known material name, blank, or custom "Other"
+      const known = d.desc ? extraMatByName(d.desc) : null;
+      const selVal = d.desc ? (known ? d.desc : '__other__') : '';
+      const line = document.createElement('div');
+      line.className = 'extra-line';
+      line.innerHTML =
+        '<div class="ex-row1">' +
+          '<select class="ex-mat">' + extraMatOptions(selVal) + '</select>' +
+          '<input type="number" class="ex-qty" step="1" min="0" placeholder="1" value="' + (d.qty != null ? d.qty : '') + '">' +
+          '<input type="number" class="ex-price" step="0.01" min="0" placeholder="0.00" value="' + (d.price != null ? d.price : '') + '">' +
+          '<button type="button" class="ex-del" title="Remove">&times;</button>' +
+        '</div>' +
+        '<input type="text" class="ex-desc" placeholder="Material name" value="' + String(d.desc || '').replace(/"/g, '&quot;') + '" style="display:' + (selVal === '__other__' ? '' : 'none') + '">';
+      wrap.appendChild(line);
+      const sel = line.querySelector('.ex-mat');
+      const descEl = line.querySelector('.ex-desc');
+      sel.addEventListener('change', () => {
+        if (sel.value === '__other__') {
+          descEl.style.display = ''; descEl.value = ''; descEl.focus();
+        } else if (sel.value) {
+          const m = extraMatByName(sel.value);
+          descEl.value = sel.value; descEl.style.display = 'none';
+          if (m && m.price != null) line.querySelector('.ex-price').value = m.price;  // auto-fill ex-VAT price
+        } else {
+          descEl.value = ''; descEl.style.display = 'none';
+        }
+        calcMaterials();
+      });
+      line.querySelector('.ex-qty').addEventListener('input', calcMaterials);
+      line.querySelector('.ex-price').addEventListener('input', calcMaterials);
+      descEl.addEventListener('input', calcMaterials);
+      line.querySelector('.ex-del').addEventListener('click', () => { line.remove(); calcMaterials(); });
+    }
+
+    // Read a card's extra-material lines (skips blank rows).
+    function cardExtras(card) {
+      return [].slice.call(card.querySelectorAll('.extra-line')).map(l => ({
+        desc:  (l.querySelector('.ex-desc')?.value || '').trim(),
+        qty:   parseFloat(l.querySelector('.ex-qty')?.value) || 0,
+        price: parseFloat(l.querySelector('.ex-price')?.value) || 0
+      })).filter(x => x.desc || x.qty || x.price);
+    }
+
+    // Elevation net area = (Width × Height) − openings.
+    function elevArea(rc) {
+      const w = parseFloat(document.getElementById('w-' + rc).value) || 0;
+      const h = parseFloat(document.getElementById('h-' + rc).value) || 0;
+      const o = parseFloat(document.getElementById('o-' + rc).value) || 0;
+      return Math.max(0, w * h - o);
+    }
+    function calcRoom(rc) {
+      const area = elevArea(rc);
+      const wallEl = document.getElementById('wall-' + rc);
+      wallEl.textContent = area > 0 ? area.toFixed(1) + ' m²' : '—';
+      calcTotals();
+    }
+
+    function calcTotals() {
+      let total = 0;
+      document.querySelectorAll('[id^="wall-"]').forEach(el => {
+        const v = parseFloat(el.textContent);
+        if (!isNaN(v)) total += v;
+      });
+      const tw = document.getElementById('total-wall');   if (tw) tw.textContent = total > 0 ? total.toFixed(1) + ' m²' : '—';
+      const tc = document.getElementById('total-ceil');   if (tc) tc.textContent = '—';
+      const tcomb = document.getElementById('total-combined'); if (tcomb) tcomb.textContent = total > 0 ? total.toFixed(1) + ' m² total' : '—';
+      // Auto-sync total m² into first pricing row
+      if (total > 0) {
+        const m2El = document.getElementById('pm2-1');
+        if (m2El) { m2El.value = total.toFixed(1); if (typeof calcPriceRow === 'function') calcPriceRow(1); }
+      }
+      calcMaterials();
+    }
+
+    // ===== MATERIALS ESTIMATE (per room) =====
+    // Each room picks its own method; quantities use that room's ticked surfaces.
+    const METHOD_LABELS = { 'Silicone':'Silicone', 'Monocouche':'Monocouche', 'K-Rend':'K-Rend', 'EWI':'EWI System', 'Sand & Cement':'Sand & Cement', 'External Render':'External Render' };
+    let _matCopyText = '';
+    let _matCost = { subtotal: 0, vat: 0, total: 0 };   // ex-VAT subtotal, VAT, inc-VAT total (materials, incl. extras)
+    let _jobLabour = 0;                                 // sum of per-elevation labour (on-site estimate only, NOT sent to invoice)
+    const MAT_VAT = 0.20;
+
+    // Default ProTec/MKM ex-VAT render prices (latest invoices to Jun 2026) — overridable, remembered per device.
+    const PRICE_DEFAULTS = { base:12.90, mesh:64.19, primer:75.90, top:87.83, beads:3.10, mono:11.30, eps:5.30, fixings:19.57 };
+    const PRICE_IDS = { base:'price-base', mesh:'price-mesh', primer:'price-primer', top:'price-top', beads:'price-beads', mono:'price-mono', eps:'price-eps', fixings:'price-fixings' };
+
+    function priceFor(key) {
+      const el = document.getElementById(PRICE_IDS[key]);
+      const v = el ? parseFloat(el.value) : NaN;
+      return isNaN(v) ? (PRICE_DEFAULTS[key] || 0) : v;
+    }
+    function saveMaterialPrices() {
+      try {
+        const out = {};
+        Object.keys(PRICE_IDS).forEach(k => { out[k] = document.getElementById(PRICE_IDS[k])?.value || ''; });
+        localStorage.setItem('pr_material_prices', JSON.stringify(out));
+      } catch(e) {}
+    }
+    function loadMaterialPrices() {
+      try {
+        const saved = JSON.parse(localStorage.getItem('pr_material_prices') || '{}');
+        Object.keys(PRICE_IDS).forEach(k => { if (saved[k]) { const el = document.getElementById(PRICE_IDS[k]); if (el) el.value = saved[k]; } });
+      } catch(e) {}
+    }
+
+    function matEsc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function plural(n, u) { return n + ' ' + u + (n !== 1 ? 's' : ''); }
+
+    function methodOptions(sel) {
+      const opts = [['','— pick system —'],['Silicone','Silicone'],['Monocouche','Monocouche'],['K-Rend','K-Rend'],['EWI','EWI System'],['Sand & Cement','Sand & Cement'],['External Render','External Render']];
+      return opts.map(o => '<option value="'+o[0]+'"'+(o[0] === (sel || '') ? ' selected' : '')+'>'+o[1]+'</option>').join('');
+    }
+
+    function ratesObj() {
+      const rate = (id, def) => { const el = document.getElementById(id); const v = el ? parseFloat(el.value) : NaN; return v > 0 ? v : def; };
+      return {
+        base:    rate('cov-base', 5),
+        mesh:    rate('cov-mesh', 50),
+        primer:  rate('cov-primer', 25),
+        top:     rate('cov-top', 10),
+        beads:   (function(){ const el=document.getElementById('cov-beads'); const v=el?parseFloat(el.value):NaN; return (v>=0&&!isNaN(v))?v:0.1; })(),
+        mono:    rate('cov-mono', 4),
+        eps:     rate('cov-eps', 0.72),
+        fixings: rate('cov-fixings', 10)
+      };
+    }
+
+    const matUp = n => Math.max(1, Math.ceil(n - 1e-9));
+
+    // Returns [ [key, label, unit, qty], ... ] of area-scaled render materials for one elevation + system.
+    function renderMaterials(system, area, R) {
+      if (!system || !(area > 0)) return [];
+      const base   = ['base','Ecorend X32 basecoat (25kg)','bag', matUp(area / R.base)];
+      const mesh   = ['mesh','EcoRend M160 mesh','roll', matUp(area / R.mesh)];
+      const primer = ['primer','SFP15 Sil-Flex primer (25kg)','tub', matUp(area / R.primer)];
+      const top    = ['top','SR15 silicone topcoat (25kg)','tub', matUp(area / R.top)];
+      const beads  = ['beads','Render beads (2.7m)','each', Math.max(2, Math.round(area * R.beads))];
+      if (system === 'Silicone' || system === 'K-Rend' || system === 'External Render')
+        return [base, mesh, primer, top, beads];
+      if (system === 'EWI')
+        return [['eps','EPS insulation board','board', matUp(area / R.eps)],
+                ['fixings','EWI fixings (box)','box', matUp(area / R.fixings)],
+                base, mesh, primer, top, beads];
+      if (system === 'Monocouche')
+        return [['mono','Monocouche render (25kg)','bag', matUp(area / R.mono)], mesh, beads];
+      if (system === 'Sand & Cement')
+        return [beads];   // sand/cement bought elsewhere — add via extras
+      return [];
+    }
+
+    function calcMaterials() {
+      const out = document.getElementById('mat-estimate-output');
+      if (!out) return;
+      const R = ratesObj();
+      const cards = [].slice.call(document.querySelectorAll('#rooms-cards .room-card'));
+
+      const grand = {}; const order = [];
+      const grandExtras = {}; const extrasOrder = [];   // ad-hoc materials aggregated by description
+      let grandCostEx = 0;
+      let grandLabour = 0;
+      const copyRooms = [];
+
+      function addInto(map, list, mats) {
+        mats.forEach(m => { if (!map[m[0]]) { map[m[0]] = { label:m[1], unit:m[2], qty:0 }; list.push(m[0]); } map[m[0]].qty += m[3]; });
+      }
+
+      cards.forEach(card => {
+        const rc = card.id.replace('room-', '');
+        const area = parseFloat((document.getElementById('wall-' + rc) || {}).textContent) || 0;
+        const sys = (card.querySelector('.method-walls') || {}).value || '';
+        const nameEl = card.querySelector('.room-name');
+        const name = (nameEl && nameEl.value.trim()) || 'Elevation';
+
+        const roomMap = {}; const roomOrder = []; const surfaces = [];
+        if (sys && area > 0) {
+          const mats = renderMaterials(sys, area, R);
+          addInto(roomMap, roomOrder, mats);
+          addInto(grand, order, mats);
+          surfaces.push([name, sys, area, mats]);
+        }
+
+        // Extra (ad-hoc) materials for this elevation \u2014 fold into the materials cost + order list
+        const extras = cardExtras(card).filter(x => x.desc && x.qty > 0);
+        let roomExtraEx = 0;
+        extras.forEach(x => {
+          roomExtraEx += x.qty * x.price;
+          const key = x.desc.toLowerCase();
+          if (!grandExtras[key]) { grandExtras[key] = { label: x.desc, qty: 0 }; extrasOrder.push(key); }
+          grandExtras[key].qty += x.qty;
+        });
+
+        const labour = parseFloat(card.querySelector('.room-labour')?.value) || 0;
+        grandLabour += labour;
+
+        const autoEx  = roomOrder.reduce((sum, k) => sum + roomMap[k].qty * priceFor(k), 0);
+        const roomEx  = autoEx + roomExtraEx;
+        grandCostEx  += roomEx;
+        const roomMatInc = roomEx * (1 + MAT_VAT);
+        const roomTotal  = roomMatInc + labour;
+
+        const md = document.getElementById('mat-' + rc);
+        if (md) {
+          if (!roomOrder.length && !extras.length && !(labour > 0)) { md.style.display = 'none'; md.innerHTML = ''; }
+          else {
+            const consumHtml = '';
+            const extrasHtml = extras.map(x => '<div>' + x.qty + ' \u00d7 ' + x.desc
+              + ' <span style="color:#888;font-size:11px">\u00a3' + (x.qty * x.price).toFixed(2) + '</span></div>').join('');
+            let costHtml;
+            if (labour > 0) {
+              costHtml = '<div class="rm-cost">Materials: \u00a3' + roomMatInc.toFixed(2) + ' inc VAT'
+                + '<div class="rm-labour">Labour: \u00a3' + labour.toFixed(2) + '</div>'
+                + 'Elevation total: \u00a3' + roomTotal.toFixed(2) + '</div>';
+            } else {
+              costHtml = '<div class="rm-cost">Elevation cost: \u00a3' + roomMatInc.toFixed(2) + ' inc VAT</div>';
+            }
+            md.style.display = 'block';
+            md.innerHTML = '<div class="rm-hdr">Materials</div>'
+              + roomOrder.map(k => '<div>' + plural(roomMap[k].qty, roomMap[k].unit) + ' \u2014 ' + roomMap[k].label + '</div>').join('')
+              + extrasHtml + consumHtml + costHtml;
+
+            const lines = surfaces.map(sf => '  ' + sf[0] + ' [' + (METHOD_LABELS[sf[1]] || sf[1]) + '] ' + sf[2].toFixed(1) + ' m\u00b2: ' + sf[3].map(m => plural(m[3], m[2]) + ' ' + m[1]).join(', '));
+            extras.forEach(x => lines.push('  + ' + x.qty + ' \u00d7 ' + x.desc + ' (\u00a3' + (x.qty * x.price).toFixed(2) + ')'));
+            let footer = '\n  Materials: \u00a3' + roomMatInc.toFixed(2) + ' inc VAT';
+            if (labour > 0) footer += '\n  Labour: \u00a3' + labour.toFixed(2) + '\n  Elevation total: \u00a3' + roomTotal.toFixed(2);
+            copyRooms.push(name + (lines.length ? '\n' + lines.join('\n') : '') + footer);
+          }
+        }
+      });
+
+      if (!order.length && !extrasOrder.length && !(grandLabour > 0)) {
+        out.style.display = 'none'; _matCopyText = ''; _matCost = { subtotal:0, vat:0, total:0 }; _jobLabour = 0; return;
+      }
+
+      document.getElementById('mat-list').innerHTML =
+        order.map(k => '<tr><td>' + grand[k].label + '</td><td class="area-cell" style="text-align:right;font-weight:700">' + plural(grand[k].qty, grand[k].unit) + '</td></tr>').join('')
+        + extrasOrder.map(k => '<tr><td>' + grandExtras[k].label + '</td><td class="area-cell" style="text-align:right;font-weight:700">' + grandExtras[k].qty + '</td></tr>').join('');
+
+      const subtotal = grandCostEx;
+      _matCost = { subtotal: subtotal, vat: subtotal * MAT_VAT, total: subtotal * (1 + MAT_VAT) };
+      _jobLabour = grandLabour;
+      document.getElementById('mat-cost-ex').textContent  = '\u00a3' + _matCost.subtotal.toFixed(2);
+      document.getElementById('mat-cost-inc').textContent = '\u00a3' + _matCost.total.toFixed(2);
+      // Labour + grand-total rows (on-site estimate only \u2014 not sent to the invoice)
+      const labourRow = document.getElementById('mat-labour-row');
+      const grandRow  = document.getElementById('mat-grand-row');
+      if (grandLabour > 0) {
+        document.getElementById('mat-labour-val').textContent = '\u00a3' + grandLabour.toFixed(2);
+        document.getElementById('mat-grand-val').textContent  = '\u00a3' + (_matCost.total + grandLabour).toFixed(2);
+        labourRow.style.display = ''; grandRow.style.display = '';
+      } else {
+        labourRow.style.display = 'none'; grandRow.style.display = 'none';
+      }
+      out.style.display = 'block';
+
+      const orderLines = order.map(k => plural(grand[k].qty, grand[k].unit) + ' \u2014 ' + grand[k].label)
+        .concat(extrasOrder.map(k => grandExtras[k].qty + ' \u2014 ' + grandExtras[k].label));
+      _matCopyText = 'MATERIALS ESTIMATE\n\n' + copyRooms.join('\n\n')
+        + '\n\nTOTAL TO ORDER\n  ' + orderLines.join('\n  ')
+        + '\n\nTotal materials: \u00a3' + _matCost.subtotal.toFixed(2) + ' ex VAT  (\u00a3' + _matCost.total.toFixed(2) + ' inc VAT)'
+        + (grandLabour > 0 ? '\nLabour: \u00a3' + grandLabour.toFixed(2) + '\nJOB TOTAL: \u00a3' + (_matCost.total + grandLabour).toFixed(2) : '');
+    }
+
+    function copyMaterials() {
+      const text = _matCopyText;
+      if (!text) return;
+      const done = () => { const b = document.getElementById('mat-copy-btn'); const o = b.textContent; b.textContent = 'COPIED!'; setTimeout(() => { b.textContent = o; }, 1500); };
+      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(done, done); }
+      else { try { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(); } catch(e){} }
+    }
+
+    /* ===== PHOTOS ===== */
+
+    function genRid() { return 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
+
+    function renderRoomPhotos(card) {
+      if (!card) return;
+      const rid = card.dataset.rid;
+      const wrap = card.querySelector('.room-photos');
+      if (!wrap) return;
+      let html = '';
+      Object.keys(photoData).forEach(pc => {
+        const p = photoData[pc];
+        if (!p || p.room !== rid) return;
+        const cap = (p.caption || '').replace(/"/g, '&quot;');
+        html += '<div class="rp-item">'
+          + '<div class="rp-thumb">'
+          + (p.dataUrl ? '<img src="' + p.dataUrl + '" onclick="openLightbox(this.src)">' : '<div class="rp-loading">\u2026</div>')
+          + '<button type="button" class="rp-del" onclick="removePhoto(' + pc + ')" title="Remove">\u00d7</button>'
+          + '</div>'
+          + '<input type="text" class="rp-cap" placeholder="caption" value="' + cap + '" oninput="setPhotoCaption(' + pc + ', this.value)">'
+          + '</div>';
+      });
+      html += '<label class="rp-add"><span>+</span>photo<input type="file" accept="image/*" multiple onchange="loadRoomPhoto(this)"></label>';
+      wrap.innerHTML = html;
+    }
+
+    function renderAllRoomPhotos() {
+      const cards = [].slice.call(document.querySelectorAll('#rooms-cards .room-card'));
+      if (cards.length) {
+        const rids = cards.map(c => c.dataset.rid);
+        const firstRid = rids[0];
+        Object.keys(photoData).forEach(pc => { const p = photoData[pc]; if (p && (!p.room || rids.indexOf(p.room) === -1)) p.room = firstRid; });
+      }
+      cards.forEach(c => renderRoomPhotos(c));
+    }
+
+    function loadRoomPhoto(input) {
+      const files = input.files;
+      if (!files || !files.length) return;
+      const card = input.closest('.room-card');
+      if (!card) return;
+      const rid = card.dataset.rid;
+      [].slice.call(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          compressImage(e.target.result, 1100, 0.6, compressed => {
+            photoCount++;
+            photoData[photoCount] = { dataUrl: compressed, caption: '', room: rid };
+            renderRoomPhotos(card);
+          });
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function setPhotoCaption(pc, val) { if (photoData[pc]) photoData[pc].caption = val; }
+
+    // Downscale + shrink until the photo is small enough to upload reliably.
+    // All photos live in one Supabase row, so each must stay light (~150KB target).
+    const PHOTO_TARGET_BYTES = 150 * 1024;            // ~150KB per photo
+    function compressImage(dataUrl, maxW, quality, cb) {
+      const img = new Image();
+      img.onload = () => {
+        function render(w, q) {
+          const scale = Math.min(1, w / img.naturalWidth);
+          const cw = Math.max(1, Math.round(img.naturalWidth * scale));
+          const ch = Math.max(1, Math.round(img.naturalHeight * scale));
+          const c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          c.getContext('2d').drawImage(img, 0, 0, cw, ch);
+          return c.toDataURL('image/jpeg', q);
+        }
+        // approx bytes from a base64 data URL length
+        const bytes = s => Math.round((s.length - (s.indexOf(',') + 1)) * 0.75);
+        let w = maxW, q = quality, out = render(w, q), guard = 0;
+        while (bytes(out) > PHOTO_TARGET_BYTES && guard < 8) {
+          if (q > 0.4) q -= 0.1;            // first drop quality
+          else w = Math.round(w * 0.85);    // then shrink dimensions
+          out = render(w, q);
+          guard++;
+        }
+        cb(out);
+      };
+      img.src = dataUrl;
+    }
+
+    /* ===== PRICING TABLE ===== */
+    let priceCount = 0;
+
+    const PRICE_PRESETS = [
+      { group: '── Rendering ──', items: [
+        { label: 'Silicone Render — No Hack Off',     rate: 90  },
+        { label: 'Silicone Render — Hack Off Required', rate: 110 },
+        { label: 'Monocouche — No Hack Off',          rate: 80  },
+        { label: 'Monocouche — Hack Off Required',    rate: 95  },
+        { label: 'EWI System',                        rate: 120 },
+        { label: 'K-Rend',                            rate: 80  },
+        { label: 'Sand & Cement Render',              rate: 50  },
+        { label: 'Roughcast / Pebbledash',            rate: 55  },
+      ]},
+      { group: '── Plastering ──', items: [
+        { label: 'Skim Coat — Walls & Ceiling',       rate: 70  },
+        { label: 'Skim Coat — Walls Only',            rate: 70  },
+        { label: 'Skim Coat — Ceiling Only',          rate: 75  },
+        { label: 'Board & Skim',                      rate: 70  },
+        { label: 'Dot & Dab & Skim',                  rate: 70  },
+        { label: 'Bond & Skim',                       rate: 70  },
+        { label: 'Patching & Repair',                 rate: 70  },
+        { label: 'Dry Lining',                        rate: 70  },
+        { label: 'Artex Removal',                     rate: 70  },
+        { label: 'Coving — Supply & Fix',             rate: 25  },
+      ]},
+    ];
+
+    function buildPresetOpts() {
+      let html = '<option value="">— Select or type below —</option>';
+      PRICE_PRESETS.forEach(g => {
+        html += `<optgroup label="${g.group}">`;
+        g.items.forEach(item => {
+          html += `<option value="${item.rate}" data-label="${item.label}">${item.label}  £${item.rate}/m²</option>`;
+        });
+        html += '</optgroup>';
+      });
+      return html;
+    }
+
+    function applyPricePreset(pc, sel) {
+      const rate  = sel.value;
+      const label = sel.options[sel.selectedIndex]?.dataset?.label || '';
+      if (!rate) return;
+      const descEl  = document.getElementById('pdesc-'  + pc);
+      const rateEl  = document.getElementById('prate-'  + pc);
+      if (descEl) descEl.value = label;
+      if (rateEl) { rateEl.value = rate; calcPriceRow(pc); }
+      sel.value = ''; // reset dropdown so it can be re-used
+    }
+
+    function addPriceRow(defaultName) {
+      priceCount++;
+      const pc = priceCount;
+      const tbody = document.getElementById('price-tbody');
+      const tr = document.createElement('tr');
+      tr.id = 'price-row-' + pc;
+      tr.innerHTML = `
+        <td>
+          <select id="ppreset-${pc}" style="width:100%;padding:5px 6px;font-size:12px;border:1px solid #ddd;border-radius:2px;background:#f5f5f5;color:#555;margin-bottom:4px" onchange="applyPricePreset(${pc}, this)">
+            ${buildPresetOpts()}
+          </select>
+          <input type="text" id="pdesc-${pc}" placeholder="Description / room" value="${defaultName || ''}">
+        </td>
+        <td><input type="number" placeholder="0.0" step="0.1" min="0" id="pm2-${pc}"></td>
+        <td><input type="number" placeholder="0.00" step="0.01" min="0" id="prate-${pc}"></td>
+        <td><input type="number" placeholder="0.00" step="0.01" min="0" id="ptotal-${pc}" oninput="calcGrandTotal()" style="text-align:right;font-weight:700;font-size:13px;color:#111;background:#fafafa;border:1px solid #e0e0e0;border-radius:2px;padding:6px 7px;width:100%"></td>
+        <td><button class="btn-remove-row" type="button" title="Remove">×</button></td>
+      `;
+      tbody.appendChild(tr);
+      tr.querySelector('#pm2-'   + pc).addEventListener('input', () => calcPriceRow(pc));
+      tr.querySelector('#prate-' + pc).addEventListener('input', () => calcPriceRow(pc));
+      tr.querySelector('.btn-remove-row').addEventListener('click', () => { tr.remove(); calcGrandTotal(); });
+    }
+
+    function calcPriceRow(pc) {
+      const m2 = parseFloat(document.getElementById('pm2-' + pc).value) || 0;
+      const rate = parseFloat(document.getElementById('prate-' + pc).value) || 0;
+      // Only auto-fill total if both m² and rate are filled
+      if (m2 > 0 && rate > 0) {
+        const totalEl = document.getElementById('ptotal-' + pc);
+        if (totalEl) totalEl.value = (m2 * rate).toFixed(2);
+      }
+      calcGrandTotal();
+    }
+
+    function calcGrandTotal() {
+      let grand = 0;
+      document.querySelectorAll('[id^="ptotal-"]').forEach(el => {
+        // Inputs use .value; the skip row td uses textContent
+        const raw = el.tagName === 'INPUT' ? el.value : el.textContent.replace('£', '');
+        const v = parseFloat(raw);
+        if (!isNaN(v) && v > 0) grand += v;
+      });
+      document.getElementById('grand-total').textContent = '£' + grand.toFixed(2);
+    }
+
+    async function saveToApp() {
+      const jobId = new URLSearchParams(location.search).get('jobId');
+      if (!jobId) { alert('Open this form from the PR Jobs app to save back to a client.'); return; }
+      const job = _svJob || await sbGetJob(jobId);
+      if (!job) { alert('Client not found — make sure you opened this from the PR Jobs app.'); return; }
+
+      const _renderType  = document.getElementById('wt-rendering')?.value  || '';
+      const _plasterType = document.getElementById('wt-plastering')?.value || '';
+      const workTypes = [_renderType, _plasterType].filter(Boolean).join(', ');
+
+      const skipVal  = document.getElementById('skip-size')?.value || '';
+      const [skipTons, skipCost] = skipVal ? skipVal.split('|') : ['', ''];
+
+      const svRef = document.getElementById('visit-ref')?.value.trim() || '';
+
+      job.renderVisit = {
+        ref:           svRef,
+        date:          document.getElementById('visit-date').value,
+        wallM2:        document.getElementById('total-wall').textContent.replace('—','').trim(),
+        ceilM2:        document.getElementById('total-ceil').textContent.replace('—','').trim(),
+        combinedM2:    document.getElementById('total-combined').textContent.replace('— combined','').replace('combined','').trim(),
+        estTotal:      document.getElementById('grand-total').textContent,
+        workTypes:     workTypes,
+        scopeOfWorks:  document.getElementById('scope-of-works')?.value.trim() || '',
+        finishType:    document.getElementById('finish-type-sel')?.value || '',
+        colour:        document.getElementById('colour-render')?.value || '',
+        coatsRequired: document.getElementById('coats-required')?.value || '',
+        access:        document.querySelector('input[name="access"]:checked')?.value || '',
+        parking:       document.querySelector('input[name="parking"]:checked')?.value || '',
+        scaffold:      document.querySelector('input[name="scaffold"]:checked')?.value || '',
+        skipTons:       skipTons || '',
+        skipCost:       skipCost ? '£' + parseFloat(skipCost).toFixed(2) : '',
+        propertyType:   document.getElementById('property-type-sel')?.value || '',
+        existingSurface: document.getElementById('existing-surface')?.value || '',
+        prepRequired:   document.getElementById('prep-required')?.value || '',
+        surfaceNotes:   document.getElementById('surface-notes')?.value || '',
+        accessNotes:    document.getElementById('access-notes')?.value || '',
+        pricingNotes:   document.getElementById('pricing-notes')?.value || '',
+        generalNotes:   document.getElementById('general-notes')?.value || '',
+        savedAt:        new Date().toISOString(),
+        photos:         Object.entries(photoData).map(([, v]) => ({ dataUrl: v.dataUrl, caption: v.caption || '', room: v.room || '' })),
+        rooms:          (function() {
+          const rows = [];
+          document.querySelectorAll('#rooms-cards .room-card').forEach(card => {
+            const sys = card.querySelector('.method-walls')?.value || '';
+            const rc = card.id.replace('room-', '');
+            rows.push({
+              rid:   card.dataset.rid || '',
+              name:  card.querySelector('.room-name')?.value || '',
+              w:     parseFloat(document.getElementById('w-' + rc)?.value) || 0,
+              h:     parseFloat(document.getElementById('h-' + rc)?.value) || 0,
+              openings: parseFloat(document.getElementById('o-' + rc)?.value) || 0,
+              system: sys,
+              note:  card.querySelector('.room-note')?.value || '',
+              extras: cardExtras(card),
+              labour: parseFloat(card.querySelector('.room-labour')?.value) || 0
+            });
+          });
+          return rows;
+        })(),
+        materialsEstimate: {
+          toInvoice: document.getElementById('mat-to-invoice')?.checked !== false,
+          rates: {
+            base:    document.getElementById('cov-base')?.value || '',
+            mesh:    document.getElementById('cov-mesh')?.value || '',
+            primer:  document.getElementById('cov-primer')?.value || '',
+            top:     document.getElementById('cov-top')?.value || '',
+            beads:   document.getElementById('cov-beads')?.value || '',
+            mono:    document.getElementById('cov-mono')?.value || '',
+            eps:     document.getElementById('cov-eps')?.value || '',
+            fixings: document.getElementById('cov-fixings')?.value || ''
+          }
+        },
+        priceRows:     (function() {
+          const rows = [];
+          for (let i = 1; i <= priceCount; i++) {
+            const row = document.getElementById('price-row-' + i);
+            if (!row) continue;
+            const desc  = document.getElementById('pdesc-'  + i)?.value?.trim() || '';
+            const m2    = parseFloat(document.getElementById('pm2-'   + i)?.value) || 0;
+            const rate  = parseFloat(document.getElementById('prate-' + i)?.value) || 0;
+            const total = parseFloat(document.getElementById('ptotal-'+ i)?.value) || 0;
+            if (desc || total) rows.push({ desc, m2, rate, total });
+          }
+          return rows;
+        })()
+      };
+
+      // Also update top-level client details in case they were edited on site
+      const nameEl    = document.getElementById('customer-name');
+      const phoneEl   = document.querySelector('input[type="tel"]');
+      const emailEl   = document.querySelector('input[type="email"]');
+      const addrEl    = document.querySelector('input[placeholder="Street, City, Postcode"]');
+      if (nameEl?.value)  job.name    = nameEl.value;
+      if (phoneEl?.value) job.phone   = phoneEl.value;
+      if (emailEl?.value) job.email   = emailEl.value;
+      if (addrEl?.value)  job.address = addrEl.value;
+
+      // PHOTO-LOSS GUARD: if we're about to save without any photo image data but the cloud
+      // still holds photos for this job, the images simply hadn't finished downloading yet.
+      // Pull the cloud copy back in so a quick re-save never wipes existing photos.
+      const haveImages = job.renderVisit.photos.some(p => p.dataUrl);
+      if (!haveImages && _photosStripped) {
+        try {
+          const cloud = await sbGetJob(jobId);
+          const cloudPhotos = (cloud?.renderVisit?.photos || []).filter(p => p.dataUrl);
+          if (cloudPhotos.length) {
+            job.renderVisit.photos = cloudPhotos.map(p => ({ dataUrl: p.dataUrl, caption: p.caption || '', room: p.room || '' }));
+            photoData = {}; photoCount = 0;
+            job.renderVisit.photos.forEach(p => { photoCount++; photoData[photoCount] = { dataUrl: p.dataUrl, caption: p.caption || '', room: p.room || '' }; });
+            renderAllRoomPhotos();
+            _photosStripped = false;
+          }
+        } catch(e) {}
+      }
+
+      // Send materials cost (inc VAT) to the invoice if requested — same field the invoice reads.
+      try {
+        const toInv = document.getElementById('mat-to-invoice');
+        if (toInv && toInv.checked && _matCost.total > 0) {
+          job.materialsCalc = { subtotal: _matCost.subtotal, vat: _matCost.vat, total: _matCost.total, qtys: {}, savedAt: Date.now(), source: 'render-visit' };
+        }
+      } catch(e) {}
+
+      const btn = document.getElementById('save-app-btn');
+      // Always save to localStorage immediately so data is never lost
+      lsSaveJob(job);
+      _svJob = job;
+      try {
+        // Increment rv_last counter if ref looks auto-generated
+        if (svRef && /^RV-\d{4}-\d+$/.test(svRef)) {
+          const match = svRef.match(/RV-\d{4}-(\d+)/);
+          if (match) {
+            try { await sb.from('counters').upsert({ id: 'rv_last', value: parseInt(match[1], 10) }); } catch(e) {}
+          }
+        }
+        await sbSaveJob(job);
+        btn.textContent = '✓ Saved! Going back…';
+        btn.style.background = '#66FF33';
+        btn.style.color = '#111';
+        setTimeout(() => {
+          window.location.href = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/?openJob=' + jobId;
+        }, 1200);
+      } catch(e) {
+        btn.textContent = 'Save failed — check connection';
+        btn.style.background = '#c0392b';
+        btn.style.color = '#fff';
+      }
+    }
+
+    // ── Skip hire ──
+    function toggleSkip(radio) {
+      const wrap = document.getElementById('skip-size-wrap');
+      if (radio.value === 'yes') {
+        wrap.style.display = 'block';
+      } else {
+        wrap.style.display = 'none';
+        document.getElementById('skip-size').value = '';
+        updateSkipCost();
+      }
+    }
+
+    function updateSkipCost() {
+      // Remove existing skip row
+      const existing = document.getElementById('price-row-skip');
+      if (existing) existing.remove();
+
+      const val = document.getElementById('skip-size')?.value;
+      if (!val) { calcGrandTotal(); return; }
+
+      const [tons, cost] = val.split('|');
+      const tbody = document.getElementById('price-tbody');
+      const tr = document.createElement('tr');
+      tr.id = 'price-row-skip';
+      tr.style.background = '#f5f5f5';
+      tr.innerHTML = `
+        <td colspan="3" style="padding:6px 8px;font-size:8pt;color:#888;font-style:italic">Skip Hire — ${tons} ton (internal)</td>
+        <td class="price-total-cell" id="ptotal-skip">£${parseFloat(cost).toFixed(2)}</td>
+        <td></td>
+      `;
+      tbody.appendChild(tr);
+      calcGrandTotal();
+    }
+
+    // ── Smart finish filter: show render or plaster options based on work type selected ──
+    function filterFinish() {
+      const isRender  = !!document.getElementById('wt-rendering')?.value;
+      const isPlaster = !!document.getElementById('wt-plastering')?.value;
+      const renderGrp  = document.getElementById('finish-render-group');
+      const plasterGrp = document.getElementById('finish-plaster-group');
+      if (!renderGrp || !plasterGrp) return;
+      if (isRender && !isPlaster) {
+        renderGrp.style.display  = '';
+        plasterGrp.style.display = 'none';
+      } else if (isPlaster && !isRender) {
+        renderGrp.style.display  = 'none';
+        plasterGrp.style.display = '';
+      } else {
+        renderGrp.style.display  = '';
+        plasterGrp.style.display = '';
+      }
+    }
+
+    /* ===== SCOPE TEMPLATES ===== */
+    const SCOPE_TEMPLATES = {
+      board_skim: `Scope of Works — Board & Skim
+
+Supply and fix 12.5mm plasterboard to all walls and/or ceilings as specified. Boards secured to studwork or existing substrate using appropriate fixing method (screws or dot and dab adhesive as required). All joints taped with scrim mesh and a full 2–3mm multi-finish skim coat applied throughout to achieve a smooth, flat, paint-ready surface.
+
+All areas protected with dust sheets prior to works commencing. Debris cleared and site left clean and tidy upon completion.`,
+
+      dot_dab_skim: `Scope of Works — Dot & Dab & Skim
+
+Supply and fix 12.5mm plasterboard to all walls as specified using the dot and dab adhesive method. Boards set plumb and level, all edges and joints filled and taped with scrim mesh. A 2–3mm multi-finish skim coat applied over the entire surface throughout to produce a smooth, flat, paint-ready finish.
+
+All areas protected with dust sheets prior to works commencing. Debris cleared and site left clean and tidy upon completion.`,
+
+      skim_coat: `Scope of Works — Skim Coat
+
+Apply a 2–3mm multi-finish skim coat to all surfaces as specified. Existing surface checked for soundness — any loose, blown or defective areas secured and primed prior to skimming. Final finish to be smooth, flat and fully paint-ready throughout.
+
+All areas protected with dust sheets prior to works commencing. Site left clean and tidy upon completion.`,
+
+      bond_skim: `Scope of Works — Bond & Skim
+
+Apply a bonding coat to all walls and/or ceilings as specified, scratched and keyed to provide a suitable base for finishing. Once set, a 2–3mm multi-finish skim coat applied throughout to achieve a smooth, flat, paint-ready surface.
+
+All areas protected with dust sheets prior to works commencing. Debris cleared and site left clean and tidy upon completion.`,
+
+      plaster_repair: `Scope of Works — Plaster Repair
+
+Cut out and remove all damaged, blown or defective plaster from affected areas. Background prepared and bonding agent applied as required. Bonding coat applied to build up to correct depth, scratched and left to set. Areas then finished with a 2–3mm multi-finish skim coat, feathered and blended to match surrounding surfaces. Final finish to be smooth, flat and paint-ready.
+
+All areas protected with dust sheets prior to works commencing. Debris cleared and site left clean and tidy upon completion.`,
+
+      silicone_pebbledash: `Supply of all labour, materials, plant and equipment to carry out a full EcoRend silicone render system over existing pebbledash substrate. No full hack-off required.
+
+Works to include:
+
+• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works. All paving and ground areas beneath the elevations covered with dust sheets and ground protection.
+
+• Full inspection of existing pebbledash substrate; any hollow, blown or debonded sections identified, cut out, and made good with compatible mortar prior to overlay application. Any failed or corroded stop beads removed and replaced with proprietary stainless steel beads where required.
+
+• Application of EcoRend X32 reinforcing base coat over the full pebbledash surface, reinforced throughout with EcoRend alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints. All corners and reveals to be double-meshed for additional strength and impact resistance. Base coat left to fully cure prior to topcoat application.
+
+• Application of EcoRend 1.5mm silicone topcoat in the client's choice of colour, applied uniformly in a single coat to a consistent texture and finish across all treated elevations. EcoRend silicone is self-cleaning, hydrophobic, breathable, and UV-stable — through-coloured throughout, with nothing to peel, chip, or repaint for 25+ years.
+
+• Upon completion, all masking, tape and protective materials removed, gutters checked and cleared of debris, and all working areas left clean and tidy.
+
+All works carried out in full accordance with EcoRend manufacturer specification. 25-year manufacturer product warranty applies to materials. 5-year P&R Solutions workmanship guarantee on installation.`,
+
+      silicone_brick_block: `Supply of all labour, materials, plant and equipment to carry out a full EcoRend silicone render system (X32 base coat / 1.5mm silicone topcoat) to brick and block substrate. No hack-off required.
+
+Works to include:
+
+• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works. All paving and ground areas beneath the elevations covered with dust sheets and ground protection.
+
+• Thorough preparation of the existing brick and block substrate; removal of all loose material, surface contamination, organic growth, moss, algae and efflorescence. All existing pointing inspected — any failed or open joints raked out and re-pointed with suitable mortar prior to render application to ensure a sound, stable base.
+
+• Application of a suitable bonding agent / primer to the prepared substrate to promote adhesion and ensure full compatibility with the EcoRend system.
+
+• All stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points, ensuring clean, true and straight arrises throughout.
+
+• Application of EcoRend X32 base coat, reinforced throughout with EcoRend alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints. All corners and reveals to be double-meshed for additional strength and impact resistance. Base coat left to fully cure before topcoat application.
+
+• Application of EcoRend 1.5mm silicone topcoat in the client's choice of colour, applied uniformly to a consistent texture and finish across all treated elevations. EcoRend silicone is self-cleaning, hydrophobic, breathable, and UV-stable — through-coloured throughout, with nothing to peel, chip, or repaint for 25+ years.
+
+• Upon completion, all masking, tape and protective materials removed, gutters checked and cleared, and all working areas left clean and tidy.
+
+All works carried out in full accordance with EcoRend manufacturer specification. 25-year manufacturer product warranty applies to materials. 5-year P&R Solutions workmanship guarantee on installation.`,
+
+      silicone_hackoff: `Supply of all labour, materials, plant and equipment to carry out a full EcoRend silicone render system to brick and block substrate, following complete removal of all existing failed render.
+
+Works to include:
+
+• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works. All paving, paths and garden areas beneath the elevations covered with heavy-duty dust sheets and ground protection boards.
+
+• Full mechanical hack-off and removal of all existing render from all treated elevations. All arisings and debris cleared from site progressively throughout the works. No debris left on site upon completion.
+
+• Thorough inspection of the fully exposed brick and block substrate following hack-off. Identification and treatment of all areas of failed pointing, salt crystallisation, organic growth, moss, algae and efflorescence. All open or failed joints raked out and re-pointed with suitable mortar to restore a sound, stable base prior to application of the new render system.
+
+• Application of a suitable bonding agent / primer to the prepared substrate to promote full adhesion and compatibility with the EcoRend system.
+
+• All new stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points, ensuring clean, true and straight arrises throughout.
+
+• Application of EcoRend X32 base coat, reinforced throughout with EcoRend alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints. All corners and reveals to be double-meshed for additional impact resistance. Base coat left to fully cure before topcoat application.
+
+• Application of EcoRend 1.5mm silicone topcoat in the client's choice of colour, applied uniformly to a consistent texture and finish across all treated elevations. EcoRend silicone is self-cleaning, hydrophobic, breathable, and UV-stable — through-coloured throughout, with nothing to peel, chip, or repaint for 25+ years.
+
+• Upon completion, all masking, tape and protective materials removed, gutters inspected and cleared of debris, all hack-off arisings removed from site, and all working areas left clean and tidy.
+
+All works carried out in full accordance with EcoRend manufacturer specification. 25-year manufacturer product warranty applies to materials. 5-year P&R Solutions workmanship guarantee on installation.`,
+
+      monocouche_brick_block: `Supply of all labour, materials, plant and equipment to carry out a full monocouche render system to brick and block substrate. No hack-off required.
+
+Works to include:
+
+• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works. All paving and ground areas beneath the elevations covered with dust sheets and ground protection.
+
+• Thorough preparation of the existing brick and block substrate; removal of all loose material, surface contamination, organic growth, moss, algae and efflorescence. All existing pointing inspected — any failed or open joints raked out and re-pointed prior to render application to ensure a sound, stable base.
+
+• Application of a suitable bonding agent / primer to the prepared substrate to promote adhesion and ensure full compatibility with the render system.
+
+• All stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points, ensuring clean, true and straight arrises throughout.
+
+• Application of monocouche render in a single through-coloured coat, applied to a uniform thickness and finished to a consistent scratch texture across all treated elevations. Being a through-colour product, no painting or topcoat is required — colour is integral throughout.
+
+• Upon completion, all masking, tape and protective materials removed, gutters checked and cleared, and all working areas left clean and tidy.
+
+All works carried out in full accordance with manufacturer's specification. Full manufacturer guarantee applies to materials. 5-year P&R Solutions workmanship guarantee on installation.`,
+
+      monocouche_hackoff: `Supply of all labour, materials, plant and equipment to carry out a full monocouche render system to brick and block substrate, following complete removal of all existing failed render.
+
+Works to include:
+
+• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works. All paving, paths and garden areas beneath the elevations covered with heavy-duty dust sheets and ground protection boards.
+
+• Full mechanical hack-off and removal of all existing render from all treated elevations. All arisings and debris cleared from site progressively. No debris left on site upon completion.
+
+• Thorough inspection of the fully exposed substrate following hack-off; treatment of all failed pointing, salt crystallisation, organic growth and efflorescence. All open joints raked out and re-pointed with suitable mortar to restore a sound, stable base.
+
+• Application of a suitable bonding agent to the prepared substrate to promote adhesion and system compatibility.
+
+• All stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points, ensuring clean, true and straight arrises throughout.
+
+• Application of monocouche render in a single through-coloured coat, applied to a uniform thickness and finished to a consistent scratch texture across all treated elevations. Being a through-colour product, no painting or topcoat is required — colour is integral throughout.
+
+• Upon completion, all masking, tape and protective materials removed, gutters inspected and cleared, all hack-off arisings removed from site, and all working areas left clean and tidy.
+
+All works carried out in full accordance with manufacturer's specification. Full manufacturer guarantee applies to materials. 5-year P&R Solutions workmanship guarantee on installation.`,
+
+      ewi_brick_block: `Supply of all labour, materials, plant and equipment to carry out a full External Wall Insulation (EWI) system to brick and block substrate. No hack-off required.
+
+Works to include:
+
+• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works. All paving and ground areas beneath the elevations covered with dust sheets and ground protection.
+
+• Thorough preparation of the existing brick and block substrate; removal of all loose material, surface contamination, organic growth, moss, algae and efflorescence. All existing pointing inspected — any failed joints raked out and re-pointed prior to board installation to ensure a sound, stable base.
+
+• Supply and mechanical fixing of insulation boards to the prepared substrate, fixed in a staggered brick-bond pattern using a combination of adhesive and mechanical fixings in accordance with manufacturer's specification. Board thickness as agreed and specified.
+
+• All starter tracks, stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points, ensuring clean, true and straight arrises throughout.
+
+• Application of a polymer-modified basecoat adhesive over the full insulation board surface, reinforced throughout with alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints. All corners and reveals to be double-meshed for additional strength. Basecoat left to fully cure per manufacturer's guidelines.
+
+• Application of primer coat to the cured basecoat to promote adhesion and ensure even absorption across all treated areas.
+
+• Application of 1.5mm premium silicone topcoat in the client's choice of colour, applied uniformly to a consistent texture and finish across all treated elevations.
+
+• Upon completion, all masking, tape and protective materials removed, gutters checked and cleared, and all working areas left clean and tidy.
+
+All works carried out in full accordance with manufacturer's specification. Full manufacturer guarantee applies to materials. 5-year P&R Solutions workmanship guarantee on installation.`,
+    };
+
+    function insertScopeTemplate(key) {
+      const ta = document.getElementById('scope-of-works');
+      if (!ta) return;
+      ta.value = SCOPE_TEMPLATES[key] || '';
+    }
+
+    function removePhoto(pc) {
+      const p = photoData[pc];
+      delete photoData[pc];
+      if (p) {
+        const card = document.querySelector('.room-card[data-rid="' + p.room + '"]');
+        if (card) renderRoomPhotos(card);
+      }
+    }
+  </script>
+
+  <!-- ── LIGHTBOX ── -->
+  <div id="lightbox" class="lightbox lb-hidden">
+    <button class="lb-close" onclick="closeLightbox()">×</button>
+    <img id="lb-img" class="lb-img" src="" alt="">
+    <div class="lb-hint">Pinch to zoom · Double-tap · Tap × to close</div>
+  </div>
+  <script>
+    (function() {
+      var lb = { scale: 1, tx: 0, ty: 0, lastTap: 0 };
+      var touch = {};
+
+      function getImg() { return document.getElementById('lb-img'); }
+
+      window.openLightbox = function(src) {
+        lb.scale = 1; lb.tx = 0; lb.ty = 0;
+        var img = getImg();
+        img.src = src;
+        img.classList.remove('lb-animating');
+        img.style.transform = '';
+        document.getElementById('lightbox').classList.remove('lb-hidden');
+        document.body.style.overflow = 'hidden';
+      };
+
+      window.closeLightbox = function() {
+        document.getElementById('lightbox').classList.add('lb-hidden');
+        document.body.style.overflow = '';
+      };
+
+      function applyT(animate) {
+        var img = getImg();
+        if (animate) { img.classList.add('lb-animating'); setTimeout(function(){ img.classList.remove('lb-animating'); }, 260); }
+        img.style.transform = 'translate(' + lb.tx + 'px,' + lb.ty + 'px) scale(' + lb.scale + ')';
+      }
+
+      function ptDist(t) { return Math.hypot(t[1].clientX - t[0].clientX, t[1].clientY - t[0].clientY); }
+      function ptMid(t)  { return { x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 }; }
+
+      var overlay = document.getElementById('lightbox');
+      overlay.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        var ts = Array.from(e.touches);
+        if (ts.length === 1) {
+          var now = Date.now();
+          if (now - lb.lastTap < 280) {
+            // Double-tap: toggle zoom
+            lb.lastTap = 0;
+            if (lb.scale > 1) { lb.scale = 1; lb.tx = 0; lb.ty = 0; }
+            else { lb.scale = 2.5; }
+            applyT(true);
+            return;
+          }
+          lb.lastTap = now;
+          touch.sx = ts[0].clientX - lb.tx;
+          touch.sy = ts[0].clientY - lb.ty;
+        } else if (ts.length === 2) {
+          touch.startDist  = ptDist(ts);
+          touch.startScale = lb.scale;
+          var m = ptMid(ts);
+          touch.startMidX = m.x; touch.startMidY = m.y;
+          touch.startTx = lb.tx; touch.startTy = lb.ty;
+        }
+      }, { passive: false });
+
+      overlay.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+        var ts = Array.from(e.touches);
+        if (ts.length === 1 && lb.scale > 1) {
+          lb.tx = ts[0].clientX - touch.sx;
+          lb.ty = ts[0].clientY - touch.sy;
+          applyT(false);
+        } else if (ts.length === 2) {
+          var d = ptDist(ts);
+          lb.scale = Math.max(1, Math.min(6, touch.startScale * d / touch.startDist));
+          var m = ptMid(ts);
+          lb.tx = touch.startTx + (m.x - touch.startMidX);
+          lb.ty = touch.startTy + (m.y - touch.startMidY);
+          applyT(false);
+        }
+      }, { passive: false });
+
+      overlay.addEventListener('touchend', function(e) {
+        // If scale=1 and it was a quick tap (not a double-tap window), close
+        if (lb.scale <= 1 && e.changedTouches.length === 1 && e.touches.length === 0) {
+          // Give double-tap a chance to fire first
+          setTimeout(function() {
+            if (lb.lastTap && Date.now() - lb.lastTap > 280) {
+              closeLightbox();
+            }
+          }, 290);
+        }
+        // Snap scale back to 1 if slightly under due to rounding
+        if (lb.scale < 1.05) { lb.scale = 1; lb.tx = 0; lb.ty = 0; applyT(true); }
+      });
+    })();
+  </script>
+</body>
+</html>
