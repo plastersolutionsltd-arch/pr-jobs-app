@@ -700,12 +700,33 @@
         <div class="f"><label>Scrim m²/roll</label><input type="number" id="cov-scrim" value="40" step="1" min="0.1" oninput="calcMaterials()"></div>
       </div>
     </details>
+    <details style="margin-bottom:8px">
+      <summary style="cursor:pointer;color:#5a8a4a;font-size:8pt;letter-spacing:1px;text-transform:uppercase;font-weight:700">Prices (MKM, ex VAT) — tap to adjust</summary>
+      <div class="grid-3" style="margin-top:8px">
+        <div class="f"><label>Board £ each</label><input type="number" id="price-board" value="6.69" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
+        <div class="f"><label>Skim £/bag</label><input type="number" id="price-skim" value="9.35" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
+        <div class="f"><label>Bonding £/bag</label><input type="number" id="price-bond" value="12.92" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
+        <div class="f"><label>D&amp;D adhesive £/bag</label><input type="number" id="price-dd" value="8.96" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
+        <div class="f"><label>Scrim £/roll</label><input type="number" id="price-scrim" value="3.58" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
+        <div class="f"><label>Screws £/box</label><input type="number" id="price-screws" value="16.38" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
+        <div class="f"><label>PVA £/tub</label><input type="number" id="price-pva" value="10.36" step="0.01" min="0" oninput="saveMaterialPrices();calcMaterials()"></div>
+      </div>
+      <div style="font-size:7pt;color:#bbb;margin-top:4px">Prices remembered on this device — set once, used for every job.</div>
+    </details>
     <div id="mat-estimate-output" style="display:none">
       <table class="rooms-table">
         <thead><tr><th>Total materials to order</th><th class="c" style="width:90px">Qty</th></tr></thead>
         <tbody id="mat-list"></tbody>
+        <tfoot>
+          <tr><td class="total-label">MATERIALS COST (EX VAT)</td><td class="total-val" id="mat-cost-ex">£0.00</td></tr>
+          <tr><td class="total-label" style="font-weight:400;color:#aaa">Inc VAT (20%)</td><td class="total-val" id="mat-cost-inc" style="font-weight:400">£0.00</td></tr>
+        </tfoot>
       </table>
-      <button type="button" id="mat-copy-btn" onclick="copyMaterials()" style="margin-top:6px;background:#111;color:var(--green);border:1px solid var(--green);padding:6px 14px;font-family:'Fjalla One',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer;border-radius:2px">COPY LIST</button>
+      <label style="display:flex;align-items:center;gap:8px;margin:8px 0;font-size:13px;color:#000;cursor:pointer">
+        <input type="checkbox" id="mat-to-invoice" checked style="width:16px;height:16px;accent-color:var(--green)">
+        Add materials cost (inc VAT) to the invoice when I save
+      </label>
+      <button type="button" id="mat-copy-btn" onclick="copyMaterials()" style="margin-top:2px;background:#111;color:var(--green);border:1px solid var(--green);padding:6px 14px;font-family:'Fjalla One',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer;border-radius:2px">COPY LIST</button>
     </div>
 
     <!-- Surface Condition -->
@@ -1345,14 +1366,16 @@ function parseFreetextMessage(raw) {
 
       // Restore saved materials estimate
       try {
+        loadMaterialPrices();
         const me = sv && sv.materialsEstimate;
         if (isRestore && me) {
           const r = me.rates || {};
           const setRate = (id, val) => { if (val) document.getElementById(id).value = val; };
           setRate('cov-skim', r.skim); setRate('cov-bond', r.bond); setRate('cov-board', r.board);
           setRate('cov-waste', r.waste); setRate('cov-dd', r.dd); setRate('cov-scrim', r.scrim);
-          calcMaterials();
+          if (me.toInvoice === false) document.getElementById('mat-to-invoice').checked = false;
         }
+        calcMaterials();
       } catch(e) {}
 
       // ── Work type → finish type & price lookup ──
@@ -1606,6 +1629,31 @@ function parseFreetextMessage(raw) {
     const roomMethods = {};           // keyed by room <tr> id, e.g. 'room-3'
     const METHOD_LABELS = { skim:'Skim only', board:'Board & Skim', dd:'Dot & Dab & Skim', bond:'Bond & Skim' };
     let _matCopyText = '';
+    let _matCost = { subtotal: 0, vat: 0, total: 0 };   // ex-VAT subtotal, VAT, inc-VAT total
+    const MAT_VAT = 0.20;
+
+    // Default MKM ex-VAT prices (account 0118147) — overridable, remembered per device.
+    const PRICE_DEFAULTS = { board:6.69, skim:9.35, bond:12.92, dd:8.96, scrim:3.58, screws:16.38, pva:10.36 };
+    const PRICE_IDS = { board:'price-board', skim:'price-skim', bond:'price-bond', dd:'price-dd', scrim:'price-scrim', screws:'price-screws', pva:'price-pva' };
+
+    function priceFor(key) {
+      const el = document.getElementById(PRICE_IDS[key]);
+      const v = el ? parseFloat(el.value) : NaN;
+      return isNaN(v) ? (PRICE_DEFAULTS[key] || 0) : v;
+    }
+    function saveMaterialPrices() {
+      try {
+        const out = {};
+        Object.keys(PRICE_IDS).forEach(k => { out[k] = document.getElementById(PRICE_IDS[k])?.value || ''; });
+        localStorage.setItem('pr_material_prices', JSON.stringify(out));
+      } catch(e) {}
+    }
+    function loadMaterialPrices() {
+      try {
+        const saved = JSON.parse(localStorage.getItem('pr_material_prices') || '{}');
+        Object.keys(PRICE_IDS).forEach(k => { if (saved[k]) { const el = document.getElementById(PRICE_IDS[k]); if (el) el.value = saved[k]; } });
+      } catch(e) {}
+    }
 
     function setRoomMethod(id, val) { roomMethods[id] = val; calcMaterials(); }
 
@@ -1712,16 +1760,23 @@ function parseFreetextMessage(raw) {
       if (anyBoardLike && !totals.screws) { totals.screws = { label:'Drywall screws', unit:'box', qty:1 }; order.push('screws'); }
       if (anyBond     && !totals.pva)    { totals.pva    = { label:'PVA (5L)',       unit:'tub', qty:1 }; order.push('pva'); }
 
-      if (!anyMethod || !order.length) { out.style.display = 'none'; _matCopyText = ''; return; }
+      if (!anyMethod || !order.length) { out.style.display = 'none'; _matCopyText = ''; _matCost = { subtotal:0, vat:0, total:0 }; return; }
 
       document.getElementById('mat-list').innerHTML = order.map(k => {
         const t = totals[k];
         return '<tr><td>' + t.label + '</td><td class="area-cell" style="text-align:right;font-weight:700">' + plural(t.qty, t.unit) + '</td></tr>';
       }).join('');
+
+      // Cost (ex VAT) = sum of qty × MKM price; inc-VAT figure feeds the invoice.
+      const subtotal = order.reduce((s, k) => s + totals[k].qty * priceFor(k), 0);
+      _matCost = { subtotal: subtotal, vat: subtotal * MAT_VAT, total: subtotal * (1 + MAT_VAT) };
+      document.getElementById('mat-cost-ex').textContent  = '£' + _matCost.subtotal.toFixed(2);
+      document.getElementById('mat-cost-inc').textContent = '£' + _matCost.total.toFixed(2);
       out.style.display = 'block';
 
       _matCopyText = 'MATERIALS ESTIMATE\n\n' + copyRooms.join('\n\n')
-        + '\n\nTOTAL TO ORDER\n  ' + order.map(k => plural(totals[k].qty, totals[k].unit) + ' — ' + totals[k].label).join('\n  ');
+        + '\n\nTOTAL TO ORDER\n  ' + order.map(k => plural(totals[k].qty, totals[k].unit) + ' — ' + totals[k].label).join('\n  ')
+        + '\n\nMaterials cost: £' + _matCost.subtotal.toFixed(2) + ' ex VAT  (£' + _matCost.total.toFixed(2) + ' inc VAT)';
     }
 
     function copyMaterials() {
@@ -1979,6 +2034,7 @@ function parseFreetextMessage(raw) {
           return rows;
         })(),
         materialsEstimate: {
+          toInvoice: document.getElementById('mat-to-invoice')?.checked !== false,
           rates: {
             skim:  document.getElementById('cov-skim')?.value || '',
             bond:  document.getElementById('cov-bond')?.value || '',
@@ -2034,6 +2090,14 @@ function parseFreetextMessage(raw) {
           }
         } catch(e) {}
       }
+
+      // Send materials cost (inc VAT) to the invoice if requested — same field the invoice reads.
+      try {
+        const toInv = document.getElementById('mat-to-invoice');
+        if (toInv && toInv.checked && _matCost.total > 0) {
+          job.materialsCalc = { subtotal: _matCost.subtotal, vat: _matCost.vat, total: _matCost.total, qtys: {}, savedAt: Date.now(), source: 'site-visit' };
+        }
+      } catch(e) {}
 
       const btn = document.getElementById('save-app-btn');
       // Always save to localStorage immediately so data is never lost
