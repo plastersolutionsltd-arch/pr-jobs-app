@@ -252,6 +252,20 @@
     .surf-row select { padding: 7px 9px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 13px; background: white; -webkit-appearance: none; appearance: none; min-width: 150px; }
     .room-materials .rm-hdr { font-size: 9px; letter-spacing: 1px; color: #999; text-transform: uppercase; margin-bottom: 3px; }
     .room-materials .rm-cost { margin-top: 5px; padding-top: 5px; border-top: 1px solid #dde8dd; font-weight: 700; color: #111; }
+    .room-materials .rm-labour { color: #555; font-weight: 400; }
+    .room-extras { margin-bottom: 8px; }
+    .room-extras .ex-hdr { font-size: 9px; letter-spacing: 1px; color: #999; text-transform: uppercase; margin-bottom: 4px; }
+    .extra-line { display: flex; gap: 6px; align-items: center; margin-bottom: 5px; }
+    .extra-line .ex-desc { flex: 1; min-width: 0; padding: 7px 8px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 13px; }
+    .extra-line .ex-qty { width: 48px; padding: 7px 6px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 13px; text-align: center; }
+    .extra-line .ex-price { width: 64px; padding: 7px 6px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 13px; text-align: right; }
+    .extra-line .ex-del { width: 24px; height: 24px; flex: none; border-radius: 50%; background: #eee; color: #777; border: none; font-size: 14px; line-height: 1; cursor: pointer; }
+    .extra-line input:focus { outline: none; border-color: var(--green); }
+    .extra-add { background: none; border: 1px dashed var(--border); border-radius: 4px; padding: 7px; color: #5a8a4a; font-family: 'Fjalla One', sans-serif; font-size: 11px; letter-spacing: 1px; cursor: pointer; width: 100%; }
+    .room-labour-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .room-labour-row label { font-size: 13px; color: #333; font-family: 'Lato', sans-serif; }
+    .room-labour { width: 100px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 14px; text-align: right; }
+    .room-labour:focus { outline: none; border-color: var(--green); }
     .room-photos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
     .rp-item { width: 84px; }
     .rp-thumb { position: relative; width: 84px; height: 64px; border-radius: 4px; overflow: hidden; border: 1px solid var(--border); background: #f4f4f4; }
@@ -736,6 +750,8 @@
         <tfoot>
           <tr><td class="total-label">MATERIALS COST (EX VAT)</td><td class="total-val" id="mat-cost-ex">£0.00</td></tr>
           <tr><td class="total-label" style="font-weight:400;color:#aaa">Inc VAT (20%)</td><td class="total-val" id="mat-cost-inc" style="font-weight:400">£0.00</td></tr>
+          <tr id="mat-labour-row" style="display:none"><td class="total-label" style="font-weight:400;color:#aaa">Labour</td><td class="total-val" id="mat-labour-val" style="font-weight:400">£0.00</td></tr>
+          <tr id="mat-grand-row" style="display:none"><td class="total-label">JOB TOTAL (materials inc VAT + labour)</td><td class="total-val" id="mat-grand-val">£0.00</td></tr>
         </tfoot>
       </table>
       <label style="display:flex;align-items:center;gap:8px;margin:8px 0;font-size:13px;color:#000;cursor:pointer">
@@ -1358,6 +1374,8 @@ function parseFreetextMessage(raw) {
               card.querySelector('.method-walls').value = wM || '';
               card.querySelector('.method-ceil').value  = cM || '';
               if (r.note) card.querySelector('.room-note').value = r.note;
+              if (Array.isArray(r.extras)) r.extras.forEach(x => addExtraLine(card, x));
+              if (r.labour) card.querySelector('.room-labour').value = r.labour;
             }
             calcRoom(rc);
           });
@@ -1571,6 +1589,12 @@ function parseFreetextMessage(raw) {
           '<div class="surf-row"><span class="surf-lbl">Ceiling <b id="ceil-' + rc + '">\u2014</b></span><select class="method-ceil">' + methodOptions('') + '</select></div>' +
         '</div>' +
         '<div class="room-materials" id="mat-' + rc + '" style="display:none"></div>' +
+        '<div class="room-extras">' +
+          '<div class="ex-hdr">Extra materials (£ ea, ex VAT)</div>' +
+          '<div class="extra-lines"></div>' +
+          '<button type="button" class="extra-add">+ Add material</button>' +
+        '</div>' +
+        '<div class="room-labour-row"><label>Labour £</label><input type="number" step="1" min="0" class="room-labour" placeholder="0"></div>' +
         '<input type="text" class="room-note" placeholder="Notes for this room">' +
         '<div class="room-photos"></div>';
       wrap.appendChild(card);
@@ -1580,8 +1604,38 @@ function parseFreetextMessage(raw) {
       card.querySelector('.method-walls').addEventListener('change', calcMaterials);
       card.querySelector('.method-ceil').addEventListener('change', calcMaterials);
       card.querySelector('.room-del').addEventListener('click', () => { card.remove(); calcTotals(); });
+      card.querySelector('.extra-add').addEventListener('click', () => { addExtraLine(card); calcMaterials(); });
+      card.querySelector('.room-labour').addEventListener('input', calcMaterials);
       renderRoomPhotos(card);
       return rc;
+    }
+
+    // Add one editable "extra material" line to a room card (optionally pre-filled on restore).
+    function addExtraLine(card, d) {
+      d = d || {};
+      const wrap = card.querySelector('.extra-lines');
+      if (!wrap) return;
+      const line = document.createElement('div');
+      line.className = 'extra-line';
+      line.innerHTML =
+        '<input type="text" class="ex-desc" placeholder="e.g. Angle bead" value="' + String(d.desc || '').replace(/"/g, '&quot;') + '">' +
+        '<input type="number" class="ex-qty" step="1" min="0" placeholder="1" value="' + (d.qty != null ? d.qty : '') + '">' +
+        '<input type="number" class="ex-price" step="0.01" min="0" placeholder="0.00" value="' + (d.price != null ? d.price : '') + '">' +
+        '<button type="button" class="ex-del" title="Remove">&times;</button>';
+      wrap.appendChild(line);
+      line.querySelector('.ex-qty').addEventListener('input', calcMaterials);
+      line.querySelector('.ex-price').addEventListener('input', calcMaterials);
+      line.querySelector('.ex-desc').addEventListener('input', calcMaterials);
+      line.querySelector('.ex-del').addEventListener('click', () => { line.remove(); calcMaterials(); });
+    }
+
+    // Read a card's extra-material lines (skips blank rows).
+    function cardExtras(card) {
+      return [].slice.call(card.querySelectorAll('.extra-line')).map(l => ({
+        desc:  (l.querySelector('.ex-desc')?.value || '').trim(),
+        qty:   parseFloat(l.querySelector('.ex-qty')?.value) || 0,
+        price: parseFloat(l.querySelector('.ex-price')?.value) || 0
+      })).filter(x => x.desc || x.qty || x.price);
     }
 
     function calcRoom(rc) {
@@ -1631,7 +1685,8 @@ function parseFreetextMessage(raw) {
     // Each room picks its own method; quantities use that room's ticked surfaces.
     const METHOD_LABELS = { skim:'Skim only', board:'Board & Skim', dd:'Dot & Dab & Skim', bond:'Bond & Skim' };
     let _matCopyText = '';
-    let _matCost = { subtotal: 0, vat: 0, total: 0 };   // ex-VAT subtotal, VAT, inc-VAT total
+    let _matCost = { subtotal: 0, vat: 0, total: 0 };   // ex-VAT subtotal, VAT, inc-VAT total (materials, incl. extras)
+    let _jobLabour = 0;                                 // sum of per-room labour (on-site estimate only, NOT sent to invoice)
     const MAT_VAT = 0.20;
 
     // Default MKM ex-VAT prices (account 0118147) — overridable, remembered per device.
@@ -1700,7 +1755,9 @@ function parseFreetextMessage(raw) {
       const cards = [].slice.call(document.querySelectorAll('#rooms-cards .room-card'));
 
       const grand = {}; const order = [];
+      const grandExtras = {}; const extrasOrder = [];   // ad-hoc materials aggregated by description
       let anyMethod = false, anyBoardLike = false, anyBond = false, anySkim = false, grandCostEx = 0;
+      let grandLabour = 0;
       const copyRooms = [];
 
       function addInto(map, list, mats) {
@@ -1731,24 +1788,53 @@ function parseFreetextMessage(raw) {
         surface('Walls', wM, wallV);
         surface('Ceiling', cM, ceilV);
 
+        // Extra (ad-hoc) materials for this room \u2014 fold into the materials cost + order list
+        const extras = cardExtras(card).filter(x => x.desc && x.qty > 0);
+        let roomExtraEx = 0;
+        extras.forEach(x => {
+          roomExtraEx += x.qty * x.price;
+          const key = x.desc.toLowerCase();
+          if (!grandExtras[key]) { grandExtras[key] = { label: x.desc, qty: 0 }; extrasOrder.push(key); }
+          grandExtras[key].qty += x.qty;
+        });
+
+        const labour = parseFloat(card.querySelector('.room-labour')?.value) || 0;
+        grandLabour += labour;
+
+        const autoEx  = roomOrder.reduce((sum, k) => sum + roomMap[k].qty * priceFor(k), 0);
+        const roomEx  = autoEx + roomExtraEx;
+        grandCostEx  += roomEx;
+        const roomMatInc = roomEx * (1 + MAT_VAT);
+        const roomTotal  = roomMatInc + labour;
+
         const md = document.getElementById('mat-' + rc);
         if (md) {
-          if (!roomOrder.length) { md.style.display = 'none'; md.innerHTML = ''; }
+          if (!roomOrder.length && !extras.length && !(labour > 0)) { md.style.display = 'none'; md.innerHTML = ''; }
           else {
-            const roomEx = roomOrder.reduce((sum, k) => sum + roomMap[k].qty * priceFor(k), 0);
-            const roomInc = roomEx * (1 + MAT_VAT);
-            grandCostEx += roomEx;
-            const extra = [];
-            if (surfaces.some(sf => sf[1] === 'board' || sf[1] === 'dd')) extra.push('1 box \u2014 Drywall screws');
-            if (surfaces.some(sf => sf[1] === 'skim'  || sf[1] === 'bond')) extra.push('1 tub \u2014 PVA (5L)');
-            const extraHtml = extra.map(x => '<div style="color:#888">' + x + ' <span style="font-size:10px">(job)</span></div>').join('');
+            const consum = [];
+            if (surfaces.some(sf => sf[1] === 'board' || sf[1] === 'dd')) consum.push('1 box \u2014 Drywall screws');
+            if (surfaces.some(sf => sf[1] === 'skim'  || sf[1] === 'bond')) consum.push('1 tub \u2014 PVA (5L)');
+            const consumHtml = consum.map(x => '<div style="color:#888">' + x + ' <span style="font-size:10px">(job)</span></div>').join('');
+            const extrasHtml = extras.map(x => '<div>' + x.qty + ' \u00d7 ' + x.desc
+              + ' <span style="color:#888;font-size:11px">\u00a3' + (x.qty * x.price).toFixed(2) + '</span></div>').join('');
+            let costHtml;
+            if (labour > 0) {
+              costHtml = '<div class="rm-cost">Materials: \u00a3' + roomMatInc.toFixed(2) + ' inc VAT'
+                + '<div class="rm-labour">Labour: \u00a3' + labour.toFixed(2) + '</div>'
+                + 'Room total: \u00a3' + roomTotal.toFixed(2) + '</div>';
+            } else {
+              costHtml = '<div class="rm-cost">Room cost: \u00a3' + roomMatInc.toFixed(2) + ' inc VAT</div>';
+            }
             md.style.display = 'block';
             md.innerHTML = '<div class="rm-hdr">Materials</div>'
               + roomOrder.map(k => '<div>' + plural(roomMap[k].qty, roomMap[k].unit) + ' \u2014 ' + roomMap[k].label + '</div>').join('')
-              + extraHtml
-              + '<div class="rm-cost">Room cost: \u00a3' + roomInc.toFixed(2) + ' inc VAT</div>';
-            copyRooms.push(name + '\n' + surfaces.map(sf => '  ' + sf[0] + ' [' + (METHOD_LABELS[sf[1]] || sf[1]) + '] ' + sf[2].toFixed(1) + ' m\u00b2: ' + sf[3].map(m => plural(m[3], m[2]) + ' ' + m[1]).join(', ')).join('\n')
-              + '\n  Room cost: \u00a3' + roomInc.toFixed(2) + ' inc VAT');
+              + extrasHtml + consumHtml + costHtml;
+
+            const lines = surfaces.map(sf => '  ' + sf[0] + ' [' + (METHOD_LABELS[sf[1]] || sf[1]) + '] ' + sf[2].toFixed(1) + ' m\u00b2: ' + sf[3].map(m => plural(m[3], m[2]) + ' ' + m[1]).join(', '));
+            extras.forEach(x => lines.push('  + ' + x.qty + ' \u00d7 ' + x.desc + ' (\u00a3' + (x.qty * x.price).toFixed(2) + ')'));
+            let footer = '\n  Materials: \u00a3' + roomMatInc.toFixed(2) + ' inc VAT';
+            if (labour > 0) footer += '\n  Labour: \u00a3' + labour.toFixed(2) + '\n  Room total: \u00a3' + roomTotal.toFixed(2);
+            copyRooms.push(name + (lines.length ? '\n' + lines.join('\n') : '') + footer);
           }
         }
       });
@@ -1757,23 +1843,40 @@ function parseFreetextMessage(raw) {
       if (anyBoardLike && !grand.screws) { grand.screws = { label:'Drywall screws', unit:'box', qty:1 }; order.push('screws'); }
       if ((anyBond || anySkim) && !grand.pva) { grand.pva = { label:'PVA (5L)', unit:'tub', qty:1 }; order.push('pva'); }
 
-      if (!anyMethod || !order.length) { out.style.display = 'none'; _matCopyText = ''; _matCost = { subtotal:0, vat:0, total:0 }; return; }
+      if (!order.length && !extrasOrder.length && !(grandLabour > 0)) {
+        out.style.display = 'none'; _matCopyText = ''; _matCost = { subtotal:0, vat:0, total:0 }; _jobLabour = 0; return;
+      }
 
-      document.getElementById('mat-list').innerHTML = order.map(k =>
-        '<tr><td>' + grand[k].label + '</td><td class="area-cell" style="text-align:right;font-weight:700">' + plural(grand[k].qty, grand[k].unit) + '</td></tr>').join('');
+      document.getElementById('mat-list').innerHTML =
+        order.map(k => '<tr><td>' + grand[k].label + '</td><td class="area-cell" style="text-align:right;font-weight:700">' + plural(grand[k].qty, grand[k].unit) + '</td></tr>').join('')
+        + extrasOrder.map(k => '<tr><td>' + grandExtras[k].label + '</td><td class="area-cell" style="text-align:right;font-weight:700">' + grandExtras[k].qty + '</td></tr>').join('');
 
       let consumables = 0;
       if (grand.screws) consumables += grand.screws.qty * priceFor('screws');
       if (grand.pva)    consumables += grand.pva.qty    * priceFor('pva');
       const subtotal = grandCostEx + consumables;
       _matCost = { subtotal: subtotal, vat: subtotal * MAT_VAT, total: subtotal * (1 + MAT_VAT) };
+      _jobLabour = grandLabour;
       document.getElementById('mat-cost-ex').textContent  = '\u00a3' + _matCost.subtotal.toFixed(2);
       document.getElementById('mat-cost-inc').textContent = '\u00a3' + _matCost.total.toFixed(2);
+      // Labour + grand-total rows (on-site estimate only \u2014 not sent to the invoice)
+      const labourRow = document.getElementById('mat-labour-row');
+      const grandRow  = document.getElementById('mat-grand-row');
+      if (grandLabour > 0) {
+        document.getElementById('mat-labour-val').textContent = '\u00a3' + grandLabour.toFixed(2);
+        document.getElementById('mat-grand-val').textContent  = '\u00a3' + (_matCost.total + grandLabour).toFixed(2);
+        labourRow.style.display = ''; grandRow.style.display = '';
+      } else {
+        labourRow.style.display = 'none'; grandRow.style.display = 'none';
+      }
       out.style.display = 'block';
 
+      const orderLines = order.map(k => plural(grand[k].qty, grand[k].unit) + ' \u2014 ' + grand[k].label)
+        .concat(extrasOrder.map(k => grandExtras[k].qty + ' \u2014 ' + grandExtras[k].label));
       _matCopyText = 'MATERIALS ESTIMATE\n\n' + copyRooms.join('\n\n')
-        + '\n\nTOTAL TO ORDER\n  ' + order.map(k => plural(grand[k].qty, grand[k].unit) + ' \u2014 ' + grand[k].label).join('\n  ')
-        + '\n\nTotal materials: \u00a3' + _matCost.subtotal.toFixed(2) + ' ex VAT  (\u00a3' + _matCost.total.toFixed(2) + ' inc VAT)';
+        + '\n\nTOTAL TO ORDER\n  ' + orderLines.join('\n  ')
+        + '\n\nTotal materials: \u00a3' + _matCost.subtotal.toFixed(2) + ' ex VAT  (\u00a3' + _matCost.total.toFixed(2) + ' inc VAT)'
+        + (grandLabour > 0 ? '\nLabour: \u00a3' + grandLabour.toFixed(2) + '\nJOB TOTAL: \u00a3' + (_matCost.total + grandLabour).toFixed(2) : '');
     }
 
     function copyMaterials() {
@@ -2022,6 +2125,8 @@ function parseFreetextMessage(raw) {
               wallsMethod: wM,
               ceilMethod:  cM,
               note:  card.querySelector('.room-note')?.value || '',
+              extras: cardExtras(card),
+              labour: parseFloat(card.querySelector('.room-labour')?.value) || 0,
               walls: !!wM, ceil: !!cM, both: !!(wM && cM), method: wM || cM
             });
           });
