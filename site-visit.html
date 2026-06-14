@@ -252,6 +252,16 @@
     .surf-row select { padding: 7px 9px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 13px; background: white; -webkit-appearance: none; appearance: none; min-width: 150px; }
     .room-materials .rm-hdr { font-size: 9px; letter-spacing: 1px; color: #999; text-transform: uppercase; margin-bottom: 3px; }
     .room-materials .rm-cost { margin-top: 5px; padding-top: 5px; border-top: 1px solid #dde8dd; font-weight: 700; color: #111; }
+    .room-photos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .rp-item { width: 84px; }
+    .rp-thumb { position: relative; width: 84px; height: 64px; border-radius: 4px; overflow: hidden; border: 1px solid var(--border); background: #f4f4f4; }
+    .rp-thumb img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; display: block; }
+    .rp-loading { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #bbb; font-size: 18px; }
+    .rp-del { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border-radius: 50%; background: rgba(0,0,0,0.6); color: #fff; border: none; font-size: 12px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .rp-cap { width: 84px; font-size: 10px; padding: 3px 4px; border: 1px solid var(--border); border-radius: 2px; margin-top: 2px; font-family: 'Lato', sans-serif; }
+    .rp-add { width: 84px; height: 64px; border: 1px dashed var(--green); border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #5a8a4a; font-size: 11px; cursor: pointer; position: relative; }
+    .rp-add span { font-size: 22px; line-height: 1; }
+    .rp-add input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 
     /* Totals row */
     .rooms-table tfoot tr { background: #111; color: white; }
@@ -908,11 +918,6 @@
       <input type="text" id="access-notes" placeholder="Any restrictions, key pickup, dogs on site, fragile areas to protect...">
     </div>
 
-    <!-- Photos -->
-    <div class="sec">Photos</div>
-    <div class="photos-grid" id="photos-grid">
-      <!-- slots injected by JS -->
-    </div>
 
     <!-- Pricing Calculator -->
     <div class="sec">Pricing Calculator</div>
@@ -1012,7 +1017,7 @@
       var c = Object.assign({}, j);
       if (c.siteVisit && c.siteVisit.photos) {
         c.siteVisit = Object.assign({}, c.siteVisit, {
-          photos: c.siteVisit.photos.map(function(p){ return { caption: p.caption||'' }; })
+          photos: c.siteVisit.photos.map(function(p){ return { caption: p.caption||'', room: p.room||'' }; })
         });
       }
       if (c.renderPreviews) {
@@ -1059,19 +1064,13 @@
             var hasData = existingPhotos.some(function(p){ return p && p.dataUrl; });
             if (!hasData) {
               _svJob.siteVisit.photos = remote.siteVisit.photos;
-              // Display them in the UI
               remote.siteVisit.photos.forEach(function(p, i) {
                 var pc = i + 1;
-                if (p.dataUrl && (!photoData[pc] || !photoData[pc].dataUrl)) {
-                  var slot = document.getElementById('photo-slot-' + pc);
-                  if (!slot) { addPhotoSlot(); }
-                  displayPhoto(pc, p.dataUrl);
-                  photoData[pc] = { dataUrl: p.dataUrl, caption: p.caption || '' };
-                  var capEl = document.getElementById('ph-caption-' + pc);
-                  if (capEl && p.caption) capEl.value = p.caption;
-                }
+                if (photoData[pc]) { photoData[pc].dataUrl = p.dataUrl; if (p.room) photoData[pc].room = p.room; if (p.caption && !photoData[pc].caption) photoData[pc].caption = p.caption; }
+                else { photoData[pc] = { dataUrl: p.dataUrl, caption: p.caption || '', room: p.room || '' }; if (pc > photoCount) photoCount = pc; }
               });
-              _photosStripped = false; // cloud photos are now loaded in the form
+              renderAllRoomPhotos();
+              _photosStripped = false;
             }
           }
         }
@@ -1320,22 +1319,13 @@ function parseFreetextMessage(raw) {
         } else { addPriceRow(''); }
       } catch(e) { try { addPriceRow(''); } catch(e2) {} }
 
-      // Restore saved photos
+      // Load saved photos into photoData (rendered into the room cards once rooms are built)
       try {
         if (isRestore && sv.photos && sv.photos.length) {
-          // If the local copy has photo records but no image data, the images live only in
-          // the cloud and will arrive via syncFromSupabase. Flag it so we never save over them.
           if (sv.photos.some(p => !p.dataUrl)) _photosStripped = true;
-          sv.photos.forEach(p => {
-            addPhotoSlot();
-            const pc = photoCount;
-            if (p.dataUrl) displayPhoto(pc, p.dataUrl);
-            photoData[pc] = { dataUrl: p.dataUrl, caption: p.caption || '' };
-            const capEl = document.getElementById('ph-caption-' + pc);
-            if (capEl && p.caption) capEl.value = p.caption;
-          });
-        } else { addPhotoSlot(); addPhotoSlot(); addPhotoSlot(); }
-      } catch(e) { try { addPhotoSlot(); addPhotoSlot(); addPhotoSlot(); } catch(e2) {} }
+          sv.photos.forEach(p => { photoCount++; photoData[photoCount] = { dataUrl: p.dataUrl, caption: p.caption || '', room: p.room || '' }; });
+        }
+      } catch(e) {}
 
       // Rooms — show area import banner if measurements exist
       try {
@@ -1351,7 +1341,7 @@ function parseFreetextMessage(raw) {
       try {
         if (isRestore && sv.rooms && sv.rooms.length) {
           sv.rooms.forEach(r => {
-            const rc = addRoom(r.name);
+            const rc = addRoom(r.name, r.rid);
             const card = document.getElementById('room-' + rc);
             if (r.l) document.getElementById('l-' + rc).value = r.l;
             if (r.w) document.getElementById('w-' + rc).value = r.w;
@@ -1373,6 +1363,7 @@ function parseFreetextMessage(raw) {
           });
         } else { addRoom('Living Room'); addRoom(''); addRoom(''); }
       } catch(e) { try { addRoom('Living Room'); addRoom(''); addRoom(''); } catch(e2) {} }
+      try { renderAllRoomPhotos(); } catch(e) {}
 
       // Restore saved materials estimate
       try {
@@ -1534,7 +1525,6 @@ function parseFreetextMessage(raw) {
           localStorage.setItem('pr_current_client', JSON.stringify(saved));
         });
       });
-      renderAddMoreBtn();
     });
 
     /* ===== ROOMS ===== */
@@ -1556,13 +1546,15 @@ function parseFreetextMessage(raw) {
       document.getElementById('area-import-banner').style.display = 'none';
     }
 
-    function addRoom(defaultName) {
+    function addRoom(defaultName, rid) {
       roomCount++;
       const rc = roomCount;
+      rid = rid || genRid();
       const wrap = document.getElementById('rooms-cards');
       const card = document.createElement('div');
       card.className = 'room-card';
       card.id = 'room-' + rc;
+      card.dataset.rid = rid;
       const safeName = (defaultName || '').replace(/"/g, '&quot;');
       card.innerHTML =
         '<div class="room-card-head">' +
@@ -1579,7 +1571,8 @@ function parseFreetextMessage(raw) {
           '<div class="surf-row"><span class="surf-lbl">Ceiling <b id="ceil-' + rc + '">\u2014</b></span><select class="method-ceil">' + methodOptions('') + '</select></div>' +
         '</div>' +
         '<div class="room-materials" id="mat-' + rc + '" style="display:none"></div>' +
-        '<input type="text" class="room-note" placeholder="Notes for this room">';
+        '<input type="text" class="room-note" placeholder="Notes for this room">' +
+        '<div class="room-photos"></div>';
       wrap.appendChild(card);
       card.querySelector('#l-' + rc).addEventListener('input', () => calcRoom(rc));
       card.querySelector('#w-' + rc).addEventListener('input', () => calcRoom(rc));
@@ -1587,6 +1580,7 @@ function parseFreetextMessage(raw) {
       card.querySelector('.method-walls').addEventListener('change', calcMaterials);
       card.querySelector('.method-ceil').addEventListener('change', calcMaterials);
       card.querySelector('.room-del').addEventListener('click', () => { card.remove(); calcTotals(); });
+      renderRoomPhotos(card);
       return rc;
     }
 
@@ -1786,59 +1780,58 @@ function parseFreetextMessage(raw) {
 
     /* ===== PHOTOS ===== */
 
-    function addPhotoSlot() {
-      photoCount++;
-      const pc = photoCount;
-      const grid = document.getElementById('photos-grid');
+    function genRid() { return 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
 
-      // Remove add-more button if present
-      const existing = document.getElementById('add-more-btn');
-      if (existing) existing.remove();
-
-      const slot = document.createElement('div');
-      slot.className = 'photo-slot';
-      slot.id = 'photo-slot-' + pc;
-      slot.innerHTML = `
-        <input type="file" accept="image/*" onchange="loadPhoto(${pc}, this)">
-        <div class="photo-placeholder" id="ph-placeholder-${pc}">
-          <div class="ph-icon">📷</div>
-          <div class="ph-num">PHOTO ${pc}</div>
-          <div class="ph-hint">Tap to add</div>
-        </div>
-        <img id="ph-img-${pc}" src="" alt="Photo ${pc}">
-        <button class="photo-remove" id="ph-remove-${pc}" onclick="removePhoto(${pc})" title="Remove photo">×</button>
-        <div class="photo-caption-wrap" id="ph-caption-wrap-${pc}">
-          <input type="text" placeholder="Add caption..." id="ph-caption-${pc}" oninput="if(photoData[${pc}])photoData[${pc}].caption=this.value">
-        </div>
-      `;
-      grid.appendChild(slot);
-      renderAddMoreBtn();
+    function renderRoomPhotos(card) {
+      if (!card) return;
+      const rid = card.dataset.rid;
+      const wrap = card.querySelector('.room-photos');
+      if (!wrap) return;
+      let html = '';
+      Object.keys(photoData).forEach(pc => {
+        const p = photoData[pc];
+        if (!p || p.room !== rid) return;
+        const cap = (p.caption || '').replace(/"/g, '&quot;');
+        html += '<div class="rp-item">'
+          + '<div class="rp-thumb">'
+          + (p.dataUrl ? '<img src="' + p.dataUrl + '" onclick="openLightbox(this.src)">' : '<div class="rp-loading">\u2026</div>')
+          + '<button type="button" class="rp-del" onclick="removePhoto(' + pc + ')" title="Remove">\u00d7</button>'
+          + '</div>'
+          + '<input type="text" class="rp-cap" placeholder="caption" value="' + cap + '" oninput="setPhotoCaption(' + pc + ', this.value)">'
+          + '</div>';
+      });
+      html += '<label class="rp-add"><span>+</span>photo<input type="file" accept="image/*" onchange="loadRoomPhoto(this)"></label>';
+      wrap.innerHTML = html;
     }
 
-    function renderAddMoreBtn() {
-      const grid = document.getElementById('photos-grid');
-      const existing = document.getElementById('add-more-btn');
-      if (existing) existing.remove();
-      const btn = document.createElement('div');
-      btn.className = 'photo-add-more';
-      btn.id = 'add-more-btn';
-      btn.innerHTML = '<span>+</span>Add photo';
-      btn.onclick = addPhotoSlot;
-      grid.appendChild(btn);
+    function renderAllRoomPhotos() {
+      const cards = [].slice.call(document.querySelectorAll('#rooms-cards .room-card'));
+      if (cards.length) {
+        const rids = cards.map(c => c.dataset.rid);
+        const firstRid = rids[0];
+        Object.keys(photoData).forEach(pc => { const p = photoData[pc]; if (p && (!p.room || rids.indexOf(p.room) === -1)) p.room = firstRid; });
+      }
+      cards.forEach(c => renderRoomPhotos(c));
     }
 
-    function loadPhoto(pc, input) {
+    function loadRoomPhoto(input) {
       const file = input.files[0];
       if (!file) return;
+      const card = input.closest('.room-card');
+      if (!card) return;
+      const rid = card.dataset.rid;
       const reader = new FileReader();
       reader.onload = e => {
         compressImage(e.target.result, 1100, 0.6, compressed => {
-          displayPhoto(pc, compressed);
-          photoData[pc] = { dataUrl: compressed, caption: '' };
+          photoCount++;
+          photoData[photoCount] = { dataUrl: compressed, caption: '', room: rid };
+          renderRoomPhotos(card);
         });
       };
       reader.readAsDataURL(file);
     }
+
+    function setPhotoCaption(pc, val) { if (photoData[pc]) photoData[pc].caption = val; }
 
     // Downscale + shrink until the photo is small enough to upload reliably.
     // All photos live in one Supabase row, so each must stay light (~150KB target).
@@ -1867,21 +1860,6 @@ function parseFreetextMessage(raw) {
         cb(out);
       };
       img.src = dataUrl;
-    }
-
-    function displayPhoto(pc, dataUrl) {
-      const img = document.getElementById('ph-img-' + pc);
-      const placeholder = document.getElementById('ph-placeholder-' + pc);
-      const removeBtn = document.getElementById('ph-remove-' + pc);
-      const captionWrap = document.getElementById('ph-caption-wrap-' + pc);
-      img.src = dataUrl;
-      img.style.display = 'block';
-      img.style.zIndex = '4';
-      img.style.cursor = 'zoom-in';
-      img.onclick = function(e) { e.stopPropagation(); openLightbox(dataUrl); };
-      placeholder.style.display = 'none';
-      removeBtn.style.display = 'flex';
-      captionWrap.style.display = 'block';
     }
 
     /* ===== PRICING TABLE ===== */
@@ -2021,13 +1999,14 @@ function parseFreetextMessage(raw) {
         pricingNotes:   document.getElementById('pricing-notes')?.value || '',
         generalNotes:   document.getElementById('general-notes')?.value || '',
         savedAt:        new Date().toISOString(),
-        photos:         Object.entries(photoData).map(([, v]) => ({ dataUrl: v.dataUrl, caption: v.caption || '' })),
+        photos:         Object.entries(photoData).map(([, v]) => ({ dataUrl: v.dataUrl, caption: v.caption || '', room: v.room || '' })),
         rooms:          (function() {
           const rows = [];
           document.querySelectorAll('#rooms-cards .room-card').forEach(card => {
             const wM = card.querySelector('.method-walls')?.value || '';
             const cM = card.querySelector('.method-ceil')?.value || '';
             rows.push({
+              rid:   card.dataset.rid || '',
               name:  card.querySelector('.room-name')?.value || '',
               l:     parseFloat(card.querySelector('[id^="l-"]')?.value) || 0,
               w:     parseFloat(card.querySelector('[id^="w-"]')?.value) || 0,
@@ -2085,14 +2064,10 @@ function parseFreetextMessage(raw) {
           const cloud = await sbGetJob(jobId);
           const cloudPhotos = (cloud?.siteVisit?.photos || []).filter(p => p.dataUrl);
           if (cloudPhotos.length) {
-            job.siteVisit.photos = cloudPhotos;
-            // Reflect them in the form too
-            cloudPhotos.forEach((p, i) => {
-              const pc = i + 1;
-              if (!document.getElementById('photo-slot-' + pc)) addPhotoSlot();
-              displayPhoto(pc, p.dataUrl);
-              photoData[pc] = { dataUrl: p.dataUrl, caption: p.caption || '' };
-            });
+            job.siteVisit.photos = cloudPhotos.map(p => ({ dataUrl: p.dataUrl, caption: p.caption || '', room: p.room || '' }));
+            photoData = {}; photoCount = 0;
+            job.siteVisit.photos.forEach(p => { photoCount++; photoData[photoCount] = { dataUrl: p.dataUrl, caption: p.caption || '', room: p.room || '' }; });
+            renderAllRoomPhotos();
             _photosStripped = false;
           }
         } catch(e) {}
@@ -2343,25 +2318,12 @@ All works carried out in full accordance with manufacturer's specification. Full
     }
 
     function removePhoto(pc) {
-      const img = document.getElementById('ph-img-' + pc);
-      const placeholder = document.getElementById('ph-placeholder-' + pc);
-      const removeBtn = document.getElementById('ph-remove-' + pc);
-      const captionWrap = document.getElementById('ph-caption-wrap-' + pc);
-      const caption = document.getElementById('ph-caption-' + pc);
-      img.src = '';
-      img.style.display = 'none';
-      img.style.zIndex = '1';
-      img.style.cursor = '';
-      img.onclick = null;
-      placeholder.style.display = 'flex';
-      removeBtn.style.display = 'none';
-      captionWrap.style.display = 'none';
-      caption.value = '';
-      // reset file input
-      const slot = document.getElementById('photo-slot-' + pc);
-      const fileInput = slot.querySelector('input[type="file"]');
-      if (fileInput) fileInput.value = '';
+      const p = photoData[pc];
       delete photoData[pc];
+      if (p) {
+        const card = document.querySelector('.room-card[data-rid="' + p.room + '"]');
+        if (card) renderRoomPhotos(card);
+      }
     }
   </script>
 
