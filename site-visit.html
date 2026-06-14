@@ -224,6 +224,28 @@
     .rooms-table td .work-checks label { display: flex; align-items: center; gap: 3px; font-size: 10px; cursor: pointer; }
     .rooms-table td .work-checks input { width: 13px; height: 13px; accent-color: var(--green); }
 
+    /* Per-room cards */
+    .room-card { border: 1px solid var(--border); border-radius: 6px; padding: 12px 12px 10px; margin-bottom: 12px; background: #fff; }
+    .room-card-head { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+    .room-card-head .room-name { flex: 1; padding: 8px 10px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 15px; font-weight: 700; color: #000; background: white; }
+    .room-card-head .room-name:focus { outline: none; border-color: var(--green); }
+    .room-del { width: 32px; height: 34px; flex-shrink: 0; border: 1px solid #e8e8e8; background: #f8f8f8; border-radius: 2px; color: #bbb; font-size: 18px; cursor: pointer; }
+    .room-del:hover { background: #fff0f0; border-color: #f99; color: #c33; }
+    .room-dims { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+    .room-dims .f { margin-bottom: 0; }
+    .room-areas { font-size: 12px; color: #666; margin-bottom: 8px; }
+    .room-areas b { color: #5a8a4a; font-weight: 700; }
+    .room-work { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 8px; }
+    .room-work label { display: flex; align-items: center; gap: 5px; font-size: 13px; color: #000; cursor: pointer; }
+    .room-work input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--green); }
+    .room-method { padding: 8px 10px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 14px; background: white; -webkit-appearance: none; appearance: none; margin-left: auto; min-width: 150px; }
+    .room-materials { font-size: 13px; color: #333; line-height: 1.6; background: #f7faf7; border: 1px solid #e6f0e6; border-radius: 4px; padding: 7px 10px; margin-bottom: 8px; }
+    .room-note { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 14px; color: #000; background: white; }
+    .room-note:focus { outline: none; border-color: var(--green); }
+    .btn-add-room { width: 100%; background: none; border: 1px dashed var(--green); border-radius: 4px; padding: 11px; color: #5a8a4a; font-family: 'Fjalla One', sans-serif; font-size: 13px; letter-spacing: 1px; cursor: pointer; margin-bottom: 6px; }
+    .area-summary { background: #111; color: #fff; border-radius: 4px; padding: 9px 12px; font-size: 13px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .area-summary b { color: var(--green); font-family: 'Fjalla One', sans-serif; letter-spacing: 1px; }
+
     /* Totals row */
     .rooms-table tfoot tr { background: #111; color: white; }
     .rooms-table tfoot td {
@@ -654,41 +676,18 @@
       <button onclick="importAreaMeasurements()" style="background:#66FF33;color:#111;border:none;padding:6px 14px;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;letter-spacing:0.5px">Import</button>
     </div>
 
-    <!-- Rooms & Measurements -->
-    <div class="sec" style="display:flex;justify-content:space-between;align-items:center">
-      <span>Rooms &amp; Measurements</span>
-      <button onclick="addRoom('')" style="background:var(--green);color:#111;border:none;padding:3px 12px;font-family:'Fjalla One',sans-serif;font-size:12px;letter-spacing:1px;cursor:pointer;border-radius:2px">+ ADD</button>
+    <!-- Rooms -->
+    <div class="sec">Rooms</div>
+    <div style="font-size:8pt;color:#999;margin-bottom:10px;line-height:1.5">One card per room — enter sizes, tick the surface(s) and pick the service; materials work out automatically per room.</div>
+    <div id="rooms-cards"></div>
+    <button type="button" class="btn-add-room" onclick="addRoom('')">+ ADD ROOM</button>
+    <div class="area-summary">
+      <span>TOTAL AREA</span>
+      <span><b id="total-combined">—</b> &nbsp;·&nbsp; walls <span id="total-wall">—</span> &nbsp; ceilings <span id="total-ceil">—</span></span>
     </div>
-    <table class="rooms-table" id="rooms-table">
-      <thead>
-        <tr>
-          <th style="width:22%">Room / Area</th>
-          <th style="width:10%">L (m)</th>
-          <th style="width:10%">W (m)</th>
-          <th style="width:10%">H (m)</th>
-          <th style="width:12%" class="c">Wall m²</th>
-          <th style="width:10%" class="c">Ceil m²</th>
-          <th style="width:18%" class="c">Work</th>
-          <th style="width:22%">Notes</th>
-          <th style="width:24px"></th>
-        </tr>
-      </thead>
-      <tbody id="rooms-tbody"></tbody>
-      <tfoot>
-        <tr>
-          <td colspan="4" class="total-label">TOTAL AREA</td>
-          <td class="total-val" id="total-wall">—</td>
-          <td class="total-val" id="total-ceil">—</td>
-          <td colspan="2" class="total-combined" id="total-combined">— combined</td>
-          <td></td>
-        </tr>
-      </tfoot>
-    </table>
 
-    <!-- Materials Estimate -->
-    <div class="sec">Materials Estimate</div>
-    <div style="font-size:8pt;color:#999;margin-bottom:8px;line-height:1.5">Pick a method for each room below — quantities use that room's ticked surfaces (Walls / Ceil / Both; none ticked = both).</div>
-    <div id="mat-rooms"></div>
+    <!-- Materials settings & order total -->
+    <div class="sec">Materials</div>
     <details style="margin-bottom:8px">
       <summary style="cursor:pointer;color:#5a8a4a;font-size:8pt;letter-spacing:1px;text-transform:uppercase;font-weight:700">Coverage rates — tap to adjust</summary>
       <div class="grid-3" style="margin-top:8px">
@@ -1345,20 +1344,18 @@ function parseFreetextMessage(raw) {
       try {
         if (isRestore && sv.rooms && sv.rooms.length) {
           sv.rooms.forEach(r => {
-            addRoom(r.name);
-            const rc = roomCount;
-            const lEl = document.getElementById('l-' + rc);
-            const wEl = document.getElementById('w-' + rc);
-            const hEl = document.getElementById('h-' + rc);
-            if (lEl && r.l) lEl.value = r.l;
-            if (wEl && r.w) wEl.value = r.w;
-            if (hEl && r.h) hEl.value = r.h;
-            const tr = document.getElementById('room-' + rc);
-            const checks = tr?.querySelectorAll('input[type="checkbox"]');
-            if (checks) { checks[0].checked = r.walls; checks[1].checked = r.ceil; checks[2].checked = r.both; }
-            const noteEl = tr?.querySelector('input[placeholder="Notes"]');
-            if (noteEl && r.note) noteEl.value = r.note;
-            if (r.method) roomMethods['room-' + rc] = r.method;
+            const rc = addRoom(r.name);
+            const card = document.getElementById('room-' + rc);
+            if (r.l) document.getElementById('l-' + rc).value = r.l;
+            if (r.w) document.getElementById('w-' + rc).value = r.w;
+            if (r.h) document.getElementById('h-' + rc).value = r.h;
+            if (card) {
+              card.querySelector('.wk-walls').checked = !!r.walls;
+              card.querySelector('.wk-ceil').checked  = !!r.ceil;
+              card.querySelector('.wk-both').checked  = !!r.both;
+              if (r.note)   card.querySelector('.room-note').value = r.note;
+              if (r.method) card.querySelector('.room-method').value = r.method;
+            }
             calcRoom(rc);
           });
         } else { addRoom('Living Room'); addRoom(''); addRoom(''); }
@@ -1532,7 +1529,7 @@ function parseFreetextMessage(raw) {
       const areas = _svJob?.areaToolMeasurements || [];
       if (!areas.length) return;
       // Clear default blank rows first
-      document.querySelectorAll('#rooms-tbody tr').forEach(r => r.remove());
+      document.querySelectorAll('#rooms-cards .room-card').forEach(r => r.remove());
       areas.forEach(a => {
         // Add as L×H single-surface row (W blank = L×H = m²)
         addRoom(a.label || 'Wall');
@@ -1549,36 +1546,38 @@ function parseFreetextMessage(raw) {
     function addRoom(defaultName) {
       roomCount++;
       const rc = roomCount;
-      const tbody = document.getElementById('rooms-tbody');
-      const tr = document.createElement('tr');
-      tr.id = 'room-' + rc;
-
-      // Build cells manually so we can attach real event listeners
-      tr.innerHTML = `
-        <td><input type="text" placeholder="e.g. Hall" value="${defaultName || ''}"></td>
-        <td><input type="number" placeholder="0.0" step="0.1" min="0" id="l-${rc}"></td>
-        <td><input type="number" placeholder="0.0" step="0.1" min="0" id="w-${rc}"></td>
-        <td><input type="number" placeholder="0.0" step="0.1" min="0" id="h-${rc}"></td>
-        <td class="area-cell" id="wall-${rc}">—</td>
-        <td class="area-cell" id="ceil-${rc}">—</td>
-        <td>
-          <div class="work-checks">
-            <label><input type="checkbox"> Walls</label>
-            <label><input type="checkbox"> Ceil</label>
-            <label><input type="checkbox"> Both</label>
-          </div>
-        </td>
-        <td><input type="text" placeholder="Notes"></td>
-        <td><button class="btn-remove-row" type="button" title="Remove">×</button></td>
-      `;
-      tbody.appendChild(tr);
-
-      // Attach event listeners directly — avoids inline handler issues on local files
-      tr.querySelector('#l-' + rc).addEventListener('input', () => calcRoom(rc));
-      tr.querySelector('#w-' + rc).addEventListener('input', () => calcRoom(rc));
-      tr.querySelector('#h-' + rc).addEventListener('input', () => calcRoom(rc));
-      tr.querySelectorAll('.work-checks input[type="checkbox"]').forEach(cb => cb.addEventListener('change', calcMaterials));
-      tr.querySelector('.btn-remove-row').addEventListener('click', () => { tr.remove(); calcTotals(); });
+      const wrap = document.getElementById('rooms-cards');
+      const card = document.createElement('div');
+      card.className = 'room-card';
+      card.id = 'room-' + rc;
+      const safeName = (defaultName || '').replace(/"/g, '&quot;');
+      card.innerHTML =
+        '<div class="room-card-head">' +
+          '<input type="text" class="room-name" placeholder="Room (e.g. Living Room)" value="' + safeName + '">' +
+          '<button type="button" class="room-del" title="Remove room">&times;</button>' +
+        '</div>' +
+        '<div class="room-dims">' +
+          '<div class="f"><label>L (m)</label><input type="number" step="0.1" min="0" id="l-' + rc + '" placeholder="0.0"></div>' +
+          '<div class="f"><label>W (m)</label><input type="number" step="0.1" min="0" id="w-' + rc + '" placeholder="0.0"></div>' +
+          '<div class="f"><label>H (m)</label><input type="number" step="0.1" min="0" id="h-' + rc + '" placeholder="0.0"></div>' +
+        '</div>' +
+        '<div class="room-areas">Wall <b id="wall-' + rc + '">\u2014</b> &nbsp;\u00b7&nbsp; Ceiling <b id="ceil-' + rc + '">\u2014</b></div>' +
+        '<div class="room-work">' +
+          '<label><input type="checkbox" class="wk-walls"> Walls</label>' +
+          '<label><input type="checkbox" class="wk-ceil"> Ceiling</label>' +
+          '<label><input type="checkbox" class="wk-both"> Both</label>' +
+          '<select class="room-method">' + methodOptions('') + '</select>' +
+        '</div>' +
+        '<div class="room-materials" id="mat-' + rc + '" style="display:none"></div>' +
+        '<input type="text" class="room-note" placeholder="Notes for this room">';
+      wrap.appendChild(card);
+      card.querySelector('#l-' + rc).addEventListener('input', () => calcRoom(rc));
+      card.querySelector('#w-' + rc).addEventListener('input', () => calcRoom(rc));
+      card.querySelector('#h-' + rc).addEventListener('input', () => calcRoom(rc));
+      card.querySelectorAll('.room-work input[type="checkbox"]').forEach(cb => cb.addEventListener('change', calcMaterials));
+      card.querySelector('.room-method').addEventListener('change', calcMaterials);
+      card.querySelector('.room-del').addEventListener('click', () => { card.remove(); calcTotals(); });
+      return rc;
     }
 
     function calcRoom(rc) {
@@ -1626,7 +1625,6 @@ function parseFreetextMessage(raw) {
 
     // ===== MATERIALS ESTIMATE (per room) =====
     // Each room picks its own method; quantities use that room's ticked surfaces.
-    const roomMethods = {};           // keyed by room <tr> id, e.g. 'room-3'
     const METHOD_LABELS = { skim:'Skim only', board:'Board & Skim', dd:'Dot & Dab & Skim', bond:'Bond & Skim' };
     let _matCopyText = '';
     let _matCost = { subtotal: 0, vat: 0, total: 0 };   // ex-VAT subtotal, VAT, inc-VAT total
@@ -1655,8 +1653,6 @@ function parseFreetextMessage(raw) {
       } catch(e) {}
     }
 
-    function setRoomMethod(id, val) { roomMethods[id] = val; calcMaterials(); }
-
     function matEsc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
     function plural(n, u) { return n + ' ' + u + (n !== 1 ? 's' : ''); }
 
@@ -1678,13 +1674,12 @@ function parseFreetextMessage(raw) {
     }
 
     // Area for a single room based on its Walls / Ceil / Both ticks (no tick = both).
-    function roomAreaFromTicks(tr) {
-      const checks = tr.querySelectorAll('input[type="checkbox"]');
-      const walls = checks[0] && checks[0].checked;
-      const ceil  = checks[1] && checks[1].checked;
-      const both  = checks[2] && checks[2].checked;
-      const wallEl = tr.querySelector('td[id^="wall-"]');
-      const ceilEl = tr.querySelector('td[id^="ceil-"]');
+    function roomAreaFromTicks(card) {
+      const walls = card.querySelector('.wk-walls') && card.querySelector('.wk-walls').checked;
+      const ceil  = card.querySelector('.wk-ceil')  && card.querySelector('.wk-ceil').checked;
+      const both  = card.querySelector('.wk-both')  && card.querySelector('.wk-both').checked;
+      const wallEl = card.querySelector('[id^="wall-"]');
+      const ceilEl = card.querySelector('[id^="ceil-"]');
       const wallV = parseFloat(wallEl ? wallEl.textContent : '') || 0;
       const ceilV = parseFloat(ceilEl ? ceilEl.textContent : '') || 0;
       const none = !walls && !ceil && !both;
@@ -1710,22 +1705,22 @@ function parseFreetextMessage(raw) {
     }
 
     function calcMaterials() {
-      const wrap = document.getElementById('mat-rooms');
-      const out  = document.getElementById('mat-estimate-output');
-      if (!wrap || !out) return;
+      const out = document.getElementById('mat-estimate-output');
+      if (!out) return;
       const R = ratesObj();
-      const trs = [].slice.call(document.querySelectorAll('#rooms-tbody tr'));
+      const cards = [].slice.call(document.querySelectorAll('#rooms-cards .room-card'));
 
       const totals = {}; const order = [];
       let anyMethod = false, anyBoardLike = false, anyBond = false;
       const copyRooms = [];
 
-      const blocks = trs.map(tr => {
-        const id = tr.id;
-        const nameEl = tr.querySelector('input[type="text"]');
+      cards.forEach(card => {
+        const rc = card.id.replace('room-', '');
+        const nameEl = card.querySelector('.room-name');
         const name = (nameEl && nameEl.value.trim()) || 'Room';
-        const ra = roomAreaFromTicks(tr);
-        const method = roomMethods[id] || '';
+        const ra = roomAreaFromTicks(card);
+        const methodEl = card.querySelector('.room-method');
+        const method = methodEl ? methodEl.value : '';
         if (method) anyMethod = true;
         if (method === 'board' || method === 'dd') anyBoardLike = true;
         if (method === 'bond') anyBond = true;
@@ -1736,27 +1731,20 @@ function parseFreetextMessage(raw) {
           totals[m[0]].qty += m[3];
         });
 
-        let lines;
-        if (!method) lines = '<div style="color:#bbb">No method selected</div>';
-        else if (!(ra.area > 0)) lines = '<div style="color:#bbb">Enter measurements above</div>';
-        else {
-          lines = mats.map(m => '<div>' + plural(m[3], m[2]) + ' — ' + m[1] + '</div>').join('');
-          copyRooms.push(name + '  [' + (METHOD_LABELS[method] || method) + '] · ' + ra.area.toFixed(1) + ' m²'
-            + (ra.label ? ' (' + ra.label + ')' : '') + '\n  ' + mats.map(m => plural(m[3], m[2]) + ' — ' + m[1]).join('\n  '));
+        const md = document.getElementById('mat-' + rc);
+        if (md) {
+          if (!method) { md.style.display = 'none'; md.innerHTML = ''; }
+          else if (!(ra.area > 0)) { md.style.display = 'block'; md.innerHTML = '<span style="color:#bbb">Enter measurements / tick a surface</span>'; }
+          else {
+            md.style.display = 'block';
+            md.innerHTML = '<div style="font-size:9px;letter-spacing:1px;color:#999;text-transform:uppercase;margin-bottom:3px">Materials \u00b7 ' + ra.area.toFixed(1) + ' m\u00b2' + (ra.label ? ' (' + ra.label + ')' : '') + '</div>'
+              + mats.map(m => '<div>' + plural(m[3], m[2]) + ' \u2014 ' + m[1] + '</div>').join('');
+            copyRooms.push(name + '  [' + (METHOD_LABELS[method] || method) + '] \u00b7 ' + ra.area.toFixed(1) + ' m\u00b2'
+              + (ra.label ? ' (' + ra.label + ')' : '') + '\n  ' + mats.map(m => plural(m[3], m[2]) + ' \u2014 ' + m[1]).join('\n  '));
+          }
         }
+      });
 
-        const areaTxt = ra.area > 0 ? ' · ' + ra.area.toFixed(1) + ' m²' + (ra.label ? ' (' + ra.label + ')' : '') : '';
-        return '<div style="border:1px solid #e0e0e0;border-radius:3px;padding:8px 10px;margin-bottom:8px">'
-          + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px">'
-          + '<strong style="font-size:13px">' + matEsc(name) + '<span style="color:#999;font-weight:400">' + areaTxt + '</span></strong>'
-          + '<select onchange="setRoomMethod(\'' + id + '\',this.value)" style="padding:6px 8px;border:1px solid var(--border);border-radius:2px;font-family:Lato,sans-serif;font-size:13px;background:white;-webkit-appearance:none;appearance:none;max-width:170px">' + methodOptions(method) + '</select>'
-          + '</div>'
-          + '<div style="font-size:13px;color:#333;line-height:1.5">' + lines + '</div>'
-          + '</div>';
-      }).join('');
-      wrap.innerHTML = blocks;
-
-      // Job-level extras (not area-scaled)
       if (anyBoardLike && !totals.screws) { totals.screws = { label:'Drywall screws', unit:'box', qty:1 }; order.push('screws'); }
       if (anyBond     && !totals.pva)    { totals.pva    = { label:'PVA (5L)',       unit:'tub', qty:1 }; order.push('pva'); }
 
@@ -1767,16 +1755,15 @@ function parseFreetextMessage(raw) {
         return '<tr><td>' + t.label + '</td><td class="area-cell" style="text-align:right;font-weight:700">' + plural(t.qty, t.unit) + '</td></tr>';
       }).join('');
 
-      // Cost (ex VAT) = sum of qty × MKM price; inc-VAT figure feeds the invoice.
       const subtotal = order.reduce((s, k) => s + totals[k].qty * priceFor(k), 0);
       _matCost = { subtotal: subtotal, vat: subtotal * MAT_VAT, total: subtotal * (1 + MAT_VAT) };
-      document.getElementById('mat-cost-ex').textContent  = '£' + _matCost.subtotal.toFixed(2);
-      document.getElementById('mat-cost-inc').textContent = '£' + _matCost.total.toFixed(2);
+      document.getElementById('mat-cost-ex').textContent  = '\u00a3' + _matCost.subtotal.toFixed(2);
+      document.getElementById('mat-cost-inc').textContent = '\u00a3' + _matCost.total.toFixed(2);
       out.style.display = 'block';
 
       _matCopyText = 'MATERIALS ESTIMATE\n\n' + copyRooms.join('\n\n')
-        + '\n\nTOTAL TO ORDER\n  ' + order.map(k => plural(totals[k].qty, totals[k].unit) + ' — ' + totals[k].label).join('\n  ')
-        + '\n\nMaterials cost: £' + _matCost.subtotal.toFixed(2) + ' ex VAT  (£' + _matCost.total.toFixed(2) + ' inc VAT)';
+        + '\n\nTOTAL TO ORDER\n  ' + order.map(k => plural(totals[k].qty, totals[k].unit) + ' \u2014 ' + totals[k].label).join('\n  ')
+        + '\n\nMaterials cost: \u00a3' + _matCost.subtotal.toFixed(2) + ' ex VAT  (\u00a3' + _matCost.total.toFixed(2) + ' inc VAT)';
     }
 
     function copyMaterials() {
@@ -2027,23 +2014,17 @@ function parseFreetextMessage(raw) {
         photos:         Object.entries(photoData).map(([, v]) => ({ dataUrl: v.dataUrl, caption: v.caption || '' })),
         rooms:          (function() {
           const rows = [];
-          document.querySelectorAll('#rooms-tbody tr').forEach(tr => {
-            const nameEl  = tr.querySelector('input[type="text"]');
-            const lEl     = tr.querySelector('input[id^="l-"]');
-            const wEl     = tr.querySelector('input[id^="w-"]');
-            const hEl     = tr.querySelector('input[id^="h-"]');
-            const checks  = tr.querySelectorAll('input[type="checkbox"]');
-            const noteEl  = tr.querySelector('input[placeholder="Notes"]');
+          document.querySelectorAll('#rooms-cards .room-card').forEach(card => {
             rows.push({
-              name:  nameEl?.value || '',
-              l:     parseFloat(lEl?.value) || 0,
-              w:     parseFloat(wEl?.value) || 0,
-              h:     parseFloat(hEl?.value) || 0,
-              walls: checks[0]?.checked || false,
-              ceil:  checks[1]?.checked || false,
-              both:  checks[2]?.checked || false,
-              note:  noteEl?.value || '',
-              method: roomMethods[tr.id] || ''
+              name:  card.querySelector('.room-name')?.value || '',
+              l:     parseFloat(card.querySelector('[id^="l-"]')?.value) || 0,
+              w:     parseFloat(card.querySelector('[id^="w-"]')?.value) || 0,
+              h:     parseFloat(card.querySelector('[id^="h-"]')?.value) || 0,
+              walls: card.querySelector('.wk-walls')?.checked || false,
+              ceil:  card.querySelector('.wk-ceil')?.checked || false,
+              both:  card.querySelector('.wk-both')?.checked || false,
+              note:  card.querySelector('.room-note')?.value || '',
+              method: card.querySelector('.room-method')?.value || ''
             });
           });
           return rows;
