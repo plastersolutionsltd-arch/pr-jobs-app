@@ -1615,14 +1615,21 @@ function parseFreetextMessage(raw) {
     // ---- Extra-material picker: pulls the main app's price list (pr_materials), ex-VAT ----
     // Seed list used only if the app's saved list isn't on this device yet.
     const EXTRA_MAT_DEFAULTS = [
-      { name: 'Siniat Bonding Compound', unit: '25kg bag', price: 11.60 },
-      { name: 'Thistle Multi Finish Plaster', unit: '25kg bag', price: 11.68 },
-      { name: 'PVA Primer', unit: '5L tub', price: 12.00 },
+      { name: 'Thistle Bonding Coat Plaster 25kg', unit: '25kg bag', price: 12.92 },
+      { name: 'Siniat Universal Bonding Compound (dab adhesive) 25kg', unit: '25kg bag', price: 9.67 },
+      { name: 'Thistle Multi Finish Plaster 25kg', unit: '25kg bag', price: 9.73 },
+      { name: 'Bond It PVA Contractors 5L', unit: '5L tub', price: 10.36 },
+      { name: 'Thin-Coat Angle Bead galv 2400mm', unit: 'each', price: 1.80 },
       { name: 'Corner Bead (SS)', unit: '2.5m each', price: 2.50 },
       { name: 'Stop Bead (SS)', unit: '3m each', price: 4.00 },
       { name: 'Fibreglass Mesh', unit: '50m roll', price: 18.00 },
-      { name: 'Bond It Scrim Tape 48mm×90m', unit: '90m roll', price: 4.46 },
-      { name: 'Siniat Plasterboard 1800×900×12.5mm', unit: 'sheet', price: 8.35 },
+      { name: 'Bond It Monster Scrim Tape 48mm×90m', unit: '90m roll', price: 3.72 },
+      { name: 'Siniat Standard Plasterboard 1800×900×12.5mm', unit: 'sheet', price: 6.96 },
+      { name: 'Siniat Fire Board 1800×900×12.5mm', unit: 'sheet', price: 8.58 },
+      { name: 'Drywall Screws 38mm (box 1000)', unit: 'box', price: 7.70 },
+      { name: 'Drywall Screws 50mm (box 1000)', unit: 'box', price: 8.68 },
+      { name: 'Drywall Screws 75mm (box 500)', unit: 'box', price: 16.04 },
+      { name: 'Drywall Screws 100mm (box 200)', unit: 'box', price: 16.38 },
       { name: 'Grit Plaster', unit: '25kg bag', price: 8.00 }
     ];
     let _extraMats = null;
@@ -1744,8 +1751,8 @@ function parseFreetextMessage(raw) {
     let _jobLabour = 0;                                 // sum of per-room labour (on-site estimate only, NOT sent to invoice)
     const MAT_VAT = 0.20;
 
-    // Default MKM ex-VAT prices (account 0118147) — overridable, remembered per device.
-    const PRICE_DEFAULTS = { board:6.69, skim:9.35, bond:12.92, dd:8.96, scrim:3.58, screws:16.38, pva:10.36 };
+    // Default MKM ex-VAT prices (account 0118147, latest invoices to Jun 2026) — overridable, remembered per device.
+    const PRICE_DEFAULTS = { board:6.96, skim:9.73, bond:12.92, dd:9.67, scrim:3.72, screws:16.38, pva:10.36 };
     const PRICE_IDS = { board:'price-board', skim:'price-skim', bond:'price-bond', dd:'price-dd', scrim:'price-scrim', screws:'price-screws', pva:'price-pva' };
 
     function priceFor(key) {
