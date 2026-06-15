@@ -1856,6 +1856,7 @@ function parseFreetextMessage(raw) {
       let grandLabour = 0;
       let grandPrice = 0;                                // customer quote (\u03a3 rate \u00d7 area)
       const copyRooms = [];
+      const areaBySys = {};   // total area per render system — materials are totalled for the whole job and rounded up ONCE (not per elevation)
 
       function addInto(map, list, mats) {
         mats.forEach(m => { if (!map[m[0]]) { map[m[0]] = { label:m[1], unit:m[2], qty:0 }; list.push(m[0]); } map[m[0]].qty += m[3]; });
@@ -1877,15 +1878,9 @@ function parseFreetextMessage(raw) {
 
         const roomMap = {}; const roomOrder = []; const surfaces = [];
         if (system && area > 0) {
-          const mats = renderMaterials(system, area, R);
-          // Dark-colour surcharge: one per topcoat tub (single job-level toggle)
-          if (jobDark) {
-            const topLine = mats.find(m => m[0] === 'top');
-            if (topLine) mats.push(['surcharge','Dark colour surcharge','tub', topLine[3]]);
-          }
-          addInto(roomMap, roomOrder, mats);
-          addInto(grand, order, mats);
-          surfaces.push([name, tplKey, area, mats]);
+          // Materials are totalled across the WHOLE job (computed after this loop) —
+          // here we just add this elevation's area to its render system's running total.
+          areaBySys[system] = (areaBySys[system] || 0) + area;
         }
 
         // Extra (ad-hoc) materials for this elevation \u2014 fold into the materials cost + order list
@@ -1933,6 +1928,18 @@ function parseFreetextMessage(raw) {
           }
         }
       });
+
+      // Materials are ordered for the WHOLE job: total the area per render system, then
+      // round up ONCE (so 4 elevations of 20m do not become 4 separate roundups).
+      Object.keys(areaBySys).forEach(function(system) {
+        const mats = renderMaterials(system, areaBySys[system], R);
+        if (jobDark) {
+          const topLine = mats.find(m => m[0] === 'top');
+          if (topLine) mats.push(['surcharge', 'Dark colour surcharge', 'tub', topLine[3]]);
+        }
+        addInto(grand, order, mats);
+      });
+      grandCostEx += order.reduce((sum, k) => sum + grand[k].qty * priceFor(k), 0);
 
       if (!order.length && !extrasOrder.length && !(grandLabour > 0) && !(grandPrice > 0)) {
         out.style.display = 'none'; _matCopyText = ''; _matCost = { subtotal:0, vat:0, total:0 }; _jobLabour = 0; _jobPrice = 0; return;
