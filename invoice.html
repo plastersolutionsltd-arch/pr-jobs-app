@@ -948,7 +948,8 @@
       'Chris\nP&R Solutions\n07595 399525'
     );
 
-    var subject = encodeURIComponent('Invoice from P&R Solutions — ' + invNum);
+    var street  = (v('client-addr') || job.address || '').split('\n')[0].trim();
+    var subject = encodeURIComponent('Invoice from P&R Solutions — ' + (street || invNum));
     var emailAddr = v('client-email') || (job.email || '');
     location.href = 'mailto:' + emailAddr + '?subject=' + subject + '&body=' + body;
     setTimeout(function() {
