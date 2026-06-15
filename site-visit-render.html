@@ -885,9 +885,12 @@
       <div class="f">
         <label>Scaffold Needed?</label>
         <div class="radios">
-          <label><input type="radio" name="scaffold" value="no"> No</label>
-          <label><input type="radio" name="scaffold" value="yes"> Yes</label>
-          <label><input type="radio" name="scaffold" value="tower"> Tower only</label>
+          <label><input type="radio" name="scaffold" value="no" onchange="toggleScaffold(this)"> No</label>
+          <label><input type="radio" name="scaffold" value="yes" onchange="toggleScaffold(this)"> Yes</label>
+          <label><input type="radio" name="scaffold" value="tower" onchange="toggleScaffold(this)"> Tower only</label>
+        </div>
+        <div id="scaffold-cost-wrap" style="display:none;margin-top:8px">
+          <input type="number" id="scaffold-cost" step="10" min="0" placeholder="Scaffold cost £" oninput="calcMaterials()">
         </div>
       </div>
       <div class="f">
@@ -1426,7 +1429,9 @@ function parseFreetextMessage(raw) {
         if (sv.coatsRequired)   { const el = document.getElementById('coats-required');   if (el) el.value = sv.coatsRequired; }
         if (sv.access)          { const r = document.querySelector('input[name="access"][value="'   + sv.access   + '"]'); if (r) r.checked = true; }
         if (sv.parking)         { const r = document.querySelector('input[name="parking"][value="'  + sv.parking  + '"]'); if (r) r.checked = true; }
-        if (sv.scaffold)        { const r = document.querySelector('input[name="scaffold"][value="' + sv.scaffold + '"]'); if (r) r.checked = true; }
+        if (sv.scaffold)        { const r = document.querySelector('input[name="scaffold"][value="' + sv.scaffold + '"]'); if (r) r.checked = true;
+          if (sv.scaffoldCost) { const sc = document.getElementById('scaffold-cost'); if (sc) sc.value = sv.scaffoldCost; }
+          if (sv.scaffold === 'yes' || sv.scaffold === 'tower') { const w = document.getElementById('scaffold-cost-wrap'); if (w) w.style.display = 'block'; } }
         if (sv.accessNotes)     { const el = document.getElementById('access-notes');     if (el) el.value = sv.accessNotes; }
         if (sv.pricingNotes)    { const el = document.getElementById('pricing-notes');    if (el) el.value = sv.pricingNotes; }
         if (sv.generalNotes)    { const el = document.getElementById('general-notes');    if (el) el.value = sv.generalNotes; }
@@ -1969,16 +1974,18 @@ function parseFreetextMessage(raw) {
       const extraAmt = parseFloat(document.getElementById('extra-charge-amt')?.value) || 0;
       const skipVal  = document.getElementById('skip-size')?.value || '';
       const skipCost = skipVal ? (parseFloat(skipVal.split('|')[1]) || 0) : 0;
-      const quoteTotal = grandPrice + extraAmt + skipCost;
+      const scaffoldCost = parseFloat(document.getElementById('scaffold-cost')?.value) || 0;
+      const quoteTotal = grandPrice + extraAmt + skipCost + scaffoldCost;
       const quoteRow = document.getElementById('mat-quote-row');
       const quoteBd  = document.getElementById('mat-quote-breakdown');
       if (quoteTotal > 0) {
         document.getElementById('mat-quote-val').textContent = '\u00a3' + quoteTotal.toFixed(2);
         quoteRow.style.display = '';
         // Show a small breakdown only when there's more than just the render price
-        if (grandPrice > 0 && (extraAmt > 0 || skipCost > 0)) {
+        if (grandPrice > 0 && (extraAmt > 0 || skipCost > 0 || scaffoldCost > 0)) {
           const parts = ['Render \u00a3' + grandPrice.toFixed(2)];
           if (extraAmt > 0) parts.push('Extra \u00a3' + extraAmt.toFixed(2));
+          if (scaffoldCost > 0) parts.push('Scaffold \u00a3' + scaffoldCost.toFixed(2));
           if (skipCost > 0) parts.push('Skip \u00a3' + skipCost.toFixed(2));
           document.getElementById('mat-quote-breakdown-txt').textContent = parts.join('  +  ');
           quoteBd.style.display = '';
@@ -2130,6 +2137,7 @@ function parseFreetextMessage(raw) {
         access:        document.querySelector('input[name="access"]:checked')?.value || '',
         parking:       document.querySelector('input[name="parking"]:checked')?.value || '',
         scaffold:      document.querySelector('input[name="scaffold"]:checked')?.value || '',
+        scaffoldCost:  parseFloat(document.getElementById('scaffold-cost')?.value) || 0,
         skipTons:       skipTons || '',
         skipCost:       skipCost ? '£' + parseFloat(skipCost).toFixed(2) : '',
         propertyType:   document.getElementById('property-type-sel')?.value || '',
@@ -2186,6 +2194,10 @@ function parseFreetextMessage(raw) {
           if (exAmt > 0) {
             const exDesc = document.getElementById('extra-charge-desc')?.value.trim() || 'Additional work';
             rows.push({ desc: exDesc, m2: 0, rate: 0, total: exAmt });
+          }
+          const scaffAmt = parseFloat(document.getElementById('scaffold-cost')?.value) || 0;
+          if (scaffAmt > 0) {
+            rows.push({ desc: 'Scaffolding', m2: 0, rate: 0, total: scaffAmt });
           }
           return rows;
         })()
@@ -2263,6 +2275,17 @@ function parseFreetextMessage(raw) {
         document.getElementById('skip-size').value = '';
         updateSkipCost();
       }
+    }
+
+    function toggleScaffold(radio) {
+      const wrap = document.getElementById('scaffold-cost-wrap');
+      if (radio.value === 'yes' || radio.value === 'tower') {
+        wrap.style.display = 'block';
+      } else {
+        wrap.style.display = 'none';
+        document.getElementById('scaffold-cost').value = '';
+      }
+      calcMaterials();
     }
 
     function updateSkipCost() {
