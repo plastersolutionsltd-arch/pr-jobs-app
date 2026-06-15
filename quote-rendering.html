@@ -1015,6 +1015,9 @@
       if (c.siteVisit && c.siteVisit.photos) {
         c.siteVisit = Object.assign({}, c.siteVisit, { photos: c.siteVisit.photos.map(function(p){ return { caption: p.caption||'' }; }) });
       }
+      if (c.renderVisit && c.renderVisit.photos) {
+        c.renderVisit = Object.assign({}, c.renderVisit, { photos: c.renderVisit.photos.map(function(p){ return { caption: p.caption||'' }; }) });
+      }
       if (c.renderPreviews) {
         c.renderPreviews = c.renderPreviews.map(function(r){ var rc=Object.assign({},r); delete rc.imageDataUrl; return rc; });
       }
@@ -1180,7 +1183,9 @@
     }
 
     function reimportPricing() {
-      const sv = _cachedJob?.siteVisit;
+      // Prefer the render visit (this is the render quote); fall back to plaster visit.
+      const sv = (_cachedJob && _cachedJob.renderVisit && _cachedJob.renderVisit.savedAt)
+        ? _cachedJob.renderVisit : _cachedJob?.siteVisit;
       if (!sv) return;
       // Clear existing labour rows
       rows.labour.forEach(id => { const el = document.getElementById('row-' + id); if (el) el.remove(); });
@@ -1340,25 +1345,31 @@
           addrEl.value = (pc && !clean.toUpperCase().includes(pc.toUpperCase())) ? clean + ', ' + pc.toUpperCase() : clean;
         }
 
+        // The RENDER quote prefers the render visit as its source, falling back to
+        // the plaster site visit (or null) so older render-less jobs behave as before.
+        var _srcVisit = (_job && _job.renderVisit && _job.renderVisit.savedAt) ? _job.renderVisit
+                        : (_job && _job.siteVisit) ? _job.siteVisit
+                        : null;
+
         if (_job?.quoteData) {
           // ── Restore previously saved quote ──
           restoreQuote(_job.quoteData);
-          // Always show reimport banner when a saved quote + site visit both exist
-          if (_job.siteVisit) {
+          // Always show reimport banner when a saved quote + a visit both exist
+          if (_srcVisit) {
             document.getElementById('sv-update-banner').style.display = 'flex';
           }
-          // Fill missing render system/colour from site visit if not in quoteData
-          if (_job?.siteVisit && !_job.quoteData.renderSystem) {
-            const sv  = _job.siteVisit;
+          // Fill missing render system/colour from the visit if not in quoteData
+          if (_srcVisit && !_job.quoteData.renderSystem) {
+            const sv  = _srcVisit;
             const wt  = _p.get('workType') || sv.workTypes || '';
             const sys = mapToRenderSystem(wt, sv.finishType);
             if (sys) document.getElementById('render-system').value = sys;
             if (sv.colour && !_job.quoteData.renderFinish) document.getElementById('render-finish').value = sv.colour;
           }
         } else {
-          // ── Fresh quote: auto-fill from site visit ──
-          if (_job?.siteVisit) {
-            const sv  = _job.siteVisit;
+          // ── Fresh quote: auto-fill from the visit (render preferred) ──
+          if (_srcVisit) {
+            const sv  = _srcVisit;
             const wt  = _p.get('workType') || sv.workTypes || '';
             const sys = mapToRenderSystem(wt, sv.finishType);
             if (sys) document.getElementById('render-system').value = sys;
@@ -1422,8 +1433,8 @@
         }
 
         // ── Scope of works: prefer saved scope if it's a real template, else auto-load ──
-        if (_job?.siteVisit) {
-          const sv       = _job.siteVisit;
+        if (_srcVisit) {
+          const sv       = _srcVisit;
           const wt       = _p.get('workType') || sv.workTypes || '';
           const notesEl  = document.getElementById('notes');
           const curNotes = notesEl?.value || '';
@@ -1441,7 +1452,7 @@
 
         // ── Auto-fill before/after photos from job data ──
         if (!photos.before) {
-          const svPhotos = _job?.siteVisit?.photos;
+          const svPhotos = _srcVisit?.photos;
           if (svPhotos && svPhotos.length > 0 && svPhotos[0].dataUrl) {
             photos.before = svPhotos[0].dataUrl;
             renderPhotoZone('before');
@@ -1462,16 +1473,22 @@
         // Background Supabase sync — updates cache for next save, never blanks the form
         sbGetJob(_jobId).then(function(remote) {
           if (!remote) return;
-          var localTs  = (_cachedJob && (_cachedJob.quoteData && _cachedJob.quoteData.savedAt || _cachedJob.siteVisit && _cachedJob.siteVisit.savedAt)) || '';
-          var remoteTs = ((remote.quoteData && remote.quoteData.savedAt) || (remote.siteVisit && remote.siteVisit.savedAt)) || '';
+          function vts(j){ return (j && (
+            (j.quoteData && j.quoteData.savedAt) ||
+            (j.renderVisit && j.renderVisit.savedAt) ||
+            (j.siteVisit && j.siteVisit.savedAt))) || ''; }
+          var localTs  = vts(_cachedJob);
+          var remoteTs = vts(remote);
           if (remoteTs > localTs) { _cachedJob = remote; lsSaveJob(remote); }
           else {
             // Even if local wins, always pull photos from Supabase (stripped from localStorage)
-            if (remote.siteVisit && remote.siteVisit.photos && remote.siteVisit.photos.length && _cachedJob) {
-              if (!_cachedJob.siteVisit) _cachedJob.siteVisit = {};
-              var hasPhotos = (_cachedJob.siteVisit.photos || []).some(function(p){ return p && p.dataUrl; });
-              if (!hasPhotos) _cachedJob.siteVisit.photos = remote.siteVisit.photos;
-            }
+            ['renderVisit','siteVisit'].forEach(function(k){
+              if (remote[k] && remote[k].photos && remote[k].photos.length && _cachedJob) {
+                if (!_cachedJob[k]) _cachedJob[k] = {};
+                var hasPhotos = (_cachedJob[k].photos || []).some(function(p){ return p && p.dataUrl; });
+                if (!hasPhotos) _cachedJob[k].photos = remote[k].photos;
+              }
+            });
             if (remote.renderPreviews && remote.renderPreviews.length && _cachedJob) {
               var hasRender = (_cachedJob.renderPreviews || []).some(function(r){ return r && r.imageDataUrl; });
               if (!hasRender) _cachedJob.renderPreviews = remote.renderPreviews;
