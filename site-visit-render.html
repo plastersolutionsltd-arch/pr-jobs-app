@@ -711,7 +711,7 @@
     <div class="sec">Elevations</div>
     <div style="font-size:8pt;color:#999;margin-bottom:10px;line-height:1.5">One card per elevation — enter width × height (minus openings) and pick the render system; materials work out automatically per elevation.</div>
     <div id="rooms-cards"></div>
-    <button type="button" class="btn-add-room" onclick="addRoom('')">+ ADD ELEVATION</button>
+    <button type="button" class="btn-add-room" onclick="addElevation()">+ ADD ELEVATION</button>
     <div class="area-summary">
       <span>TOTAL AREA</span>
       <span><b id="total-combined">—</b> &nbsp;·&nbsp; render area <span id="total-wall">—</span><span id="total-ceil" style="display:none"></span></span>
@@ -1563,6 +1563,19 @@ function parseFreetextMessage(raw) {
         const rateEl = card.querySelector('.elev-rate');
         const def = templateRate(e.target.value);
         if (def) rateEl.value = def;
+        // Pick once: copy this system (+ rate) onto any elevation that hasn't had one
+        // picked yet. Elevations you've already set are left alone, so you can still mix.
+        if (e.target.value) {
+          document.querySelectorAll('#rooms-cards .room-card').forEach(c => {
+            if (c === card) return;
+            const s = c.querySelector('.method-walls');
+            const r = c.querySelector('.elev-rate');
+            if (s && !s.value) {
+              s.value = e.target.value;
+              if (def && r && !r.value) r.value = def;
+            }
+          });
+        }
         calcMaterials();
       });
       card.querySelector('.elev-rate').addEventListener('input', calcMaterials);
@@ -1571,6 +1584,26 @@ function parseFreetextMessage(raw) {
       card.querySelector('.room-labour').addEventListener('input', calcMaterials);
       renderRoomPhotos(card);
       return rc;
+    }
+
+    // "+ ADD ELEVATION" — add a card and inherit the job's render system (the first
+    // elevation that has one set), so you only pick the system once. Still editable.
+    function addElevation() {
+      const rc = addRoom('');
+      let sys = '';
+      for (const c of document.querySelectorAll('#rooms-cards .room-card')) {
+        const v = c.querySelector('.method-walls')?.value;
+        if (v) { sys = v; break; }
+      }
+      if (sys) {
+        const card = document.getElementById('room-' + rc);
+        const sel = card.querySelector('.method-walls');
+        const rateEl = card.querySelector('.elev-rate');
+        if (sel) sel.value = sys;
+        const def = templateRate(sys);
+        if (def && rateEl && !rateEl.value) rateEl.value = def;
+        calcMaterials();
+      }
     }
 
     // ---- Extra-material picker: pulls the main app's price list (pr_materials), ex-VAT ----
