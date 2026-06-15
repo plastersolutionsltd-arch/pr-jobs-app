@@ -936,29 +936,6 @@
     </div>
 
 
-    <!-- Pricing Calculator -->
-    <div class="sec">Pricing Calculator</div>
-    <table class="price-table" id="price-table">
-      <thead>
-        <tr>
-          <th style="width:35%">Finish / Item</th>
-          <th style="width:15%" class="c">m²</th>
-          <th style="width:15%" class="c">£ / m²</th>
-          <th style="width:18%" class="r">Total £</th>
-          <th style="width:24px"></th>
-        </tr>
-      </thead>
-      <tbody id="price-tbody"></tbody>
-      <tfoot>
-        <tr>
-          <td colspan="3" class="grand-label">GRAND TOTAL</td>
-          <td class="grand-val" id="grand-total">£0.00</td>
-          <td></td>
-        </tr>
-      </tfoot>
-    </table>
-    <button class="btn-add-row" onclick="addPriceRow()">+ Add line</button>
-
     <!-- Pricing Notes -->
     <div class="sec" style="margin-top:6mm">Pricing Notes</div>
     <div class="f">
@@ -1333,21 +1310,7 @@ function parseFreetextMessage(raw) {
         }).catch(function(){});
       }
 
-      // Restore saved pricing rows, or add blank defaults
-      try {
-        if (isRestore && sv.priceRows && sv.priceRows.length) {
-          sv.priceRows.forEach(pr => {
-            addPriceRow('');
-            const pc = priceCount;
-            if (pr.desc)     document.getElementById('pdesc-'  + pc).value = pr.desc;
-            if (pr.m2   > 0) document.getElementById('pm2-'    + pc).value = pr.m2;
-            if (pr.rate > 0) document.getElementById('prate-'  + pc).value = pr.rate;
-            if (pr.total > 0) document.getElementById('ptotal-'+ pc).value = pr.total;
-            else if (pr.m2 > 0 && pr.rate > 0) calcPriceRow(pc);
-            calcGrandTotal();
-          });
-        } else { addPriceRow(''); }
-      } catch(e) { try { addPriceRow(''); } catch(e2) {} }
+      // (Pricing is now driven entirely by the elevation cards — no separate price table.)
 
       // Load saved photos into photoData (rendered into the room cards once rooms are built)
       try {
@@ -1453,11 +1416,6 @@ function parseFreetextMessage(raw) {
               }
             }
           }
-          // Pre-fill first pricing row description and rate
-          const descEl = document.getElementById('pdesc-1');
-          const rateEl = document.getElementById('prate-1');
-          if (descEl) descEl.value = preset.label;
-          if (rateEl) { rateEl.value = preset.price; calcPriceRow(1); }
         }
       }
 
@@ -1774,11 +1732,6 @@ function parseFreetextMessage(raw) {
       const tw = document.getElementById('total-wall');   if (tw) tw.textContent = total > 0 ? total.toFixed(1) + ' m²' : '—';
       const tc = document.getElementById('total-ceil');   if (tc) tc.textContent = '—';
       const tcomb = document.getElementById('total-combined'); if (tcomb) tcomb.textContent = total > 0 ? total.toFixed(1) + ' m² total' : '—';
-      // Auto-sync total m² into first pricing row
-      if (total > 0) {
-        const m2El = document.getElementById('pm2-1');
-        if (m2El) { m2El.value = total.toFixed(1); if (typeof calcPriceRow === 'function') calcPriceRow(1); }
-      }
       calcMaterials();
     }
 
@@ -2094,108 +2047,17 @@ function parseFreetextMessage(raw) {
       img.src = dataUrl;
     }
 
-    /* ===== PRICING TABLE ===== */
-    let priceCount = 0;
-
-    const PRICE_PRESETS = [
-      { group: '── Rendering ──', items: [
-        { label: 'Silicone Render — No Hack Off',     rate: 90  },
-        { label: 'Silicone Render — Hack Off Required', rate: 110 },
-        { label: 'Monocouche — No Hack Off',          rate: 80  },
-        { label: 'Monocouche — Hack Off Required',    rate: 95  },
-        { label: 'EWI System',                        rate: 120 },
-        { label: 'K-Rend',                            rate: 80  },
-        { label: 'Sand & Cement Render',              rate: 50  },
-        { label: 'Roughcast / Pebbledash',            rate: 55  },
-      ]},
-      { group: '── Plastering ──', items: [
-        { label: 'Skim Coat — Walls & Ceiling',       rate: 70  },
-        { label: 'Skim Coat — Walls Only',            rate: 70  },
-        { label: 'Skim Coat — Ceiling Only',          rate: 75  },
-        { label: 'Board & Skim',                      rate: 70  },
-        { label: 'Dot & Dab & Skim',                  rate: 70  },
-        { label: 'Bond & Skim',                       rate: 70  },
-        { label: 'Patching & Repair',                 rate: 70  },
-        { label: 'Dry Lining',                        rate: 70  },
-        { label: 'Artex Removal',                     rate: 70  },
-        { label: 'Coving — Supply & Fix',             rate: 25  },
-      ]},
-    ];
-
-    function buildPresetOpts() {
-      let html = '<option value="">— Select or type below —</option>';
-      PRICE_PRESETS.forEach(g => {
-        html += `<optgroup label="${g.group}">`;
-        g.items.forEach(item => {
-          html += `<option value="${item.rate}" data-label="${item.label}">${item.label}  £${item.rate}/m²</option>`;
-        });
-        html += '</optgroup>';
-      });
-      return html;
-    }
-
-    function applyPricePreset(pc, sel) {
-      const rate  = sel.value;
-      const label = sel.options[sel.selectedIndex]?.dataset?.label || '';
-      if (!rate) return;
-      const descEl  = document.getElementById('pdesc-'  + pc);
-      const rateEl  = document.getElementById('prate-'  + pc);
-      if (descEl) descEl.value = label;
-      if (rateEl) { rateEl.value = rate; calcPriceRow(pc); }
-      sel.value = ''; // reset dropdown so it can be re-used
-    }
-
-    function addPriceRow(defaultName) {
-      priceCount++;
-      const pc = priceCount;
-      const tbody = document.getElementById('price-tbody');
-      const tr = document.createElement('tr');
-      tr.id = 'price-row-' + pc;
-      tr.innerHTML = `
-        <td>
-          <select id="ppreset-${pc}" style="width:100%;padding:5px 6px;font-size:12px;border:1px solid #ddd;border-radius:2px;background:#f5f5f5;color:#555;margin-bottom:4px" onchange="applyPricePreset(${pc}, this)">
-            ${buildPresetOpts()}
-          </select>
-          <input type="text" id="pdesc-${pc}" placeholder="Description / room" value="${defaultName || ''}">
-        </td>
-        <td><input type="number" placeholder="0.0" step="0.1" min="0" id="pm2-${pc}"></td>
-        <td><input type="number" placeholder="0.00" step="0.01" min="0" id="prate-${pc}"></td>
-        <td><input type="number" placeholder="0.00" step="0.01" min="0" id="ptotal-${pc}" oninput="calcGrandTotal()" style="text-align:right;font-weight:700;font-size:13px;color:#111;background:#fafafa;border:1px solid #e0e0e0;border-radius:2px;padding:6px 7px;width:100%"></td>
-        <td><button class="btn-remove-row" type="button" title="Remove">×</button></td>
-      `;
-      tbody.appendChild(tr);
-      tr.querySelector('#pm2-'   + pc).addEventListener('input', () => calcPriceRow(pc));
-      tr.querySelector('#prate-' + pc).addEventListener('input', () => calcPriceRow(pc));
-      tr.querySelector('.btn-remove-row').addEventListener('click', () => { tr.remove(); calcGrandTotal(); });
-    }
-
-    function calcPriceRow(pc) {
-      const m2 = parseFloat(document.getElementById('pm2-' + pc).value) || 0;
-      const rate = parseFloat(document.getElementById('prate-' + pc).value) || 0;
-      // Only auto-fill total if both m² and rate are filled
-      if (m2 > 0 && rate > 0) {
-        const totalEl = document.getElementById('ptotal-' + pc);
-        if (totalEl) totalEl.value = (m2 * rate).toFixed(2);
-      }
-      calcGrandTotal();
-    }
-
-    function calcGrandTotal() {
-      let grand = 0;
-      document.querySelectorAll('[id^="ptotal-"]').forEach(el => {
-        // Inputs use .value; the skip row td uses textContent
-        const raw = el.tagName === 'INPUT' ? el.value : el.textContent.replace('£', '');
-        const v = parseFloat(raw);
-        if (!isNaN(v) && v > 0) grand += v;
-      });
-      document.getElementById('grand-total').textContent = '£' + grand.toFixed(2);
-    }
+    /* Pricing is driven entirely by the elevation cards now — the old manual price
+       table (addPriceRow / calcGrandTotal / PRICE_PRESETS) has been removed. The
+       customer quote is mirrored as a single summarised line built in saveToApp. */
 
     async function saveToApp() {
       const jobId = new URLSearchParams(location.search).get('jobId');
       if (!jobId) { alert('Open this form from the PR Jobs app to save back to a client.'); return; }
       const job = _svJob || await sbGetJob(jobId);
       if (!job) { alert('Client not found — make sure you opened this from the PR Jobs app.'); return; }
+      // Make sure the per-elevation customer total (_jobPrice) is current before we save.
+      try { calcMaterials(); } catch(e) {}
 
       const _renderType  = document.getElementById('wt-rendering')?.value  || '';
       const _plasterType = document.getElementById('wt-plastering')?.value || '';
@@ -2212,7 +2074,7 @@ function parseFreetextMessage(raw) {
         wallM2:        document.getElementById('total-wall').textContent.replace('—','').trim(),
         ceilM2:        document.getElementById('total-ceil').textContent.replace('—','').trim(),
         combinedM2:    document.getElementById('total-combined').textContent.replace('— combined','').replace('combined','').trim(),
-        estTotal:      document.getElementById('grand-total').textContent,
+        estTotal:      '£' + (_jobPrice || 0).toFixed(2),
         workTypes:     workTypes,
         scopeOfWorks:  document.getElementById('scope-of-works')?.value.trim() || '',
         finishType:    document.getElementById('finish-type-sel')?.value || '',
@@ -2267,17 +2129,17 @@ function parseFreetextMessage(raw) {
           }
         },
         priceRows:     (function() {
-          const rows = [];
-          for (let i = 1; i <= priceCount; i++) {
-            const row = document.getElementById('price-row-' + i);
-            if (!row) continue;
-            const desc  = document.getElementById('pdesc-'  + i)?.value?.trim() || '';
-            const m2    = parseFloat(document.getElementById('pm2-'   + i)?.value) || 0;
-            const rate  = parseFloat(document.getElementById('prate-' + i)?.value) || 0;
-            const total = parseFloat(document.getElementById('ptotal-'+ i)?.value) || 0;
-            if (desc || total) rows.push({ desc, m2, rate, total });
-          }
-          return rows;
+          // Customer-facing quote mirror: ONE summarised line — the customer never
+          // sees per-elevation m² or £/m². Just "Render to N elevations" + a total
+          // (sum of each elevation's £/m² × area, computed on the cards above).
+          const n = document.querySelectorAll('#rooms-cards .room-card').length;
+          if (!n || !(_jobPrice > 0)) return [];
+          return [{
+            desc:  'Render to ' + n + ' elevation' + (n === 1 ? '' : 's'),
+            m2:    0,
+            rate:  0,
+            total: _jobPrice
+          }];
         })()
       };
 
@@ -2356,25 +2218,9 @@ function parseFreetextMessage(raw) {
     }
 
     function updateSkipCost() {
-      // Remove existing skip row
-      const existing = document.getElementById('price-row-skip');
-      if (existing) existing.remove();
-
-      const val = document.getElementById('skip-size')?.value;
-      if (!val) { calcGrandTotal(); return; }
-
-      const [tons, cost] = val.split('|');
-      const tbody = document.getElementById('price-tbody');
-      const tr = document.createElement('tr');
-      tr.id = 'price-row-skip';
-      tr.style.background = '#f5f5f5';
-      tr.innerHTML = `
-        <td colspan="3" style="padding:6px 8px;font-size:8pt;color:#888;font-style:italic">Skip Hire — ${tons} ton (internal)</td>
-        <td class="price-total-cell" id="ptotal-skip">£${parseFloat(cost).toFixed(2)}</td>
-        <td></td>
-      `;
-      tbody.appendChild(tr);
-      calcGrandTotal();
+      // Skip cost is saved with the visit (skipTons/skipCost from the skip-size select)
+      // and added to the customer quote as its own "Skip hire" fee line. There's no
+      // on-form price table any more, so there's nothing to render here.
     }
 
     // ── Smart finish filter: show render or plaster options based on work type selected ──
