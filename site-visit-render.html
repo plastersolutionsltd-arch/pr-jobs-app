@@ -754,7 +754,8 @@
           <tr><td class="total-label" style="font-weight:400;color:#aaa">Inc VAT (20%)</td><td class="total-val" id="mat-cost-inc" style="font-weight:400">£0.00</td></tr>
           <tr id="mat-labour-row" style="display:none"><td class="total-label" style="font-weight:400;color:#aaa">Labour</td><td class="total-val" id="mat-labour-val" style="font-weight:400">£0.00</td></tr>
           <tr id="mat-grand-row" style="display:none"><td class="total-label">MY COST (materials inc VAT + labour)</td><td class="total-val" id="mat-grand-val">£0.00</td></tr>
-          <tr id="mat-quote-row" style="display:none"><td class="total-label" style="color:#0a7a0a">CUSTOMER QUOTE (£/m² × area)</td><td class="total-val" id="mat-quote-val" style="color:#0a7a0a">£0.00</td></tr>
+          <tr id="mat-quote-breakdown" style="display:none"><td class="total-label" style="font-weight:400;color:#999;font-size:8pt" id="mat-quote-breakdown-txt"></td><td></td></tr>
+          <tr id="mat-quote-row" style="display:none"><td class="total-label" style="color:#0a7a0a;font-size:11pt;font-weight:800">CUSTOMER QUOTE TOTAL</td><td class="total-val" id="mat-quote-val" style="color:#0a7a0a;font-size:13pt;font-weight:800">£0.00</td></tr>
         </tfoot>
       </table>
       <label style="display:flex;align-items:center;gap:8px;margin:8px 0;font-size:13px;color:#000;cursor:pointer">
@@ -928,7 +929,7 @@
     <div style="font-size:8pt;color:#999;margin-bottom:8px">A one-off charge not tied to an elevation (e.g. extra prep, disposal). Shows as its own line on the customer quote.</div>
     <div class="grid-2">
       <div class="f"><label>Description</label><input type="text" id="extra-charge-desc" placeholder="e.g. Remove &amp; dispose old render"></div>
-      <div class="f"><label>Amount £</label><input type="number" step="1" min="0" id="extra-charge-amt" placeholder="0"></div>
+      <div class="f"><label>Amount £</label><input type="number" step="1" min="0" id="extra-charge-amt" placeholder="0" oninput="calcMaterials()"></div>
     </div>
 
     <!-- Pricing Notes -->
@@ -1957,12 +1958,25 @@ function parseFreetextMessage(raw) {
       } else {
         labourRow.style.display = 'none'; grandRow.style.display = 'none';
       }
-      // Customer quote row (\u03a3 \u00a3/m\u00b2 \u00d7 area)
+      // Customer quote TOTAL = render price (\u03a3 \u00a3/m\u00b2 \u00d7 area) + one-off extra charge + skip hire
+      const extraAmt = parseFloat(document.getElementById('extra-charge-amt')?.value) || 0;
+      const skipVal  = document.getElementById('skip-size')?.value || '';
+      const skipCost = skipVal ? (parseFloat(skipVal.split('|')[1]) || 0) : 0;
+      const quoteTotal = grandPrice + extraAmt + skipCost;
       const quoteRow = document.getElementById('mat-quote-row');
-      if (grandPrice > 0) {
-        document.getElementById('mat-quote-val').textContent = '\u00a3' + grandPrice.toFixed(2);
+      const quoteBd  = document.getElementById('mat-quote-breakdown');
+      if (quoteTotal > 0) {
+        document.getElementById('mat-quote-val').textContent = '\u00a3' + quoteTotal.toFixed(2);
         quoteRow.style.display = '';
-      } else { quoteRow.style.display = 'none'; }
+        // Show a small breakdown only when there's more than just the render price
+        if (grandPrice > 0 && (extraAmt > 0 || skipCost > 0)) {
+          const parts = ['Render \u00a3' + grandPrice.toFixed(2)];
+          if (extraAmt > 0) parts.push('Extra \u00a3' + extraAmt.toFixed(2));
+          if (skipCost > 0) parts.push('Skip \u00a3' + skipCost.toFixed(2));
+          document.getElementById('mat-quote-breakdown-txt').textContent = parts.join('  +  ');
+          quoteBd.style.display = '';
+        } else { quoteBd.style.display = 'none'; }
+      } else { quoteRow.style.display = 'none'; quoteBd.style.display = 'none'; }
       out.style.display = 'block';
 
       const orderLines = order.map(k => plural(grand[k].qty, grand[k].unit) + ' \u2014 ' + grand[k].label)
@@ -1971,7 +1985,7 @@ function parseFreetextMessage(raw) {
         + '\n\nTOTAL TO ORDER\n  ' + orderLines.join('\n  ')
         + '\n\nMaterials cost: \u00a3' + _matCost.subtotal.toFixed(2) + ' ex VAT  (\u00a3' + _matCost.total.toFixed(2) + ' inc VAT)'
         + (grandLabour > 0 ? '\nLabour: \u00a3' + grandLabour.toFixed(2) : '')
-        + (grandPrice > 0 ? '\n\nCUSTOMER QUOTE: \u00a3' + grandPrice.toFixed(2) : '');
+        + (quoteTotal > 0 ? '\n\nCUSTOMER QUOTE TOTAL: \u00a3' + quoteTotal.toFixed(2) : '');
     }
 
     function copyMaterials() {
@@ -2246,8 +2260,9 @@ function parseFreetextMessage(raw) {
 
     function updateSkipCost() {
       // Skip cost is saved with the visit (skipTons/skipCost from the skip-size select)
-      // and added to the customer quote as its own "Skip hire" fee line. There's no
-      // on-form price table any more, so there's nothing to render here.
+      // and added to the customer quote as its own "Skip hire" fee line. No on-form
+      // price table any more — just refresh the totals so the quote total includes it.
+      if (typeof calcMaterials === 'function') calcMaterials();
     }
 
     // ── Smart finish filter: show render or plaster options based on work type selected ──
