@@ -804,20 +804,27 @@
     <div class="sec">Finish &amp; Colour</div>
     <div class="grid-3">
       <div class="f">
-        <label>Colour</label>
+        <label>Colour (EcoRend)</label>
         <select id="colour-render">
           <option value="">— select —</option>
-          <option>Pure White</option>
-          <option>Off White</option>
-          <option>Cream</option>
+          <option>White</option>
           <option>Ivory</option>
-          <option>Stone</option>
+          <option>Magnolia</option>
+          <option>Cream</option>
+          <option>Oatmeal</option>
+          <option>Sandstone</option>
+          <option>Cotswold</option>
           <option>Buff</option>
+          <option>Pebble</option>
+          <option>Putty</option>
+          <option>Stone</option>
           <option>Light Grey</option>
           <option>Mid Grey</option>
           <option>Dark Grey</option>
+          <option>Slate Grey</option>
           <option>Anthracite</option>
-          <option>Mocha / Brown</option>
+          <option>Graphite</option>
+          <option>Black</option>
           <option>Custom (see notes)</option>
         </select>
       </div>
@@ -1763,8 +1770,10 @@ function parseFreetextMessage(raw) {
     function plural(n, u) { if (n === 1) return n + ' ' + u; const irr = { each:'each', box:'boxes' }; return n + ' ' + (irr[u] || (u + 's')); }
 
     function methodOptions(sel) {
-      const opts = [['','— pick system —']].concat(RENDER_TEMPLATES.map(t => [t.key, t.label]));
-      return opts.map(o => '<option value="'+o[0]+'"'+(o[0] === (sel || '') ? ' selected' : '')+'>'+o[1]+'</option>').join('');
+      // Show the template's £/m² rate in the option so it's clear the SYSTEM sets the
+      // price (auto-fills the Price £/m² field below, still editable per job).
+      const opts = [['','— pick system —', 0]].concat(RENDER_TEMPLATES.map(t => [t.key, t.label, t.rate]));
+      return opts.map(o => '<option value="'+o[0]+'"'+(o[0] === (sel || '') ? ' selected' : '')+'>'+o[1]+(o[2] ? ' · £'+o[2]+'/m²' : '')+'</option>').join('');
     }
 
     function ratesObj() {
