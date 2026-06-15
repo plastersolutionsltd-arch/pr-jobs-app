@@ -855,9 +855,40 @@ function lsLoad() {
   try { return JSON.parse(localStorage.getItem('pr_jobs') || '[]'); } catch(e) { return []; }
 }
 
+function tsMs(v) {
+  // Normalise a savedAt value to epoch-ms. Visit/quote pages save ISO strings;
+  // the materials calc saves Date.now() numbers — so handle both.
+  if (!v) return 0;
+  if (typeof v === 'number') return v;
+  var n = Date.parse(v);
+  return isNaN(n) ? 0 : n;
+}
+
 function jobTs(j) {
-  // Most recent timestamp on a job — used to decide which version wins in a merge
-  return (j && j.siteVisit && j.siteVisit.savedAt) || (j && j.quoteData && j.quoteData.savedAt) || 0;
+  // Most recent save across EVERY part of a job, normalised to epoch-ms, so the
+  // merge in loadJobs() never treats a render-visit or materials-calc edit as
+  // older than it is (which would silently drop offline edits on the next sync).
+  if (!j) return 0;
+  return Math.max(
+    tsMs(j.siteVisit     && j.siteVisit.savedAt),
+    tsMs(j.renderVisit   && j.renderVisit.savedAt),
+    tsMs(j.quoteData     && j.quoteData.savedAt),
+    tsMs(j.materialsCalc && j.materialsCalc.savedAt)
+  );
+}
+
+function jobVisits(j) {
+  // Saved visits on a job — plaster and/or render. A job can have BOTH.
+  var out = [];
+  if (j && j.siteVisit   && j.siteVisit.savedAt)   out.push({ type: 'Plaster', file: 'site-visit.html',        savedAt: j.siteVisit.savedAt });
+  if (j && j.renderVisit && j.renderVisit.savedAt) out.push({ type: 'Render',  file: 'site-visit-render.html', savedAt: j.renderVisit.savedAt });
+  return out;
+}
+
+function fmtVisitDate(savedAt) {
+  // savedAt may be an ISO string (visits) — normalise then format day+month.
+  var ms = tsMs(savedAt);
+  return ms ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '';
 }
 
 async function loadJobs() {
@@ -1022,6 +1053,10 @@ function showTool(name) {
 // JOBS LIST
 // ══════════════════════════════════════════════════════════
 function jobCard(j) {
+  var vs = jobVisits(j);
+  var visitChip = vs.length
+    ? '<div style="font-size:12px;color:#888;margin-bottom:6px">' + vs.map(function(v){ return '📋 '+v.type+' visit'; }).join(' · ') + '</div>'
+    : '';
   return '<div class="card job-card" onclick="openJob(\''+j.id+'\')">'
     + '<div class="card-row">'
     + '<div class="job-name">' + esc(j.name || 'Unknown') + '</div>'
@@ -1029,6 +1064,7 @@ function jobCard(j) {
     + '</div>'
     + (j.address ? '<div class="job-addr">📍 '+esc(j.address)+'</div>' : '')
     + (j.scheduledDate ? '<div style="font-size:12px;color:var(--green);margin-bottom:6px">📅 ' + new Date(j.scheduledDate+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}) + (j.scheduledEndDate ? ' – '+new Date(j.scheduledEndDate+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '') + '</div>' : '')
+    + visitChip
     + '<div class="job-meta">'
     + '<span style="font-size:13px;color:#888">'+(j.phone?'📞 '+esc(j.phone):'No phone')+'</span>'
     + '<span class="job-date">'+formatDate(j.created)+'</span>'
@@ -1294,10 +1330,12 @@ function openJob(id) {
   html += '</div>';
 
   // Workflow templates
+  var hasPlaster = !!(j.siteVisit && j.siteVisit.savedAt);
+  var hasRender  = !!(j.renderVisit && j.renderVisit.savedAt);
   html += '<div class="section-hdr">Workflow</div>';
   html += '<div class="tools-grid">';
-  html += toolBtn(noteSVG(),    'Plaster Visit', "openTemplate('site-visit.html')");
-  html += toolBtn(noteSVG(),    'Render Visit',  "openTemplate('site-visit-render.html')");
+  html += toolBtn(noteSVG(),    'Plaster Visit' + (hasPlaster ? ' ✓' : ''), "openTemplate('site-visit.html')");
+  html += toolBtn(noteSVG(),    'Render Visit'  + (hasRender  ? ' ✓' : ''), "openTemplate('site-visit-render.html')");
   html += toolBtn(quoteSVG(),   'Quote Plaster', "openTemplate('quote-plastering.html')");
   html += toolBtn(quoteSVG(),   'Quote Render',  "openTemplate('quote-rendering.html')");
   html += toolBtn(calSVG(),     'Book Date',     'scheduleJob()');
@@ -1306,6 +1344,14 @@ function openJob(id) {
     html += toolBtn(paidSVG(), 'Mark Paid', 'setStatus(\'paid\')');
   }
   html += '</div>';
+
+  // Saved-visit summary — confirms a visit exists (incl. render-only jobs) and when
+  var visits = jobVisits(j);
+  if (visits.length) {
+    html += '<div style="font-size:12px;color:#888;margin:2px 2px 4px">'
+      + visits.map(function(v){ return '✓ ' + v.type + ' visit saved ' + fmtVisitDate(v.savedAt); }).join(' &nbsp;·&nbsp; ')
+      + '</div>';
+  }
 
   // Tools shortcut
   html += '<div class="section-hdr">Tools</div>';
