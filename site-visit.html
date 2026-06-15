@@ -1092,6 +1092,16 @@
             }
           }
         }
+        // Pull in any slice that's newer on the server so saving this page (which
+        // upserts the WHOLE job) can't clobber work done on another page/device.
+        // This page's own slice is rebuilt from the form at save time, so it's safe
+        // to refresh every slice here.
+        if (_svJob) {
+          var _ts = function(v){ return !v ? 0 : (typeof v === 'number' ? v : (Date.parse(v) || 0)); };
+          ['siteVisit','renderVisit','quoteData','materialsCalc'].forEach(function(k){
+            if (remote[k] && _ts(remote[k].savedAt) > _ts(_svJob[k] && _svJob[k].savedAt)) _svJob[k] = remote[k];
+          });
+        }
       }).catch(function(){});
     }
 
