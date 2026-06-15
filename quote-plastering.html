@@ -1071,6 +1071,14 @@
               if (!hasPhotos) _cachedJob.siteVisit.photos = remote.siteVisit.photos;
             }
           }
+          // Pull in any slice that's newer on the server so saving this quote (which
+          // upserts the WHOLE job) can't clobber work done on another page/device.
+          if (_cachedJob) {
+            var _ts = function(v){ return !v ? 0 : (typeof v === 'number' ? v : (Date.parse(v) || 0)); };
+            ['siteVisit','renderVisit','quoteData','materialsCalc'].forEach(function(k){
+              if (remote[k] && _ts(remote[k].savedAt) > _ts(_cachedJob[k] && _cachedJob[k].savedAt)) _cachedJob[k] = remote[k];
+            });
+          }
         }).catch(function(){});
       } else {
         addRow('labour');
