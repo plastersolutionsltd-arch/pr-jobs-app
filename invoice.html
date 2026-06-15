@@ -631,8 +631,9 @@
     // Scope of works description from quote
     if (qd.notes) document.getElementById('works-desc').value = qd.notes;
 
-    // Works items from quote labour rows
+    // Works items from quote labour rows (scaffolding stays on the quote only)
     (qd.labourRows || []).forEach(function(r) {
+      if (isScaffoldRow(r)) return;
       addRow('works');
       var id2 = rows.works[rows.works.length - 1];
       setRowVal(id2, 'works', r.desc || '', r.qty || '', r.unit || '', r.total || '');
@@ -651,6 +652,12 @@
     if (!rows.works.length) addRow('works');
     if (!rows.items.length) addRow('items');
     update();
+  }
+
+  // Scaffolding is shown on the QUOTE (customer pays it separately) but must never
+  // appear on the invoice — skip it whenever we import quote line items.
+  function isScaffoldRow(r) {
+    return /^\s*scaffold/i.test((r && r.desc) || '');
   }
 
   function setRowVal(id, type, desc, qty, unit, total) {
@@ -708,6 +715,7 @@
               rows.works.forEach(function(id) { document.getElementById('row-'+id)?.remove(); });
               rows.works = [];
               qd.labourRows.forEach(function(r) {
+                if (isScaffoldRow(r)) return;
                 addRow('works');
                 var id2 = rows.works[rows.works.length - 1];
                 setRowVal(id2, 'works', r.desc || '', r.qty || '', r.unit || '', r.total || '');
