@@ -1445,8 +1445,7 @@
       const declineUrl = base + '?action=decline&jobId=' + encodeURIComponent(result.jobId) + '&ref=' + encodeURIComponent(qNum) + '&name=' + encodeURIComponent(job.name || '');
       const subject = encodeURIComponent('Your Plastering Quotation from P&R Solutions — ' + qNum);
       const body = encodeURIComponent(
-        'Hi ' + firstName + ',\n\n' +
-        '⬇️ Tap here and attach your PDF — then delete this line ⬇️\n\n\n' +
+        'Hi ' + firstName + ',\n\n\n\n' +
         'Please find your plastering quotation attached — ' + qNum + '.\n\n' +
         '━━━━━━━━━━━━━━━━━━━━━━\n' +
         'QUOTE TOTAL: ' + total + '\n' +
