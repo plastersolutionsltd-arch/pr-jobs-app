@@ -529,6 +529,24 @@
   var sb = supabase.createClient(SB_URL, SB_KEY);
   var _cachedJob = null;
 
+  // Highest number already used for prefix-YEAR-NNN across all saved jobs (e.g. INV-2026-007).
+  // Lets the counter self-heal if the Supabase counter ever gets reset/behind.
+  function localMaxNum(prefix, year, fields) {
+    var max = 0;
+    try {
+      var all = JSON.parse(localStorage.getItem('pr_jobs') || '[]');
+      var re = new RegExp('^' + prefix + '-' + year + '-(\\d+)$', 'i');
+      all.forEach(function(j) {
+        fields.forEach(function(f) {
+          var v = f.split('.').reduce(function(o,k){ return o && o[k]; }, j);
+          var m = v && String(v).match(re);
+          if (m) { var n = parseInt(m[1], 10); if (n > max) max = n; }
+        });
+      });
+    } catch(e) {}
+    return max;
+  }
+
   async function sbGetJob(jobId) {
     var r = await sb.from('jobs').select('*').eq('id', jobId).single();
     if (r.error || !r.data) return null;
@@ -747,19 +765,23 @@
       mb.style.display = '';
     }
 
-    // Get invoice number (async)
+    // Get invoice number (async) — seed from the higher of the Supabase counter and the
+    // highest INV number already used locally, so a reset/behind counter never repeats one.
     try {
       var cr = await sb.from('counters').select('value').eq('id', 'inv_last').single();
-      var next = 1;
-      if (!cr.error && cr.data) next = (cr.data.value || 0) + 1;
+      var sbVal = (!cr.error && cr.data) ? (cr.data.value || 0) : 0;
       if (!window._invRestored) {
         var year = new Date().getFullYear();
+        var next = Math.max(sbVal, localMaxNum('INV', year, ['invoiceData.invNumber', 'invoice.number'])) + 1;
         document.getElementById('inv-number').value = 'INV-' + year + '-' + String(next).padStart(3, '0');
         update();
+        sb.from('counters').upsert({ id: 'inv_last', value: next }).catch(function(){});
       }
     } catch(e) {
       if (!window._invRestored) {
-        document.getElementById('inv-number').value = 'INV-' + new Date().getFullYear() + '-001';
+        var yr = new Date().getFullYear();
+        var nx = localMaxNum('INV', yr, ['invoiceData.invNumber', 'invoice.number']) + 1;
+        document.getElementById('inv-number').value = 'INV-' + yr + '-' + String(nx).padStart(3, '0');
         update();
       }
     }
@@ -777,7 +799,14 @@
     var val   = v('inv-number');
     var match = val.match(/(\d+)$/);
     if (match) {
-      try { await sb.from('counters').upsert({ id: 'inv_last', value: parseInt(match[1], 10) }); } catch(e) {}
+      // Advance the counter on print, but NEVER move it backwards (re-printing an older
+      // invoice must not reset the counter to that older number).
+      var n = parseInt(match[1], 10);
+      try {
+        var curN = await sb.from('counters').select('value').eq('id', 'inv_last').single();
+        var stored = (!curN.error && curN.data) ? (curN.data.value || 0) : 0;
+        if (n > stored) await sb.from('counters').upsert({ id: 'inv_last', value: n });
+      } catch(e) {}
     }
   }
 
