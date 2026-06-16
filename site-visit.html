@@ -246,6 +246,19 @@
     .area-summary { background: #111; color: #fff; border-radius: 4px; padding: 9px 12px; font-size: 13px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
     .area-summary b { color: var(--green); font-family: 'Fjalla One', sans-serif; letter-spacing: 1px; }
     .room-surface { margin-bottom: 8px; }
+    .walls-hdr { font-size: 11px; letter-spacing: .5px; color: #333; text-transform: uppercase; font-weight: 700; margin: 4px 0 4px; }
+    .wall-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 13px; }
+    .wall-on-lbl { display: flex; align-items: center; gap: 6px; cursor: pointer; min-width: 92px; color: #333; }
+    .wall-on-lbl input { width: 16px; height: 16px; accent-color: var(--green); }
+    .wall-dim { color: #999; font-size: 11px; }
+    .wall-area-lbl { flex: 1; color: #5a8a4a; font-weight: 700; font-size: 12px; }
+    .wall-open-wrap { display: flex; align-items: center; gap: 4px; color: #888; font-size: 12px; white-space: nowrap; }
+    .wall-open { width: 56px; padding: 5px 6px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Lato', sans-serif; font-size: 13px; text-align: right; }
+    .wall-open-unit { color: #999; }
+    .room-include-lbl { display: flex; align-items: center; gap: 5px; font-size: 11px; letter-spacing: .5px; text-transform: uppercase; font-weight: 700; color: #5a8a4a; cursor: pointer; white-space: nowrap; }
+    .room-include-lbl input { width: 16px; height: 16px; accent-color: var(--green); }
+    .room-card.room-excluded { opacity: .55; }
+    .room-card.room-excluded .room-name { text-decoration: line-through; }
     .surf-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 0; }
     .surf-lbl { font-size: 13px; color: #333; }
     .surf-lbl b { color: #5a8a4a; font-weight: 700; }
@@ -1367,7 +1380,23 @@ function parseFreetextMessage(raw) {
             if (card) {
               card.querySelector('.method-walls').value = wM || '';
               card.querySelector('.method-ceil').value  = cM || '';
+              // Setting .value above doesn't fire 'change', so the £/m² auto-fill never
+              // runs. Use the saved rate if present, else default from the method (so a
+              // visit saved by the old form — or any room with a method — isn't £0).
               if (r.rate) card.querySelector('.room-rate').value = r.rate;
+              else if (wM || cM) card.querySelector('.room-rate').value = methodRate(wM || cM);
+              // Include-in-quote (default true for older saves)
+              const incEl = card.querySelector('.room-include');
+              if (incEl) incEl.checked = (r.include !== false);
+              // Per-wall ticks + openings (default all-on, no openings for older saves)
+              if (Array.isArray(r.wallSel)) {
+                r.wallSel.forEach((ws, i) => {
+                  const onEl   = card.querySelector('.wall-on[data-wall="' + (i + 1) + '"]');
+                  const openEl = card.querySelector('.wall-open[data-wall="' + (i + 1) + '"]');
+                  if (onEl)   onEl.checked = (ws.on !== false);
+                  if (openEl && ws.open) openEl.value = ws.open;
+                });
+              }
               if (r.note) card.querySelector('.room-note').value = r.note;
               if (Array.isArray(r.extras)) r.extras.forEach(x => addExtraLine(card, x));
               if (r.labour) card.querySelector('.room-labour').value = r.labour;
@@ -1556,6 +1585,16 @@ function parseFreetextMessage(raw) {
       document.getElementById('area-import-banner').style.display = 'none';
     }
 
+    // One wall row: tick (do this wall) + its derived area + an openings (−m²) box.
+    // Walls 1 & 3 are length walls (L×H); 2 & 4 are width walls (W×H).
+    function wallRowHtml(rc, n, dim) {
+      return '<div class="wall-row">' +
+        '<label class="wall-on-lbl"><input type="checkbox" class="wall-on" data-wall="' + n + '" checked> Wall ' + n + ' <span class="wall-dim">(' + dim + ')</span></label>' +
+        '<span class="wall-area-lbl" data-wall="' + n + '">—</span>' +
+        '<span class="wall-open-wrap">− <input type="number" class="wall-open" data-wall="' + n + '" step="0.1" min="0" placeholder="0"><span class="wall-open-unit">m²</span></span>' +
+        '</div>';
+    }
+
     function addRoom(defaultName, rid) {
       roomCount++;
       const rc = roomCount;
@@ -1568,6 +1607,7 @@ function parseFreetextMessage(raw) {
       const safeName = (defaultName || '').replace(/"/g, '&quot;');
       card.innerHTML =
         '<div class="room-card-head">' +
+          '<label class="room-include-lbl" title="Include this room in the customer quote"><input type="checkbox" class="room-include" checked> Quote</label>' +
           '<input type="text" class="room-name" placeholder="Room (e.g. Living Room)" value="' + safeName + '">' +
           '<button type="button" class="room-del" title="Remove room">&times;</button>' +
         '</div>' +
@@ -1577,7 +1617,9 @@ function parseFreetextMessage(raw) {
           '<div class="f"><label>H (m)</label><input type="number" step="0.1" min="0" id="h-' + rc + '" placeholder="0.0"></div>' +
         '</div>' +
         '<div class="room-surface">' +
-          '<div class="surf-row"><span class="surf-lbl">Walls <b id="wall-' + rc + '">\u2014</b></span><select class="method-walls">' + methodOptions('') + '</select></div>' +
+          '<div class="walls-hdr">Walls to plaster <span style="color:#888;font-weight:400">\u2014 tick the walls, deduct doors/windows</span></div>' +
+          wallRowHtml(rc, 1, 'L') + wallRowHtml(rc, 2, 'W') + wallRowHtml(rc, 3, 'L') + wallRowHtml(rc, 4, 'W') +
+          '<div class="surf-row"><span class="surf-lbl">Walls method <b id="wall-' + rc + '">\u2014</b></span><select class="method-walls">' + methodOptions('') + '</select></div>' +
           '<div class="surf-row"><span class="surf-lbl">Ceiling <b id="ceil-' + rc + '">\u2014</b></span><select class="method-ceil">' + methodOptions('') + '</select></div>' +
         '</div>' +
         '<div class="f" style="margin-bottom:8px"><label>Price \u00a3/m\u00b2 (customer)</label><input type="number" step="1" min="0" class="room-rate" placeholder="0"></div>' +
@@ -1594,6 +1636,9 @@ function parseFreetextMessage(raw) {
       card.querySelector('#l-' + rc).addEventListener('input', () => calcRoom(rc));
       card.querySelector('#w-' + rc).addEventListener('input', () => calcRoom(rc));
       card.querySelector('#h-' + rc).addEventListener('input', () => calcRoom(rc));
+      card.querySelectorAll('.wall-on').forEach(el => el.addEventListener('change', () => calcRoom(rc)));
+      card.querySelectorAll('.wall-open').forEach(el => el.addEventListener('input', () => calcRoom(rc)));
+      card.querySelector('.room-include').addEventListener('change', calcMaterials);
       // Method change: auto-fill the customer £/m² (if blank) + "pick once" — copy this
       // method onto any room whose matching surface is still blank, so you set it once.
       function onMethodChange(surfaceClass) {
@@ -1767,23 +1812,29 @@ function parseFreetextMessage(raw) {
     }
 
     function calcRoom(rc) {
+      const card = document.getElementById('room-' + rc);
+      if (!card) return;
       const l = parseFloat(document.getElementById('l-' + rc).value) || 0;
       const w = parseFloat(document.getElementById('w-' + rc).value) || 0;
       const h = parseFloat(document.getElementById('h-' + rc).value) || 0;
-      const wallEl = document.getElementById('wall-' + rc);
-      const ceilEl = document.getElementById('ceil-' + rc);
-      if (l > 0 && w > 0 && h > 0) {
-        // Full room: all 4 walls + ceiling
-        wallEl.textContent = (2 * (l + w) * h).toFixed(1) + ' m²';
-        ceilEl.textContent = (l * w).toFixed(1) + ' m²';
-      } else if (l > 0 && h > 0 && w === 0) {
-        // Single surface (render): L × H, no ceiling
-        wallEl.textContent = (l * h).toFixed(1) + ' m²';
-        ceilEl.textContent = '—';
-      } else {
-        wallEl.textContent = '—';
-        ceilEl.textContent = '—';
+      // Wall base areas: 1 & 3 = length walls (L×H), 2 & 4 = width walls (W×H).
+      const base = { 1: l * h, 2: w * h, 3: l * h, 4: w * h };
+      let wallTotal = 0;
+      for (let n = 1; n <= 4; n++) {
+        const b = base[n];
+        const onEl   = card.querySelector('.wall-on[data-wall="' + n + '"]');
+        const openEl = card.querySelector('.wall-open[data-wall="' + n + '"]');
+        const lblEl  = card.querySelector('.wall-area-lbl[data-wall="' + n + '"]');
+        const open = parseFloat(openEl && openEl.value) || 0;
+        const net  = Math.max(0, b - open);
+        if (lblEl) lblEl.textContent = b > 0
+          ? (open > 0 ? b.toFixed(1) + ' − ' + open.toFixed(1) + ' = ' + net.toFixed(1) + ' m²' : b.toFixed(1) + ' m²')
+          : '—';
+        if (onEl && onEl.checked && b > 0) wallTotal += net;
       }
+      const ceilV = (l > 0 && w > 0) ? l * w : 0;
+      document.getElementById('wall-' + rc).textContent = wallTotal > 0 ? wallTotal.toFixed(1) + ' m²' : '—';
+      document.getElementById('ceil-' + rc).textContent = ceilV > 0 ? ceilV.toFixed(1) + ' m²' : '—';
       calcTotals();
     }
 
@@ -1895,6 +1946,15 @@ function parseFreetextMessage(raw) {
 
       cards.forEach(card => {
         const rc = card.id.replace('room-', '');
+        // Rooms unticked for "Quote" are kept (measurements saved) but excluded from the
+        // customer quote, materials order and labour — e.g. doing the living room first.
+        const included = card.querySelector('.room-include')?.checked !== false;
+        card.classList.toggle('room-excluded', !included);
+        if (!included) {
+          const mdx = document.getElementById('mat-' + rc);
+          if (mdx) { mdx.style.display = 'none'; mdx.innerHTML = ''; }
+          return;
+        }
         const wallV = parseFloat((document.getElementById('wall-' + rc) || {}).textContent) || 0;
         const ceilV = parseFloat((document.getElementById('ceil-' + rc) || {}).textContent) || 0;
         const wM = (card.querySelector('.method-walls') || {}).value || '';
@@ -2195,6 +2255,11 @@ function parseFreetextMessage(raw) {
               wallsMethod: wM,
               ceilMethod:  cM,
               rate:  parseFloat(card.querySelector('.room-rate')?.value) || 0,
+              include: card.querySelector('.room-include')?.checked !== false,
+              wallSel: [1,2,3,4].map(n => ({
+                on:   card.querySelector('.wall-on[data-wall="' + n + '"]')?.checked !== false,
+                open: parseFloat(card.querySelector('.wall-open[data-wall="' + n + '"]')?.value) || 0
+              })),
               note:  card.querySelector('.room-note')?.value || '',
               extras: cardExtras(card),
               labour: parseFloat(card.querySelector('.room-labour')?.value) || 0,
@@ -2220,7 +2285,8 @@ function parseFreetextMessage(raw) {
           // total-only line (m²/rate left 0 so the quote shows the total only). Skip hire
           // is added separately by the quote page from skipTons/skipCost.
           const rows = [];
-          const n = document.querySelectorAll('#rooms-cards .room-card').length;
+          const n = [].slice.call(document.querySelectorAll('#rooms-cards .room-card'))
+            .filter(c => c.querySelector('.room-include')?.checked !== false).length;
           if (n && _jobPrice > 0) {
             rows.push({ desc: 'Plastering to ' + n + ' room' + (n === 1 ? '' : 's'), m2: 0, rate: 0, total: _jobPrice });
           }
