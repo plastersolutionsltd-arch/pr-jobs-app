@@ -1012,6 +1012,18 @@
           // Always show reimport banner when a saved quote + site visit both exist
           if (_job.siteVisit) {
             document.getElementById('sv-update-banner').style.display = 'flex';
+            // If this saved quote has no priced lines yet but the visit now has a price
+            // (e.g. quote was created before the visit pricing was finished), pull it in
+            // automatically so the total isn't stuck at £0. Won't touch a quote that
+            // already has money in it.
+            const qd = _job.quoteData;
+            const num = s => parseFloat(s) || 0;
+            const quoteHasMoney =
+              (qd.labourRows || []).some(r => num(r.total) > 0 || num(r.qty) * num(r.unit) > 0) ||
+              (qd.materialsRows || []).some(r => num(r.cost) > 0) ||
+              (qd.feesRows || []).some(r => num(r.cost) > 0);
+            const visitHasPrice = (_job.siteVisit.priceRows || []).some(r => num(r.total) > 0);
+            if (!quoteHasMoney && visitHasPrice) reimportPricing();
           }
         } else {
           addRow('labour');
