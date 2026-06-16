@@ -1915,6 +1915,29 @@ function parseFreetextMessage(raw) {
       return [];
     }
 
+    // Canonical "TOTAL TO ORDER" lines, so manually-added extras can merge into the same
+    // line the method calc produces (same product = one combined quantity).
+    const CANON_MAT = {
+      skim:  { label: 'Multi-finish skim (25kg)', unit: 'bag' },
+      board: { label: 'Plasterboard (6ft × 3ft)', unit: 'board' },
+      bond:  { label: 'Bonding coat (25kg)', unit: 'bag' },
+      dd:    { label: 'Drywall adhesive (25kg)', unit: 'bag' },
+      scrim: { label: 'Scrim tape (90m)', unit: 'roll' },
+    };
+    // Map an extra-material name to a canonical key when it's the SAME product as a method
+    // material. Returns null to keep it as its own line (e.g. fire board, beads, mesh).
+    // PVA & screws are deliberately excluded — they're job-level consumables costed apart.
+    function mergeKeyFor(name) {
+      const s = (name || '').toLowerCase();
+      if (/fire\s*board|fireboard/.test(s)) return null;        // distinct product
+      if (/multi[\s-]?finish|multifinish|skim/.test(s)) return 'skim';
+      if (/scrim/.test(s)) return 'scrim';
+      if (/bonding\s*coat|bonding\s*plaster/.test(s)) return 'bond';
+      if (/dab|universal\s*bonding\s*compound|dot\s*&?\s*dab/.test(s)) return 'dd';
+      if (/plasterboard|wall\s*board/.test(s)) return 'board';
+      return null;
+    }
+
     function calcMaterials() {
       const out = document.getElementById('mat-estimate-output');
       if (!out) return;
@@ -1964,20 +1987,36 @@ function parseFreetextMessage(raw) {
         surface('Walls', wM, wallV);
         surface('Ceiling', cM, ceilV);
 
-        // Extra (ad-hoc) materials for this room \u2014 fold into the materials cost + order list
+        // Method-material cost captured BEFORE merging extras (so the merge below only
+        // affects displayed quantities, never double-counts cost).
+        const autoEx = roomOrder.reduce((sum, k) => sum + roomMap[k].qty * priceFor(k), 0);
+
+        // Extra (ad-hoc) materials for this room. Same-product extras merge into the matching
+        // order line (one combined qty); genuinely different products stay as their own line.
         const extras = cardExtras(card).filter(x => x.desc && x.qty > 0);
+        const roomExtrasShown = [];
         let roomExtraEx = 0;
         extras.forEach(x => {
           roomExtraEx += x.qty * x.price;
-          const key = x.desc.toLowerCase();
-          if (!grandExtras[key]) { grandExtras[key] = { label: x.desc, qty: 0 }; extrasOrder.push(key); }
-          grandExtras[key].qty += x.qty;
+          const mk = mergeKeyFor(x.desc);
+          if (mk) {
+            const c = CANON_MAT[mk];
+            addInto(roomMap, roomOrder, [[mk, c.label, c.unit, x.qty]]);
+            addInto(grand, order, [[mk, c.label, c.unit, x.qty]]);
+            if (mk === 'skim') anySkim = true;
+            if (mk === 'bond') anyBond = true;
+            if (mk === 'board' || mk === 'dd') anyBoardLike = true;
+          } else {
+            roomExtrasShown.push(x);
+            const key = x.desc.toLowerCase();
+            if (!grandExtras[key]) { grandExtras[key] = { label: x.desc, qty: 0 }; extrasOrder.push(key); }
+            grandExtras[key].qty += x.qty;
+          }
         });
 
         const labour = parseFloat(card.querySelector('.room-labour')?.value) || 0;
         grandLabour += labour;
 
-        const autoEx  = roomOrder.reduce((sum, k) => sum + roomMap[k].qty * priceFor(k), 0);
         const roomEx  = autoEx + roomExtraEx;
         grandCostEx  += roomEx;
         const roomMatInc = roomEx * (1 + MAT_VAT);
@@ -1991,7 +2030,7 @@ function parseFreetextMessage(raw) {
             if (surfaces.some(sf => sf[1] === 'board' || sf[1] === 'dd')) consum.push('1 box \u2014 Drywall screws');
             if (surfaces.some(sf => sf[1] === 'skim'  || sf[1] === 'bond')) consum.push('1 tub \u2014 PVA (5L)');
             const consumHtml = consum.map(x => '<div style="color:#888">' + x + ' <span style="font-size:10px">(job)</span></div>').join('');
-            const extrasHtml = extras.map(x => '<div>' + x.qty + ' \u00d7 ' + x.desc
+            const extrasHtml = roomExtrasShown.map(x => '<div>' + x.qty + ' \u00d7 ' + x.desc
               + ' <span style="color:#888;font-size:11px">\u00a3' + (x.qty * x.price).toFixed(2) + '</span></div>').join('');
             // Customer price for this room = materials inc VAT + labour
             let costHtml = '<div class="rm-cost">Materials: \u00a3' + roomMatInc.toFixed(2) + ' inc VAT';
@@ -2005,7 +2044,7 @@ function parseFreetextMessage(raw) {
               + extrasHtml + consumHtml + costHtml;
 
             const lines = surfaces.map(sf => '  ' + sf[0] + ' [' + (METHOD_LABELS[sf[1]] || sf[1]) + '] ' + sf[2].toFixed(1) + ' m\u00b2: ' + sf[3].map(m => plural(m[3], m[2]) + ' ' + m[1]).join(', '));
-            extras.forEach(x => lines.push('  + ' + x.qty + ' \u00d7 ' + x.desc + ' (\u00a3' + (x.qty * x.price).toFixed(2) + ')'));
+            roomExtrasShown.forEach(x => lines.push('  + ' + x.qty + ' \u00d7 ' + x.desc + ' (\u00a3' + (x.qty * x.price).toFixed(2) + ')'));
             let footer = '\n  Materials: \u00a3' + roomMatInc.toFixed(2) + ' inc VAT';
             if (labour > 0) footer += '\n  Labour: \u00a3' + labour.toFixed(2);
             footer += '\n  Customer price: \u00a3' + roomTotal.toFixed(2);
