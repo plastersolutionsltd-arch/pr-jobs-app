@@ -835,6 +835,23 @@
         return all.find(function(j){ return j.id === jobId; }) || null;
       } catch(e) { return null; }
     }
+    // Highest number already used for prefix-YEAR-NNN across all saved jobs (e.g. QT-2026-007).
+    // Lets the counter self-heal if the Supabase counter ever gets reset/behind.
+    function localMaxNum(prefix, year, fields) {
+      var max = 0;
+      try {
+        var all = JSON.parse(localStorage.getItem('pr_jobs') || '[]');
+        var re = new RegExp('^' + prefix + '-' + year + '-(\\d+)$', 'i');
+        all.forEach(function(j) {
+          fields.forEach(function(f) {
+            var v = f.split('.').reduce(function(o,k){ return o && o[k]; }, j);
+            var m = v && String(v).match(re);
+            if (m) { var n = parseInt(m[1], 10); if (n > max) max = n; }
+          });
+        });
+      } catch(e) {}
+      return max;
+    }
     function compactJob(j) {
       if (!j) return j;
       var c = Object.assign({}, j);
@@ -1100,16 +1117,20 @@
       update();
 
       // Quote counter (background — never blocks form render)
-      sb.from('counters').select('value').eq('id', 'qt_last').single().then(function(cr) {
-        if (!window._quoteRestored) {
-          const next = (!cr.error && cr.data) ? (cr.data.value || 0) + 1 : 1;
-          const year = new Date().getFullYear();
-          document.getElementById('inv-number').value = 'QT-' + year + '-' + String(next).padStart(3, '0');
-          update();
-          // Save immediately so next quote gets the incremented number
-          sb.from('counters').upsert({ id: 'qt_last', value: next }).catch(function(){});
-        }
-      }).catch(function(){});
+      function reserveQuoteNumber(sbVal) {
+        if (window._quoteRestored) return;
+        var year = new Date().getFullYear();
+        // Seed from the higher of the Supabase counter and the highest number already used
+        // locally, so a reset/behind counter never re-issues an old number.
+        var next = Math.max(sbVal || 0, localMaxNum('QT', year, ['quoteData.invNumber', 'quote.number'])) + 1;
+        document.getElementById('inv-number').value = 'QT-' + year + '-' + String(next).padStart(3, '0');
+        update();
+        // Persist the reservation (always an increase, so it never moves the counter back).
+        sb.from('counters').upsert({ id: 'qt_last', value: next }).catch(function(){});
+      }
+      sb.from('counters').select('value').eq('id', 'qt_last').single()
+        .then(function(cr) { reserveQuoteNumber((!cr.error && cr.data) ? (cr.data.value || 0) : 0); })
+        .catch(function() { reserveQuoteNumber(0); });
     });
 
     async function saveNum() {
@@ -1127,11 +1148,17 @@
         history.replaceState(null, '', originalUrl);
       };
 
-      // Increment the shared counter on print
+      // Advance the shared counter on print — but NEVER move it backwards (re-printing an
+      // older quote must not reset the counter to that older number).
       const val = document.getElementById('inv-number').value;
       const match = val.match(/(\d+)$/);
       if (match) {
-        try { await sb.from('counters').upsert({ id: 'qt_last', value: parseInt(match[1], 10) }); } catch(e) {}
+        const n = parseInt(match[1], 10);
+        try {
+          const cur = await sb.from('counters').select('value').eq('id', 'qt_last').single();
+          const stored = (!cur.error && cur.data) ? (cur.data.value || 0) : 0;
+          if (n > stored) await sb.from('counters').upsert({ id: 'qt_last', value: n });
+        } catch(e) {}
       }
     }
 
