@@ -685,22 +685,7 @@
 
     <!-- Type of Work -->
     <div class="sec">Type of Work</div>
-    <div class="grid-2">
-      <div class="f">
-        <label>Render Type</label>
-        <select id="wt-rendering" onchange="filterFinish()">
-          <option value="">— None —</option>
-          <option>Silicone Render</option>
-          <option>Monocouche</option>
-          <option>K-Rend</option>
-          <option>EWI System</option>
-          <option>Sand &amp; Cement Render</option>
-          <option>Roughcast / Pebbledash</option>
-          <option>Tyrolean</option>
-          <option>External Render</option>
-        </select>
-      </div>
-      <div class="f">
+    <div class="f">
         <label>Plaster Type</label>
         <select id="wt-plastering" onchange="filterFinish()">
           <option value="">— None —</option>
@@ -714,7 +699,6 @@
           <option>Sand &amp; Cement (internal)</option>
           <option>Artex Removal</option>
         </select>
-      </div>
     </div>
 
     <!-- Area Tool import banner (shown if job has photo-measured walls) -->
@@ -822,16 +806,6 @@
         <label>Finish Type</label>
         <select id="finish-type-sel">
           <option value="">— select —</option>
-          <optgroup label="── Rendering ──" id="finish-render-group">
-            <option data-cat="render">Full Silicone Render</option>
-            <option data-cat="render">Monocouche Render</option>
-            <option data-cat="render">K-Rend</option>
-            <option data-cat="render">EWI System</option>
-            <option data-cat="render">Sand &amp; Cement Render</option>
-            <option data-cat="render">Roughcast / Pebbledash</option>
-            <option data-cat="render">Tyrolean</option>
-            <option data-cat="render">Scratch &amp; Render</option>
-          </optgroup>
           <optgroup label="── Plastering ──" id="finish-plaster-group">
             <option data-cat="plaster">Smooth Skim</option>
             <option data-cat="plaster">Dot &amp; Dab</option>
@@ -845,24 +819,6 @@
         </select>
       </div>
       <div class="f">
-        <label>Colour (if render)</label>
-        <select id="colour-render">
-          <option value="">— select —</option>
-          <option>Pure White</option>
-          <option>Off White</option>
-          <option>Cream</option>
-          <option>Ivory</option>
-          <option>Stone</option>
-          <option>Buff</option>
-          <option>Light Grey</option>
-          <option>Mid Grey</option>
-          <option>Dark Grey</option>
-          <option>Anthracite</option>
-          <option>Mocha / Brown</option>
-          <option>Custom (see notes)</option>
-        </select>
-      </div>
-      <div class="f">
         <label>Coats Required</label>
         <select id="coats-required">
           <option value="">—</option>
@@ -870,23 +826,6 @@
           <option>2 coats</option>
           <option>3 coats</option>
         </select>
-      </div>
-    </div>
-
-    <!-- Render Preview (shown if a render preview has been saved for this job) -->
-    <div id="render-preview-section" style="display:none;margin-bottom:14px">
-      <div class="sec">Render Preview</div>
-      <div style="display:flex;gap:12px;align-items:flex-start">
-        <img id="render-preview-img" src="" alt="Render preview" style="width:140px;border-radius:8px;border:1px solid #ddd;flex-shrink:0">
-        <div style="flex:1">
-          <div style="font-size:12px;color:#555;margin-bottom:4px">System</div>
-          <div id="render-preview-system" style="font-weight:700;font-size:13px;margin-bottom:8px"></div>
-          <div style="font-size:12px;color:#555;margin-bottom:4px">Colour</div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <div id="render-preview-hex" style="width:18px;height:18px;border-radius:4px;border:1px solid #ddd;flex-shrink:0"></div>
-            <div id="render-preview-colour" style="font-weight:700;font-size:13px"></div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -982,18 +921,6 @@
             <option value="skim_coat">Skim Coat</option>
             <option value="bond_skim">Bond &amp; Skim</option>
             <option value="plaster_repair">Plaster Repair</option>
-          </optgroup>
-          <optgroup label="── Silicone (EcoRend) ──">
-            <option value="silicone_pebbledash">Silicone over Pebble Dash — EcoRend</option>
-            <option value="silicone_brick_block">Full Silicone — Brick &amp; Block — No Hack Off</option>
-            <option value="silicone_hackoff">Full Silicone — Brick &amp; Block — Hack Off</option>
-          </optgroup>
-          <optgroup label="── Monocouche ──">
-            <option value="monocouche_brick_block">Monocouche — Brick &amp; Block — No Hack Off</option>
-            <option value="monocouche_hackoff">Monocouche — Brick &amp; Block — Hack Off</option>
-          </optgroup>
-          <optgroup label="── EWI ──">
-            <option value="ewi_brick_block">EWI — Brick &amp; Block</option>
           </optgroup>
         </select>
       </label>
@@ -1426,16 +1353,6 @@ function parseFreetextMessage(raw) {
 
       // ── Work type → finish type & price lookup ──
       const WORK_PRICE_MAP = {
-        'silicone render':              { label: 'Silicone Render — No Hack Off',   finish: 'Full Silicone Render', price: 90 },
-        'k-rend / monocouche':          { label: 'Monocouche — No Hack Off',      finish: 'Monocouche Render',    price: 80 },
-        'k-rend':                       { label: 'K-Rend — No Hack Off',            finish: 'K-Rend',      price: 80 },
-        'monocouche':                   { label: 'Monocouche — No Hack Off',         finish: 'Monocouche Render', price: 80 },
-        'sand & cement render':         { label: 'Sand & Cement Render',             finish: 'Sand & Cement Render', price: 50 },
-        'sand & cement':                { label: 'Sand & Cement',                    finish: 'Sand & Cement Render', price: 50 },
-        'roughcast / pebbledash':       { label: 'Roughcast / Pebbledash',           finish: 'Roughcast / Pebbledash', price: 55 },
-        'roughcast':                    { label: 'Roughcast',                        finish: 'Roughcast / Pebbledash', price: 55 },
-        'ewi (external wall insulation)':{ label: 'EWI System',                     finish: 'EWI System',  price: 120 },
-        'ewi':                          { label: 'EWI System',                       finish: 'EWI System',  price: 120 },
         'smooth skim plaster':          { label: 'Smooth Skim Coat',                 finish: 'Smooth Skim', price: 70 },
         'dry lining / stud walls':      { label: 'Dot & Dab Dry Lining',             finish: 'Dot & Dab',   price: 70 },
         'patching & repair':            { label: 'Patching & Repair',                finish: 'Patching & Repair', price: 70 },
@@ -1516,32 +1433,10 @@ function parseFreetextMessage(raw) {
             }
           }
         }
-        if (sv.colour) {
-          const colSel = document.getElementById('colour-render');
-          if (colSel) colSel.value = sv.colour;
-        }
-        // Show render preview thumbnail if one has been saved
-        const rp = _svJob?.renderPreviews?.[0];
-        if (rp) {
-          const sec = document.getElementById('render-preview-section');
-          if (sec) {
-            document.getElementById('render-preview-img').src = rp.imageDataUrl || '';
-            document.getElementById('render-preview-system').textContent = rp.system || '—';
-            document.getElementById('render-preview-colour').textContent = rp.colour || '—';
-            document.getElementById('render-preview-hex').style.background = rp.hex || '#ccc';
-            sec.style.display = '';
-          }
-        }
         if (sv.workTypes) {
           const types = sv.workTypes.split(',').map(s => s.trim());
-          const renderSel  = document.getElementById('wt-rendering');
           const plasterSel = document.getElementById('wt-plastering');
           types.forEach(t => {
-            if (renderSel) {
-              for (const opt of renderSel.options) {
-                if (opt.text === t) { renderSel.value = opt.value || opt.text; break; }
-              }
-            }
             if (plasterSel) {
               for (const opt of plasterSel.options) {
                 if (opt.text === t) { plasterSel.value = opt.value || opt.text; break; }
@@ -2237,9 +2132,7 @@ function parseFreetextMessage(raw) {
       // Make sure the per-room customer total (_jobPrice) is current before we save.
       try { calcMaterials(); } catch(e) {}
 
-      const _renderType  = document.getElementById('wt-rendering')?.value  || '';
-      const _plasterType = document.getElementById('wt-plastering')?.value || '';
-      const workTypes = [_renderType, _plasterType].filter(Boolean).join(', ');
+      const workTypes = document.getElementById('wt-plastering')?.value || '';
 
       const skipVal  = document.getElementById('skip-size')?.value || '';
       const [skipTons, skipCost] = skipVal ? skipVal.split('|') : ['', ''];
@@ -2256,7 +2149,6 @@ function parseFreetextMessage(raw) {
         workTypes:     workTypes,
         scopeOfWorks:  document.getElementById('scope-of-works')?.value.trim() || '',
         finishType:    document.getElementById('finish-type-sel')?.value || '',
-        colour:        document.getElementById('colour-render')?.value || '',
         coatsRequired: document.getElementById('coats-required')?.value || '',
         access:        document.querySelector('input[name="access"]:checked')?.value || '',
         parking:       document.querySelector('input[name="parking"]:checked')?.value || '',
@@ -2417,21 +2309,9 @@ function parseFreetextMessage(raw) {
 
     // ── Smart finish filter: show render or plaster options based on work type selected ──
     function filterFinish() {
-      const isRender  = !!document.getElementById('wt-rendering')?.value;
-      const isPlaster = !!document.getElementById('wt-plastering')?.value;
-      const renderGrp  = document.getElementById('finish-render-group');
+      // Plaster-only form: the plastering finish group is always shown.
       const plasterGrp = document.getElementById('finish-plaster-group');
-      if (!renderGrp || !plasterGrp) return;
-      if (isRender && !isPlaster) {
-        renderGrp.style.display  = '';
-        plasterGrp.style.display = 'none';
-      } else if (isPlaster && !isRender) {
-        renderGrp.style.display  = 'none';
-        plasterGrp.style.display = '';
-      } else {
-        renderGrp.style.display  = '';
-        plasterGrp.style.display = '';
-      }
+      if (plasterGrp) plasterGrp.style.display = '';
     }
 
     /* ===== SCOPE TEMPLATES ===== */
@@ -2465,124 +2345,6 @@ All areas protected with dust sheets prior to works commencing. Debris cleared a
 Cut out and remove all damaged, blown or defective plaster from affected areas. Background prepared and bonding agent applied as required. Bonding coat applied to build up to correct depth, scratched and left to set. Areas then finished with a 2–3mm multi-finish skim coat, feathered and blended to match surrounding surfaces. Final finish to be smooth, flat and paint-ready.
 
 All areas protected with dust sheets prior to works commencing. Debris cleared and site left clean and tidy upon completion.`,
-
-      silicone_pebbledash: `Supply of all labour, materials, plant and equipment to carry out a full EcoRend silicone render system over existing pebbledash substrate. No full hack-off required.
-
-Works to include:
-
-• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works. All paving and ground areas beneath the elevations covered with dust sheets and ground protection.
-
-• Full inspection of existing pebbledash substrate; any hollow, blown or debonded sections identified, cut out, and made good with compatible mortar prior to overlay application. Any failed or corroded stop beads removed and replaced with proprietary stainless steel beads where required.
-
-• Application of EcoRend X32 reinforcing base coat over the full pebbledash surface, reinforced throughout with EcoRend alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints. All corners and reveals to be double-meshed for additional strength and impact resistance. Base coat left to fully cure prior to topcoat application.
-
-• Application of EcoRend 1.5mm silicone topcoat in the client's choice of colour, applied uniformly in a single coat to a consistent texture and finish across all treated elevations. EcoRend silicone is self-cleaning, hydrophobic, breathable, and UV-stable — through-coloured throughout, with nothing to peel, chip, or repaint for 25+ years.
-
-• Upon completion, all masking, tape and protective materials removed, gutters checked and cleared of debris, and all working areas left clean and tidy.
-
-All works carried out in full accordance with EcoRend manufacturer specification. 25-year manufacturer product warranty applies to materials. 5-year P&R Solutions workmanship guarantee on installation.`,
-
-      silicone_brick_block: `Supply of all labour, materials, plant and equipment to carry out a full EcoRend silicone render system (X32 base coat / 1.5mm silicone topcoat) to brick and block substrate. No hack-off required.
-
-Works to include:
-
-• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works. All paving and ground areas beneath the elevations covered with dust sheets and ground protection.
-
-• Thorough preparation of the existing brick and block substrate; removal of all loose material, surface contamination, organic growth, moss, algae and efflorescence. All existing pointing inspected — any failed or open joints raked out and re-pointed with suitable mortar prior to render application to ensure a sound, stable base.
-
-• Application of a suitable bonding agent / primer to the prepared substrate to promote adhesion and ensure full compatibility with the EcoRend system.
-
-• All stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points, ensuring clean, true and straight arrises throughout.
-
-• Application of EcoRend X32 base coat, reinforced throughout with EcoRend alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints. All corners and reveals to be double-meshed for additional strength and impact resistance. Base coat left to fully cure before topcoat application.
-
-• Application of EcoRend 1.5mm silicone topcoat in the client's choice of colour, applied uniformly to a consistent texture and finish across all treated elevations. EcoRend silicone is self-cleaning, hydrophobic, breathable, and UV-stable — through-coloured throughout, with nothing to peel, chip, or repaint for 25+ years.
-
-• Upon completion, all masking, tape and protective materials removed, gutters checked and cleared, and all working areas left clean and tidy.
-
-All works carried out in full accordance with EcoRend manufacturer specification. 25-year manufacturer product warranty applies to materials. 5-year P&R Solutions workmanship guarantee on installation.`,
-
-      silicone_hackoff: `Supply of all labour, materials, plant and equipment to carry out a full EcoRend silicone render system to brick and block substrate, following complete removal of all existing failed render.
-
-Works to include:
-
-• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works. All paving, paths and garden areas beneath the elevations covered with heavy-duty dust sheets and ground protection boards.
-
-• Full mechanical hack-off and removal of all existing render from all treated elevations. All arisings and debris cleared from site progressively throughout the works. No debris left on site upon completion.
-
-• Thorough inspection of the fully exposed brick and block substrate following hack-off. Identification and treatment of all areas of failed pointing, salt crystallisation, organic growth, moss, algae and efflorescence. All open or failed joints raked out and re-pointed with suitable mortar to restore a sound, stable base prior to application of the new render system.
-
-• Application of a suitable bonding agent / primer to the prepared substrate to promote full adhesion and compatibility with the EcoRend system.
-
-• All new stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points, ensuring clean, true and straight arrises throughout.
-
-• Application of EcoRend X32 base coat, reinforced throughout with EcoRend alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints. All corners and reveals to be double-meshed for additional impact resistance. Base coat left to fully cure before topcoat application.
-
-• Application of EcoRend 1.5mm silicone topcoat in the client's choice of colour, applied uniformly to a consistent texture and finish across all treated elevations. EcoRend silicone is self-cleaning, hydrophobic, breathable, and UV-stable — through-coloured throughout, with nothing to peel, chip, or repaint for 25+ years.
-
-• Upon completion, all masking, tape and protective materials removed, gutters inspected and cleared of debris, all hack-off arisings removed from site, and all working areas left clean and tidy.
-
-All works carried out in full accordance with EcoRend manufacturer specification. 25-year manufacturer product warranty applies to materials. 5-year P&R Solutions workmanship guarantee on installation.`,
-
-      monocouche_brick_block: `Supply of all labour, materials, plant and equipment to carry out a full monocouche render system to brick and block substrate. No hack-off required.
-
-Works to include:
-
-• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works. All paving and ground areas beneath the elevations covered with dust sheets and ground protection.
-
-• Thorough preparation of the existing brick and block substrate; removal of all loose material, surface contamination, organic growth, moss, algae and efflorescence. All existing pointing inspected — any failed or open joints raked out and re-pointed prior to render application to ensure a sound, stable base.
-
-• Application of a suitable bonding agent / primer to the prepared substrate to promote adhesion and ensure full compatibility with the render system.
-
-• All stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points, ensuring clean, true and straight arrises throughout.
-
-• Application of monocouche render in a single through-coloured coat, applied to a uniform thickness and finished to a consistent scratch texture across all treated elevations. Being a through-colour product, no painting or topcoat is required — colour is integral throughout.
-
-• Upon completion, all masking, tape and protective materials removed, gutters checked and cleared, and all working areas left clean and tidy.
-
-All works carried out in full accordance with manufacturer's specification. Full manufacturer guarantee applies to materials. 5-year P&R Solutions workmanship guarantee on installation.`,
-
-      monocouche_hackoff: `Supply of all labour, materials, plant and equipment to carry out a full monocouche render system to brick and block substrate, following complete removal of all existing failed render.
-
-Works to include:
-
-• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works. All paving, paths and garden areas beneath the elevations covered with heavy-duty dust sheets and ground protection boards.
-
-• Full mechanical hack-off and removal of all existing render from all treated elevations. All arisings and debris cleared from site progressively. No debris left on site upon completion.
-
-• Thorough inspection of the fully exposed substrate following hack-off; treatment of all failed pointing, salt crystallisation, organic growth and efflorescence. All open joints raked out and re-pointed with suitable mortar to restore a sound, stable base.
-
-• Application of a suitable bonding agent to the prepared substrate to promote adhesion and system compatibility.
-
-• All stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points, ensuring clean, true and straight arrises throughout.
-
-• Application of monocouche render in a single through-coloured coat, applied to a uniform thickness and finished to a consistent scratch texture across all treated elevations. Being a through-colour product, no painting or topcoat is required — colour is integral throughout.
-
-• Upon completion, all masking, tape and protective materials removed, gutters inspected and cleared, all hack-off arisings removed from site, and all working areas left clean and tidy.
-
-All works carried out in full accordance with manufacturer's specification. Full manufacturer guarantee applies to materials. 5-year P&R Solutions workmanship guarantee on installation.`,
-
-      ewi_brick_block: `Supply of all labour, materials, plant and equipment to carry out a full External Wall Insulation (EWI) system to brick and block substrate. No hack-off required.
-
-Works to include:
-
-• Full protection of all surrounding areas prior to commencement — all window frames, door frames, sills, soffits, fascias, guttering and exposed brickwork borders masked and taped using professional-grade protective tape and sheeting throughout the duration of works. All paving and ground areas beneath the elevations covered with dust sheets and ground protection.
-
-• Thorough preparation of the existing brick and block substrate; removal of all loose material, surface contamination, organic growth, moss, algae and efflorescence. All existing pointing inspected — any failed joints raked out and re-pointed prior to board installation to ensure a sound, stable base.
-
-• Supply and mechanical fixing of insulation boards to the prepared substrate, fixed in a staggered brick-bond pattern using a combination of adhesive and mechanical fixings in accordance with manufacturer's specification. Board thickness as agreed and specified.
-
-• All starter tracks, stop beads, movement beads and angle beads to be fixed, levelled and plumbed to all openings and termination points, ensuring clean, true and straight arrises throughout.
-
-• Application of a polymer-modified basecoat adhesive over the full insulation board surface, reinforced throughout with alkali-resistant fibreglass reinforcement mesh, fully embedded and lapped at all joints. All corners and reveals to be double-meshed for additional strength. Basecoat left to fully cure per manufacturer's guidelines.
-
-• Application of primer coat to the cured basecoat to promote adhesion and ensure even absorption across all treated areas.
-
-• Application of 1.5mm premium silicone topcoat in the client's choice of colour, applied uniformly to a consistent texture and finish across all treated elevations.
-
-• Upon completion, all masking, tape and protective materials removed, gutters checked and cleared, and all working areas left clean and tidy.
-
-All works carried out in full accordance with manufacturer's specification. Full manufacturer guarantee applies to materials. 5-year P&R Solutions workmanship guarantee on installation.`,
     };
 
     function insertScopeTemplate(key) {
