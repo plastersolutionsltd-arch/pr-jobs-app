@@ -1685,22 +1685,22 @@ function parseFreetextMessage(raw) {
     // ---- Extra-material picker: pulls the main app's price list (pr_materials), ex-VAT ----
     // Seed list used only if the app's saved list isn't on this device yet.
     const EXTRA_MAT_DEFAULTS = [
-      { name: 'Thistle Bonding Coat Plaster 25kg', unit: '25kg bag', price: 12.92 },
-      { name: 'Siniat Universal Bonding Compound (dab adhesive) 25kg', unit: '25kg bag', price: 9.67 },
-      { name: 'Thistle Multi Finish Plaster 25kg', unit: '25kg bag', price: 9.73 },
-      { name: 'Bond It PVA Contractors 5L', unit: '5L tub', price: 10.36 },
-      { name: 'Thin-Coat Angle Bead galv 2400mm', unit: 'each', price: 1.80 },
-      { name: 'Corner Bead (SS)', unit: '2.5m each', price: 2.50 },
-      { name: 'Stop Bead (SS)', unit: '3m each', price: 4.00 },
-      { name: 'Fibreglass Mesh', unit: '50m roll', price: 18.00 },
-      { name: 'Bond It Monster Scrim Tape 48mm×90m', unit: '90m roll', price: 3.72 },
-      { name: 'Siniat Standard Plasterboard 1800×900×12.5mm', unit: 'sheet', price: 6.96 },
-      { name: 'Siniat Fire Board 1800×900×12.5mm', unit: 'sheet', price: 8.58 },
-      { name: 'Drywall Screws 38mm (box 1000)', unit: 'box', price: 7.70 },
-      { name: 'Drywall Screws 50mm (box 1000)', unit: 'box', price: 8.68 },
-      { name: 'Drywall Screws 75mm (box 500)', unit: 'box', price: 16.04 },
-      { name: 'Drywall Screws 100mm (box 200)', unit: 'box', price: 16.38 },
-      { name: 'Grit Plaster', unit: '25kg bag', price: 8.00 }
+      { name: 'Thistle Bonding Coat Plaster 25kg', unit: '25kg bag', price: 12.92, cat: 'plaster' },
+      { name: 'Siniat Universal Bonding Compound (dab adhesive) 25kg', unit: '25kg bag', price: 9.67, cat: 'plaster' },
+      { name: 'Thistle Multi Finish Plaster 25kg', unit: '25kg bag', price: 9.73, cat: 'plaster' },
+      { name: 'Bond It PVA Contractors 5L', unit: '5L tub', price: 10.36, cat: 'plaster' },
+      { name: 'Thin-Coat Angle Bead galv 2400mm', unit: 'each', price: 1.80, cat: 'plaster' },
+      { name: 'Corner Bead (SS)', unit: '2.5m each', price: 2.50, cat: 'plaster' },
+      { name: 'Stop Bead (SS)', unit: '3m each', price: 4.00, cat: 'plaster' },
+      { name: 'Fibreglass Mesh', unit: '50m roll', price: 18.00, cat: 'plaster' },
+      { name: 'Bond It Monster Scrim Tape 48mm×90m', unit: '90m roll', price: 3.72, cat: 'plaster' },
+      { name: 'Siniat Standard Plasterboard 1800×900×12.5mm', unit: 'sheet', price: 6.96, cat: 'plaster' },
+      { name: 'Siniat Fire Board 1800×900×12.5mm', unit: 'sheet', price: 8.58, cat: 'plaster' },
+      { name: 'Drywall Screws 38mm (box 1000)', unit: 'box', price: 7.70, cat: 'plaster' },
+      { name: 'Drywall Screws 50mm (box 1000)', unit: 'box', price: 8.68, cat: 'plaster' },
+      { name: 'Drywall Screws 75mm (box 500)', unit: 'box', price: 16.04, cat: 'plaster' },
+      { name: 'Drywall Screws 100mm (box 200)', unit: 'box', price: 16.38, cat: 'plaster' },
+      { name: 'Grit Plaster', unit: '25kg bag', price: 8.00, cat: 'plaster' }
     ];
     let _extraMats = null;
     function extraMaterialsList() {
@@ -1711,9 +1711,18 @@ function parseFreetextMessage(raw) {
       return _extraMats;
     }
     function extraMatByName(name) { return extraMaterialsList().find(m => m.name === name); }
-    function extraMatOptions(selected) {
+    // This is the Plaster Visit, so its dropdown only offers Plastering materials.
+    // Untagged items (old/custom) still show, so nothing the user added ever disappears.
+    function matInCat(m, ctx) {
+      const c = (m.cat || '').toLowerCase();
+      if (!c) return true;
+      return c === ctx;
+    }
+    function extraMatOptions(selected, ctx) {
+      ctx = ctx || 'plaster';
       const opts = ['<option value="">— pick material —</option>'];
       extraMaterialsList().forEach(m => {
+        if (!matInCat(m, ctx) && m.name !== selected) return;   // hide other categories, but keep an already-picked item
         const lbl = m.name + (m.price != null ? '  (£' + Number(m.price).toFixed(2) + (m.unit ? ' / ' + m.unit : '') + ')' : '');
         const sel = (m.name === selected) ? ' selected' : '';
         opts.push('<option value="' + String(m.name).replace(/"/g, '&quot;') + '"' + sel + '>' + lbl + '</option>');
