@@ -438,13 +438,32 @@ async function saveToJob() {
     } catch(e2) {}
   }
   try { await sb.from('jobs').upsert({ id: job.id, name: job.name||'', status: job.status||'enquiry', created: job.created||Date.now(), data: job }); } catch(e) {}
-  goHome();
+  goToQuote();
 }
 
 function goHome() {
   window.location.href = jobId
     ? 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/?openJob=' + jobId
     : 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/';
+}
+
+// After saving a preview, jump straight to that job's Render Quote with the
+// preview already in place (the quote auto-pulls renderPreviews[0]). Mirrors
+// index.html openTemplate() params so client details prefill. Falls back home
+// if there's no job to attach to.
+function goToQuote() {
+  if (!jobId || !job) { goHome(); return; }
+  var base = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/';
+  var p = new URLSearchParams();
+  if (job.name)         p.set('name',         job.name);
+  if (job.phone)        p.set('phone',        job.phone);
+  if (job.email)        p.set('email',        job.email);
+  if (job.address)      p.set('address',      job.address);
+  if (job.workType)     p.set('workType',     job.workType);
+  if (job.propertyType) p.set('propertyType', job.propertyType);
+  p.set('ref', (job.name || '').split(' ')[0] + (job.address ? ' - ' + job.address.split(',')[0] : ''));
+  p.set('jobId', jobId);
+  window.location.href = base + 'quote-rendering.html?' + p.toString();
 }
 
 // ══════════════════════════════════════════════════════════
