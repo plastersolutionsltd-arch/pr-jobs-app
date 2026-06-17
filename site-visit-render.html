@@ -671,8 +671,7 @@
 
     <!-- Type of Work -->
     <div class="sec">Type of Work</div>
-    <div class="grid-2">
-      <div class="f">
+    <div class="f">
         <label>Render Type</label>
         <select id="wt-rendering" onchange="filterFinish()">
           <option value="">— None —</option>
@@ -683,22 +682,6 @@
           <option>Sand &amp; Cement Render</option>
           <option>External Render</option>
         </select>
-      </div>
-      <div class="f">
-        <label>Plaster Type</label>
-        <select id="wt-plastering" onchange="filterFinish()">
-          <option value="">— None —</option>
-          <option>Smooth Skim</option>
-          <option>Board &amp; Skim</option>
-          <option>Dot &amp; Dab &amp; Skim</option>
-          <option>Bond &amp; Skim</option>
-          <option>Patching &amp; Repair</option>
-          <option>Dry Lining</option>
-          <option>Coving</option>
-          <option>Sand &amp; Cement (internal)</option>
-          <option>Artex Removal</option>
-        </select>
-      </div>
     </div>
 
     <!-- Area Tool import banner (shown if job has photo-measured walls) -->
@@ -949,13 +932,6 @@
         <span>Description of Works <span style="font-size:10px;font-weight:normal;color:#888">(transfers to quote &amp; invoice)</span></span>
         <select onchange="if(this.value){insertScopeTemplate(this.value);this.value=''}" style="font-size:11px;padding:4px 8px;background:#111;color:#66FF33;border:1px solid #333;border-radius:2px;cursor:pointer;font-family:'Lato',sans-serif">
           <option value="">— Load template —</option>
-          <optgroup label="── Plastering ──">
-            <option value="board_skim">Board &amp; Skim</option>
-            <option value="dot_dab_skim">Dot &amp; Dab &amp; Skim</option>
-            <option value="skim_coat">Skim Coat</option>
-            <option value="bond_skim">Bond &amp; Skim</option>
-            <option value="plaster_repair">Plaster Repair</option>
-          </optgroup>
           <optgroup label="── Silicone (EcoRend) ──">
             <option value="silicone_pebbledash">Silicone over Pebble Dash — EcoRend</option>
             <option value="silicone_brick_block">Full Silicone — Brick &amp; Block — No Hack Off</option>
@@ -1076,8 +1052,31 @@
           ['siteVisit','renderVisit','quoteData','materialsCalc'].forEach(function(k){
             if (remote[k] && _ts(remote[k].savedAt) > _ts(_svJob[k] && _svJob[k].savedAt)) _svJob[k] = remote[k];
           });
+          // The render-preview image lives only in the cloud copy when localStorage
+          // was stripped for space — pull it back and refresh the thumbnail.
+          if (remote.renderPreviews && remote.renderPreviews.length && remote.renderPreviews[0].imageDataUrl) {
+            var localRp = _svJob.renderPreviews && _svJob.renderPreviews[0];
+            if (!localRp || !localRp.imageDataUrl) _svJob.renderPreviews = remote.renderPreviews;
+          }
         }
+        showRenderPreview();
       }).catch(function(){});
+    }
+
+    // Populate the saved render-preview thumbnail from _svJob.
+    // Called on load AND after the cloud sync resolves — because localStorage may
+    // have had the preview image stripped for space, so it only arrives via Supabase.
+    function showRenderPreview() {
+      const sec = document.getElementById('render-preview-section');
+      if (!sec) return;
+      const rp = _svJob?.renderPreviews?.[0];
+      if (rp && rp.imageDataUrl) {
+        document.getElementById('render-preview-img').src = rp.imageDataUrl;
+        document.getElementById('render-preview-system').textContent = rp.system || '—';
+        document.getElementById('render-preview-colour').textContent = rp.colour || '—';
+        document.getElementById('render-preview-hex').style.background = rp.hex || '#ccc';
+        sec.style.display = '';
+      }
     }
 
     let roomCount = 0;
@@ -1378,9 +1377,6 @@ function parseFreetextMessage(raw) {
         'roughcast':                    { label: 'Roughcast',                        finish: 'Roughcast / Pebbledash', price: 55 },
         'ewi (external wall insulation)':{ label: 'EWI System',                     finish: 'EWI System',  price: 120 },
         'ewi':                          { label: 'EWI System',                       finish: 'EWI System',  price: 120 },
-        'smooth skim plaster':          { label: 'Smooth Skim Coat',                 finish: 'Smooth Skim', price: 70 },
-        'dry lining / stud walls':      { label: 'Dot & Dab Dry Lining',             finish: 'Dot & Dab',   price: 70 },
-        'patching & repair':            { label: 'Patching & Repair',                finish: 'Patching & Repair', price: 70 },
       };
 
       // Property type auto-fill
@@ -1460,30 +1456,14 @@ function parseFreetextMessage(raw) {
           const ea = document.getElementById('extra-charge-amt'); if (ea && sv.extraCharge.amount) ea.value = sv.extraCharge.amount;
         }
         // Show render preview thumbnail if one has been saved
-        const rp = _svJob?.renderPreviews?.[0];
-        if (rp) {
-          const sec = document.getElementById('render-preview-section');
-          if (sec) {
-            document.getElementById('render-preview-img').src = rp.imageDataUrl || '';
-            document.getElementById('render-preview-system').textContent = rp.system || '—';
-            document.getElementById('render-preview-colour').textContent = rp.colour || '—';
-            document.getElementById('render-preview-hex').style.background = rp.hex || '#ccc';
-            sec.style.display = '';
-          }
-        }
+        showRenderPreview();
         if (sv.workTypes) {
           const types = sv.workTypes.split(',').map(s => s.trim());
           const renderSel  = document.getElementById('wt-rendering');
-          const plasterSel = document.getElementById('wt-plastering');
           types.forEach(t => {
             if (renderSel) {
               for (const opt of renderSel.options) {
                 if (opt.text === t) { renderSel.value = opt.value || opt.text; break; }
-              }
-            }
-            if (plasterSel) {
-              for (const opt of plasterSel.options) {
-                if (opt.text === t) { plasterSel.value = opt.value || opt.text; break; }
               }
             }
           });
@@ -2144,9 +2124,7 @@ function parseFreetextMessage(raw) {
       // Make sure the per-elevation customer total (_jobPrice) is current before we save.
       try { calcMaterials(); } catch(e) {}
 
-      const _renderType  = document.getElementById('wt-rendering')?.value  || '';
-      const _plasterType = document.getElementById('wt-plastering')?.value || '';
-      const workTypes = [_renderType, _plasterType].filter(Boolean).join(', ');
+      const workTypes = document.getElementById('wt-rendering')?.value || '';
 
       const skipVal  = document.getElementById('skip-size')?.value || '';
       const [skipTons, skipCost] = skipVal ? skipVal.split('|') : ['', ''];
@@ -2333,55 +2311,11 @@ function parseFreetextMessage(raw) {
 
     // ── Smart finish filter: show render or plaster options based on work type selected ──
     function filterFinish() {
-      const isRender  = !!document.getElementById('wt-rendering')?.value;
-      const isPlaster = !!document.getElementById('wt-plastering')?.value;
-      const renderGrp  = document.getElementById('finish-render-group');
-      const plasterGrp = document.getElementById('finish-plaster-group');
-      if (!renderGrp || !plasterGrp) return;
-      if (isRender && !isPlaster) {
-        renderGrp.style.display  = '';
-        plasterGrp.style.display = 'none';
-      } else if (isPlaster && !isRender) {
-        renderGrp.style.display  = 'none';
-        plasterGrp.style.display = '';
-      } else {
-        renderGrp.style.display  = '';
-        plasterGrp.style.display = '';
-      }
+      // Render-only form: no finish-type groups to toggle.
     }
 
     /* ===== SCOPE TEMPLATES ===== */
     const SCOPE_TEMPLATES = {
-      board_skim: `Scope of Works — Board & Skim
-
-Supply and fix 12.5mm plasterboard to all walls and/or ceilings as specified. Boards secured to studwork or existing substrate using appropriate fixing method (screws or dot and dab adhesive as required). All joints taped with scrim mesh and a full 2–3mm multi-finish skim coat applied throughout to achieve a smooth, flat, paint-ready surface.
-
-All areas protected with dust sheets prior to works commencing. Debris cleared and site left clean and tidy upon completion.`,
-
-      dot_dab_skim: `Scope of Works — Dot & Dab & Skim
-
-Supply and fix 12.5mm plasterboard to all walls as specified using the dot and dab adhesive method. Boards set plumb and level, all edges and joints filled and taped with scrim mesh. A 2–3mm multi-finish skim coat applied over the entire surface throughout to produce a smooth, flat, paint-ready finish.
-
-All areas protected with dust sheets prior to works commencing. Debris cleared and site left clean and tidy upon completion.`,
-
-      skim_coat: `Scope of Works — Skim Coat
-
-Apply a 2–3mm multi-finish skim coat to all surfaces as specified. Existing surface checked for soundness — any loose, blown or defective areas secured and primed prior to skimming. Final finish to be smooth, flat and fully paint-ready throughout.
-
-All areas protected with dust sheets prior to works commencing. Site left clean and tidy upon completion.`,
-
-      bond_skim: `Scope of Works — Bond & Skim
-
-Apply a bonding coat to all walls and/or ceilings as specified, scratched and keyed to provide a suitable base for finishing. Once set, a 2–3mm multi-finish skim coat applied throughout to achieve a smooth, flat, paint-ready surface.
-
-All areas protected with dust sheets prior to works commencing. Debris cleared and site left clean and tidy upon completion.`,
-
-      plaster_repair: `Scope of Works — Plaster Repair
-
-Cut out and remove all damaged, blown or defective plaster from affected areas. Background prepared and bonding agent applied as required. Bonding coat applied to build up to correct depth, scratched and left to set. Areas then finished with a 2–3mm multi-finish skim coat, feathered and blended to match surrounding surfaces. Final finish to be smooth, flat and paint-ready.
-
-All areas protected with dust sheets prior to works commencing. Debris cleared and site left clean and tidy upon completion.`,
-
       silicone_pebbledash: `Supply of all labour, materials, plant and equipment to carry out a full EcoRend silicone render system over existing pebbledash substrate. No full hack-off required.
 
 Works to include:
