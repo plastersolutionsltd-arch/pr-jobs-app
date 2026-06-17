@@ -1798,6 +1798,22 @@
       window.open(url, '_blank');
     }
 
+    // Shorten a link via TinyURL so it can't wrap/break inside a plain-text email.
+    // Falls back to the original link if the service is slow or unreachable.
+    async function shortenUrl(longUrl) {
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 4000);
+        const res = await fetch('https://tinyurl.com/api-create.php?url=' + encodeURIComponent(longUrl), { signal: ctrl.signal });
+        clearTimeout(timer);
+        if (!res.ok) return longUrl;
+        const short = (await res.text()).trim();
+        return /^https?:\/\/\S+$/i.test(short) ? short : longUrl;
+      } catch (e) {
+        return longUrl;
+      }
+    }
+
     async function emailClient() {
       const result = await saveQuoteToApp();
       if (!result || !result.ok) return;
@@ -1817,6 +1833,8 @@
       const base = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/quote-response.html';
       const acceptUrl = base + '?action=accept&jobId=' + encodeURIComponent(result.jobId) + '&ref=' + encodeURIComponent(qNum) + '&name=' + encodeURIComponent(job.name || '');
       const declineUrl = base + '?action=decline&jobId=' + encodeURIComponent(result.jobId) + '&ref=' + encodeURIComponent(qNum) + '&name=' + encodeURIComponent(job.name || '');
+      // Long links wrap in email and break for the recipient — shorten so the whole link stays on one line.
+      const [shortAccept, shortDecline] = await Promise.all([shortenUrl(acceptUrl), shortenUrl(declineUrl)]);
       const workLine = [sys, colour].filter(Boolean).join(' — ');
       const body = encodeURIComponent(
         `Hi ${firstName},\n\n\n\n` +
@@ -1829,8 +1847,8 @@
         `Quote valid for 30 days\n` +
         `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
         `To respond to this quote, use the links below:\n\n` +
-        `✅ ACCEPT this quote:\n${acceptUrl}\n\n` +
-        `❌ DECLINE this quote:\n${declineUrl}\n\n` +
+        `✅ ACCEPT this quote:\n${shortAccept}\n\n` +
+        `❌ DECLINE this quote:\n${shortDecline}\n\n` +
         `If you have any questions, just reply to this email or call/WhatsApp Chris on 07595 399525.\n\n` +
         `Thanks,\nChris\nP&R Solutions\n07595 399525`
       );
