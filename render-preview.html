@@ -164,7 +164,7 @@
 
     <!-- Site visit photos -->
     <div id="sv-photos-block" class="hidden">
-      <div class="sec-lbl">Site Visit Photos — tap to use</div>
+      <div class="sec-lbl">Job Photos — tap to use</div>
       <div class="sv-photo-grid" id="sv-photo-grid"></div>
       <div class="sec-lbl" style="margin-top:4px">Or Take / Upload New</div>
     </div>
@@ -323,7 +323,7 @@ async function loadJob() {
   try {
     const all = JSON.parse(localStorage.getItem('pr_jobs') || '[]');
     const local = all.find(j => j.id === jobId);
-    if (local) job = local;
+    if (local) { job = local; buildSVPhotoPicker(); }
   } catch(e) {}
   try {
     const { data } = await sb.from('jobs').select('*').eq('id', jobId).single();
@@ -334,19 +334,35 @@ async function loadJob() {
   } catch(e) {}
 }
 
+// Gather usable photos from the render visit (primary) and plaster site visit,
+// de-duplicated. Only photos that still carry their image data are usable here.
+let _svPhotos = [];
+function collectSourcePhotos() {
+  const out = [], seen = new Set();
+  const add = (arr) => (arr || []).forEach(p => {
+    if (p && p.dataUrl && !seen.has(p.dataUrl)) {
+      seen.add(p.dataUrl);
+      out.push({ dataUrl: p.dataUrl, caption: p.caption || '' });
+    }
+  });
+  add(job?.renderVisit?.photos);
+  add(job?.siteVisit?.photos);
+  return out;
+}
+
 function buildSVPhotoPicker() {
   const loadingEl = document.getElementById('sv-photos-loading');
   const block     = document.getElementById('sv-photos-block');
   const grid      = document.getElementById('sv-photo-grid');
-  const svPhotos  = job?.siteVisit?.photos;
-  if (!svPhotos || !svPhotos.length) {
+  _svPhotos = collectSourcePhotos();
+  if (!_svPhotos.length) {
     if (loadingEl) loadingEl.textContent = jobId ? 'No site visit photos saved yet.' : '';
     return;
   }
   if (loadingEl) loadingEl.style.display = 'none';
   block.style.display = '';
   block.classList.remove('hidden');
-  grid.innerHTML = svPhotos.map((p, i) => `
+  grid.innerHTML = _svPhotos.map((p, i) => `
     <div class="sv-photo-thumb" id="svpt-${i}" onclick="selectSVPhoto(${i})">
       <img src="${p.dataUrl}" alt="Site photo ${i+1}">
       ${p.caption ? `<div class="sv-photo-caption">${esc(p.caption)}</div>` : ''}
@@ -354,11 +370,11 @@ function buildSVPhotoPicker() {
 }
 
 function selectSVPhoto(i) {
-  const svPhotos = job?.siteVisit?.photos;
-  if (!svPhotos || !svPhotos[i]) return;
+  const p = _svPhotos[i];
+  if (!p) return;
   document.querySelectorAll('.sv-photo-thumb').forEach(el => el.classList.remove('sel'));
   document.getElementById('svpt-' + i).classList.add('sel');
-  photoDataUrl = svPhotos[i].dataUrl;
+  photoDataUrl = p.dataUrl;
   document.getElementById('upload-icon').textContent = '✅';
   document.getElementById('upload-title').textContent = 'Photo selected ✓';
   document.getElementById('upload-sub').textContent = 'Tap upload area to change';
@@ -403,12 +419,24 @@ async function saveToJob() {
   if (system) job.siteVisit.finishType = SYSTEM_TO_FINISH[system.id] || system.name;
   if (colour) job.siteVisit.colour     = COLOUR_TO_SV[colour.id]  || colour.name;
   if (colour) job.siteVisit.renderHex  = colour.hex;
-  try {
+  function _persistLocal(j) {
     const all = JSON.parse(localStorage.getItem('pr_jobs') || '[]');
-    const idx = all.findIndex(j => j.id === jobId);
-    if (idx >= 0) all[idx] = job; else all.push(job);
+    const idx = all.findIndex(x => x.id === jobId);
+    if (idx >= 0) all[idx] = j; else all.push(j);
     localStorage.setItem('pr_jobs', JSON.stringify(all));
-  } catch(e) {}
+  }
+  try { _persistLocal(job); }
+  catch(e) {
+    // Too big for localStorage — store a slimmed copy without image data.
+    // The full-resolution images stay safe in Supabase and are pulled back on next open.
+    try {
+      const slim = Object.assign({}, job);
+      if (slim.renderPreviews) slim.renderPreviews = slim.renderPreviews.map(r => { const c = Object.assign({}, r); delete c.imageDataUrl; return c; });
+      if (slim.renderVisit && slim.renderVisit.photos) slim.renderVisit = Object.assign({}, slim.renderVisit, { photos: slim.renderVisit.photos.map(p => ({ caption: p.caption||'', room: p.room||'' })) });
+      if (slim.siteVisit && slim.siteVisit.photos)     slim.siteVisit   = Object.assign({}, slim.siteVisit,   { photos: slim.siteVisit.photos.map(p => ({ caption: p.caption||'' })) });
+      _persistLocal(slim);
+    } catch(e2) {}
+  }
   try { await sb.from('jobs').upsert({ id: job.id, name: job.name||'', status: job.status||'enquiry', created: job.created||Date.now(), data: job }); } catch(e) {}
   goHome();
 }
