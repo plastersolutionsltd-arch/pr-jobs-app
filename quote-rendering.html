@@ -1862,22 +1862,6 @@
       window.open(url, '_blank');
     }
 
-    // Shorten a link via TinyURL so it can't wrap/break inside a plain-text email.
-    // Falls back to the original link if the service is slow or unreachable.
-    async function shortenUrl(longUrl) {
-      try {
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 4000);
-        const res = await fetch('https://tinyurl.com/api-create.php?url=' + encodeURIComponent(longUrl), { signal: ctrl.signal });
-        clearTimeout(timer);
-        if (!res.ok) return longUrl;
-        const short = (await res.text()).trim();
-        return /^https?:\/\/\S+$/i.test(short) ? short : longUrl;
-      } catch (e) {
-        return longUrl;
-      }
-    }
-
     async function emailClient() {
       const result = await saveQuoteToApp();
       if (!result || !result.ok) return;
@@ -1897,24 +1881,24 @@
       const base = 'https://plastersolutionsltd-arch.github.io/pr-jobs-app/quote-response.html';
       const acceptUrl = base + '?action=accept&jobId=' + encodeURIComponent(result.jobId) + '&ref=' + encodeURIComponent(qNum) + '&name=' + encodeURIComponent(job.name || '');
       const declineUrl = base + '?action=decline&jobId=' + encodeURIComponent(result.jobId) + '&ref=' + encodeURIComponent(qNum) + '&name=' + encodeURIComponent(job.name || '');
-      // Long links wrap in email and break for the recipient — shorten so the whole link stays on one line.
-      const [shortAccept, shortDecline] = await Promise.all([shortenUrl(acceptUrl), shortenUrl(declineUrl)]);
+      // Links go straight to our own page (no shortener) so they can't redirect through
+      // a third-party preview. Each is on its own line in angle brackets, which keeps the
+      // whole link clickable and stops mail apps splitting it across two lines.
       const workLine = [sys, colour].filter(Boolean).join(' — ');
       const body = encodeURIComponent(
         `Hi ${firstName},\n\n\n\n` +
-        `Please find your render quotation attached — ${qNum}.\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `QUOTE TOTAL: ${total}\n` +
+        `Thank you for the opportunity to quote for your work. Your render quotation (${qNum}) is attached as a PDF.\n\n` +
+        `Summary\n` +
+        `Quote total: ${total}\n` +
         (workLine ? `Work: ${workLine}\n` : '') +
-        (start    ? `Estimated Start: ${start}\n` : '') +
-        (endD     ? `Estimated Completion: ${endD}\n` : '') +
-        `Quote valid for 30 days\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `To respond to this quote, use the links below:\n\n` +
-        `✅ ACCEPT this quote:\n${shortAccept}\n\n` +
-        `❌ DECLINE this quote:\n${shortDecline}\n\n` +
-        `If you have any questions, just reply to this email or call/WhatsApp Chris on 07595 399525.\n\n` +
-        `Thanks,\nChris\nP&R Solutions\n07595 399525`
+        (start    ? `Estimated start: ${start}\n` : '') +
+        (endD     ? `Estimated completion: ${endD}\n` : '') +
+        `This quote is valid for 30 days.\n\n` +
+        `To accept or decline, just tap the relevant link below:\n\n` +
+        `ACCEPT this quote:\n<${acceptUrl}>\n\n` +
+        `DECLINE this quote:\n<${declineUrl}>\n\n` +
+        `Any questions at all, simply reply to this email or call/WhatsApp me on 07595 399525.\n\n` +
+        `Kind regards,\nChris\nP&R Solutions\n07595 399525`
       );
 
       const subject = encodeURIComponent('Your Render Quotation from P&R Solutions — ' + qNum);
