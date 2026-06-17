@@ -406,6 +406,12 @@
     .mat-info { flex: 1; min-width: 0; }
     .mat-name { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
     .mat-sub  { font-size: 12px; color: var(--muted2); }
+    .mat-chip { background: var(--card); border: 1px solid var(--border); color: var(--muted); font-family: var(--brand); font-size: 12px; font-weight: 700; letter-spacing: .3px; padding: 6px 12px; border-radius: 999px; cursor: pointer; }
+    .mat-chip.on { background: var(--green); border-color: var(--green); color: #06210a; }
+    .mat-badge { display: inline-block; font-size: 9px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle; background: #222; color: var(--muted); }
+    .mat-badge.plaster { background: #1d2a3a; color: #7fb2ff; }
+    .mat-badge.render  { background: #2a2410; color: #e0c060; }
+    .mat-badge.ewi     { background: #0f2a0f; color: var(--green); }
     .mat-price { font-size: 16px; font-weight: 800; color: var(--green); font-family: var(--brand); white-space: nowrap; }
     .mat-unit-lbl { font-size: 10px; color: var(--muted); text-align: right; }
 
@@ -695,6 +701,12 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="color:var(--muted);flex-shrink:0"><path d="M9 18l6-6-6-6"/></svg>
     </div>
     <div class="section-hdr">Your Materials</div>
+    <div id="mat-filter" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="mat-chip on" data-cat="all"     onclick="setMatFilter('all')">All</button>
+      <button class="mat-chip"    data-cat="plaster" onclick="setMatFilter('plaster')">Plastering</button>
+      <button class="mat-chip"    data-cat="render"  onclick="setMatFilter('render')">Rendering</button>
+      <button class="mat-chip"    data-cat="ewi"     onclick="setMatFilter('ewi')">EWI</button>
+    </div>
     <div id="mat-list"></div>
     <div id="mat-empty" style="display:none" class="empty"><div class="empty-icon">📦</div><h3>No materials yet</h3><p>Tap + Add to build your list</p></div>
   </div>
@@ -720,6 +732,13 @@
     <input class="inp" id="mat-unit-inp" type="text" placeholder="e.g. 25kg bag, 5L tub, m roll, each">
     <div class="lbl">Price per unit (£)</div>
     <input class="inp" id="mat-price-inp" type="number" step="0.01" min="0" placeholder="0.00" inputmode="decimal">
+    <div class="lbl">Used for</div>
+    <select class="inp" id="mat-cat-inp">
+      <option value="plaster">Plastering</option>
+      <option value="render">Rendering</option>
+      <option value="ewi">EWI</option>
+    </select>
+    <div style="font-size:11px;color:var(--muted2);margin-top:6px;line-height:1.5">Controls which job's material list this shows in (Plaster Visit, Render Visit, or EWI).</div>
     <button class="btn btn-green" style="margin-top:24px" onclick="saveMaterial()">Save Material</button>
   </div>
 </div>
@@ -2112,29 +2131,64 @@ async function saveEdit() {
 var materials = [];
 var calcQtys = {};
 var editingMatId = null;
+var matFilter = 'all';   // Materials screen category filter: all | plaster | render | ewi
+function matCatLabel(c) { return c === 'render' ? 'Render' : c === 'ewi' ? 'EWI' : 'Plaster'; }
+function setMatFilter(c) {
+  matFilter = c;
+  document.querySelectorAll('#mat-filter .mat-chip').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-cat') === c); });
+  renderMaterials();
+}
 var calcForJobId = null; // when set, the cost calculator is costing up this specific job
 
 var DEFAULT_MATERIALS = [
-  { id: 'm_ecorend_x32',       name: 'Ecorend X32 One-Coat Base 25kg',              supplier: 'MKM',    unit: '25kg bag',   price: 12.90 },
-  { id: 'm_finish_plaster',    name: 'Thistle Multi Finish Plaster 25kg',           supplier: 'MKM',    unit: '25kg bag',   price: 9.73  },
-  { id: 'm_bonding_coat',      name: 'Thistle Bonding Coat Plaster 25kg',           supplier: 'MKM',    unit: '25kg bag',   price: 12.92 },
-  { id: 'm_bonding',           name: 'Siniat Universal Bonding Compound (dab adhesive) 25kg', supplier: 'MKM', unit: '25kg bag', price: 9.67 },
-  { id: 'm_grit',              name: 'Grit Plaster',                                supplier: 'ProTec', unit: '25kg bag',   price: 8.00  },
-  { id: 'm_pva',               name: 'Bond It PVA Contractors 5L',                  supplier: 'MKM',    unit: '5L tub',     price: 10.36 },
-  { id: 'm_mesh',              name: 'Fibreglass Mesh',                             supplier: 'SIG',    unit: '50m roll',   price: 18.00 },
-  { id: 'm_scrim_tape',        name: 'Bond It Monster Scrim Tape 48mm×90m',         supplier: 'MKM',    unit: '90m roll',   price: 3.72  },
-  { id: 'm_corner_bead',       name: 'Corner Bead (SS)',                            supplier: 'SIG',    unit: '2.5m each',  price: 2.50  },
-  { id: 'm_stop_bead',         name: 'Stop Bead (SS)',                              supplier: 'SIG',    unit: '3m each',    price: 4.00  },
-  { id: 'm_angle_bead',        name: 'Thin-Coat Angle Bead galv 2400mm',            supplier: 'MKM',    unit: 'each',       price: 1.80  },
-  { id: 'm_orange_tape',       name: 'Orange Dolphin Tape',                         supplier: 'ProTec', unit: 'roll',       price: 6.00  },
-  { id: 'm_blue_tape',         name: 'Blue Dolphin Tape',                           supplier: 'ProTec', unit: 'roll',       price: 4.92  },
-  { id: 'm_ecotherm_pir',      name: 'Ecotherm Eco-Liner PIR Board 2440×1200',      supplier: 'MKM',    unit: 'board',      price: 33.50 },
-  { id: 'm_plasterboard',      name: 'Siniat Standard Plasterboard 1800×900×12.5mm', supplier: 'MKM',   unit: 'sheet',      price: 6.96  },
-  { id: 'm_fireboard',         name: 'Siniat Fire Board 1800×900×12.5mm',           supplier: 'MKM',    unit: 'sheet',      price: 8.58  },
-  { id: 'm_screw_38',          name: 'Drywall Screws 38mm (box 1000)',              supplier: 'MKM',    unit: 'box',        price: 7.70  },
-  { id: 'm_screw_50',          name: 'Drywall Screws 50mm (box 1000)',              supplier: 'MKM',    unit: 'box',        price: 8.68  },
-  { id: 'm_screw_75',          name: 'Drywall Screws 75mm (box 500)',               supplier: 'MKM',    unit: 'box',        price: 16.04 },
-  { id: 'm_screw_100',         name: 'Drywall Screws 100mm (box 200)',              supplier: 'MKM',    unit: 'box',        price: 16.38 },
+  { id: 'm_ecorend_x32',       name: 'Ecorend X32 One-Coat Base 25kg',              supplier: 'MKM',    unit: '25kg bag',   price: 12.90, cat: 'render' },
+  { id: 'm_finish_plaster',    name: 'Thistle Multi Finish Plaster 25kg',           supplier: 'MKM',    unit: '25kg bag',   price: 9.73 , cat: 'plaster' },
+  { id: 'm_bonding_coat',      name: 'Thistle Bonding Coat Plaster 25kg',           supplier: 'MKM',    unit: '25kg bag',   price: 12.92, cat: 'plaster' },
+  { id: 'm_bonding',           name: 'Siniat Universal Bonding Compound (dab adhesive) 25kg', supplier: 'MKM', unit: '25kg bag', price: 9.67, cat: 'plaster' },
+  { id: 'm_grit',              name: 'Grit Plaster',                                supplier: 'ProTec', unit: '25kg bag',   price: 8.00 , cat: 'render' },
+  { id: 'm_pva',               name: 'Bond It PVA Contractors 5L',                  supplier: 'MKM',    unit: '5L tub',     price: 10.36, cat: 'plaster' },
+  { id: 'm_mesh',              name: 'Fibreglass Mesh',                             supplier: 'SIG',    unit: '50m roll',   price: 18.00, cat: 'render' },
+  { id: 'm_scrim_tape',        name: 'Bond It Monster Scrim Tape 48mm×90m',         supplier: 'MKM',    unit: '90m roll',   price: 3.72 , cat: 'plaster' },
+  { id: 'm_corner_bead',       name: 'Corner Bead (SS)',                            supplier: 'SIG',    unit: '2.5m each',  price: 2.50 , cat: 'plaster' },
+  { id: 'm_stop_bead',         name: 'Stop Bead (SS)',                              supplier: 'SIG',    unit: '3m each',    price: 4.00 , cat: 'plaster' },
+  { id: 'm_angle_bead',        name: 'Thin-Coat Angle Bead galv 2400mm',            supplier: 'MKM',    unit: 'each',       price: 1.80 , cat: 'plaster' },
+  { id: 'm_orange_tape',       name: 'Orange Dolphin Tape',                         supplier: 'ProTec', unit: 'roll',       price: 6.00 , cat: 'render' },
+  { id: 'm_blue_tape',         name: 'Blue Dolphin Tape',                           supplier: 'ProTec', unit: 'roll',       price: 4.92 , cat: 'render' },
+  { id: 'm_ecotherm_pir',      name: 'Ecotherm Eco-Liner PIR Board 2440×1200',      supplier: 'MKM',    unit: 'board',      price: 33.50, cat: 'plaster' },
+  { id: 'm_plasterboard',      name: 'Siniat Standard Plasterboard 1800×900×12.5mm', supplier: 'MKM',   unit: 'sheet',      price: 6.96 , cat: 'plaster' },
+  { id: 'm_fireboard',         name: 'Siniat Fire Board 1800×900×12.5mm',           supplier: 'MKM',    unit: 'sheet',      price: 8.58 , cat: 'plaster' },
+  { id: 'm_screw_38',          name: 'Drywall Screws 38mm (box 1000)',              supplier: 'MKM',    unit: 'box',        price: 7.70 , cat: 'plaster' },
+  { id: 'm_screw_50',          name: 'Drywall Screws 50mm (box 1000)',              supplier: 'MKM',    unit: 'box',        price: 8.68 , cat: 'plaster' },
+  { id: 'm_screw_75',          name: 'Drywall Screws 75mm (box 500)',               supplier: 'MKM',    unit: 'box',        price: 16.04, cat: 'plaster' },
+  { id: 'm_screw_100',         name: 'Drywall Screws 100mm (box 200)',              supplier: 'MKM',    unit: 'box',        price: 16.38, cat: 'plaster' },
+  // ---- PPG EWI materials (ex-VAT, latest PPG invoice prices to Jun 2026). Tagged 'ewi' so they only show on EWI jobs. ----
+  { id: 'm_ewi_eps70_40',      name: 'EWI EPS 70E Insulation Board 40mm',           supplier: 'PPG',    unit: 'board',      price: 4.36 , cat: 'ewi' },
+  { id: 'm_ewi_eps70_50',      name: 'EWI EPS 70E Insulation Board 50mm',           supplier: 'PPG',    unit: 'board',      price: 4.47 , cat: 'ewi' },
+  { id: 'm_ewi_eps70_60',      name: 'EWI EPS 70E Insulation Board 60mm',           supplier: 'PPG',    unit: 'board',      price: 5.35 , cat: 'ewi' },
+  { id: 'm_ewi_rockwool_90',   name: 'EWI Rockwool Insulation 90mm 1200×600',       supplier: 'PPG',    unit: 'board',      price: 14.09, cat: 'ewi' },
+  { id: 'm_ewi_adhesive',      name: 'EWI Insulation Panel Adhesive 25kg',          supplier: 'PPG',    unit: '25kg bag',   price: 15.02, cat: 'ewi' },
+  { id: 'm_ewi_basecoat',      name: 'EWI High Performance Render Basecoat 25kg',   supplier: 'PPG',    unit: '25kg bag',   price: 13.87, cat: 'ewi' },
+  { id: 'm_ewi_onecoat',       name: 'EWI One Coat Render 25kg',                    supplier: 'PPG',    unit: '25kg bag',   price: 8.96 , cat: 'ewi' },
+  { id: 'm_ewi_sil_render',    name: 'EWI 1.5mm Full Silicone Render (white)',      supplier: 'PPG',    unit: 'tub',        price: 77.93, cat: 'ewi' },
+  { id: 'm_ewi_sil_primer',    name: 'EWI Full Silicone Render Primer (white)',     supplier: 'PPG',    unit: 'tub',        price: 77.93, cat: 'ewi' },
+  { id: 'm_ewi_js_render',     name: 'JS Silicone Enhanced Render 1.5mm',           supplier: 'PPG',    unit: 'tub',        price: 52.00, cat: 'ewi' },
+  { id: 'm_ewi_js_primer',     name: 'JS Silicone Enhanced Primer 15L',             supplier: 'PPG',    unit: '15L tub',    price: 59.02, cat: 'ewi' },
+  { id: 'm_ewi_mesh_roll',     name: 'EWI Reinforcing Mesh Roll R122 50m×10cm',     supplier: 'PPG',    unit: 'roll',       price: 49.80, cat: 'ewi' },
+  { id: 'm_ewi_mesh_cloth',    name: 'EWI Render Reinforcing Mesh Cloth R122',      supplier: 'PPG',    unit: 'roll',       price: 43.91, cat: 'ewi' },
+  { id: 'm_ewi_basetrack_40',  name: 'EWI Aluminium Base Track 2.5m 40mm',          supplier: 'PPG',    unit: 'each',       price: 7.00 , cat: 'ewi' },
+  { id: 'm_ewi_basetrack_60',  name: 'EWI Aluminium Base Track 2.5m 60mm',          supplier: 'PPG',    unit: 'each',       price: 7.47 , cat: 'ewi' },
+  { id: 'm_ewi_basetrack_100', name: 'EWI Aluminium Base Track 2.5m 100mm',         supplier: 'PPG',    unit: 'each',       price: 9.81 , cat: 'ewi' },
+  { id: 'm_ewi_basetrack_150', name: 'EWI Aluminium Base Track 2.5m 150mm',         supplier: 'PPG',    unit: 'each',       price: 12.73, cat: 'ewi' },
+  { id: 'm_ewi_boxbase_clip',  name: 'EWI Box Base Clip Nose 2.5m 6mm',             supplier: 'PPG',    unit: 'each',       price: 6.09 , cat: 'ewi' },
+  { id: 'm_ewi_verge',         name: 'EWI 1.2mm Aluminium White Verge Trim',        supplier: 'PPG',    unit: 'each',       price: 23.59, cat: 'ewi' },
+  { id: 'm_ewi_verge_clip',    name: 'EWI Verge Trim Joint Clip 100mm',             supplier: 'PPG',    unit: 'each',       price: 6.23 , cat: 'ewi' },
+  { id: 'm_ewi_expansion_bead',name: 'EWI White Plastic Expansion Bead 2.5m',       supplier: 'PPG',    unit: 'each',       price: 6.06 , cat: 'ewi' },
+  { id: 'm_ewi_stop_bead',     name: 'EWI White Plastic Stop Bead 2.5m 10mm',       supplier: 'PPG',    unit: 'each',       price: 2.69 , cat: 'ewi' },
+  { id: 'm_ewi_angle_bead',    name: 'EWI White Plastic Angle Bead 2.5m',           supplier: 'PPG',    unit: 'each',       price: 3.15 , cat: 'ewi' },
+  { id: 'm_ewi_seal_tape',     name: 'EWI Compression Seal Tape 10m 25×6',          supplier: 'PPG',    unit: 'roll',       price: 8.07 , cat: 'ewi' },
+  { id: 'm_ewi_starplug',      name: 'EWI Star Plug Fixings (box 500)',             supplier: 'PPG',    unit: 'box',        price: 9.60 , cat: 'ewi' },
+  { id: 'm_ewi_fix_rfx',       name: 'EWI R-FX-N Insulation Fixings (pack 100)',    supplier: 'PPG',    unit: 'pack',       price: 4.43 , cat: 'ewi' },
+  { id: 'm_ewi_idk',           name: 'EWI IDK-N 8/60 75mm Fixings (box 200)',       supplier: 'PPG',    unit: 'box',        price: 33.77, cat: 'ewi' },
 ];
 
 // One-time price correction from MKM invoices (June 2026). Updates the price/name/unit of these
@@ -2162,6 +2216,29 @@ function applyMkmPriceSync() {
     } else { materials.push({ id: d.id, name: d.name, supplier: d.supplier, unit: d.unit, price: d.price }); changed = true; }
   });
   try { localStorage.setItem('pr_materials_sync', MATERIALS_SYNC_VERSION); } catch(e) {}
+  return changed;
+}
+
+// One-time (Jun 2026): tag every existing material with a category (cat) so the visit forms can
+// show only the relevant list, and add the PPG EWI materials. Runs once per device, then syncs up.
+// Existing items only get a cat if they don't already have one (so user re-tags survive); user-custom
+// items left untagged stay visible everywhere. Missing EWI defaults are added here.
+var PPG_EWI_SYNC_VERSION = 'ppg-ewi-2026-06';
+function applyPpgEwiSync() {
+  try { if (localStorage.getItem('pr_ppg_ewi_sync') === PPG_EWI_SYNC_VERSION) return false; } catch(e) {}
+  var defById = {}; DEFAULT_MATERIALS.forEach(function(d){ defById[d.id] = d; });
+  var curById = {}; materials.forEach(function(m){ curById[m.id] = m; });
+  var changed = false;
+  DEFAULT_MATERIALS.forEach(function(d) {
+    var m = curById[d.id];
+    if (m) {
+      if (!m.cat && d.cat) { m.cat = d.cat; changed = true; }      // backfill category, keep any user re-tag
+    } else if (d.cat === 'ewi') {
+      materials.push({ id: d.id, name: d.name, supplier: d.supplier, unit: d.unit, price: d.price, cat: d.cat });
+      changed = true;                                              // add the new EWI items
+    }
+  });
+  try { localStorage.setItem('pr_ppg_ewi_sync', PPG_EWI_SYNC_VERSION); } catch(e) {}
   return changed;
 }
 
@@ -2233,23 +2310,33 @@ async function loadMaterials() {
     renderMaterials();
     try { sbSaveMaterials(); } catch(e) {}
   }
+
+  // One-time category tagging + PPG EWI materials (after cloud reconcile so it wins + propagates).
+  if (applyPpgEwiSync()) {
+    persistMaterialsLocal(Date.now());
+    renderMaterials();
+    try { sbSaveMaterials(); } catch(e) {}
+  }
 }
 
 function renderMaterials() {
   var list = document.getElementById('mat-list');
   var empty = document.getElementById('mat-empty');
-  if (!materials.length) {
+  var shown = materials.filter(function(m){ return matFilter === 'all' || (m.cat || 'plaster') === matFilter; });
+  if (!shown.length) {
     list.innerHTML = '';
     empty.style.display = 'block';
     return;
   }
   empty.style.display = 'none';
   var html = '';
-  materials.forEach(function(m) {
+  shown.forEach(function(m) {
     var sub = [m.supplier, m.unit].filter(Boolean).join(' · ');
+    var cat = m.cat || 'plaster';
+    var badge = '<span class="mat-badge ' + cat + '">' + matCatLabel(cat) + '</span>';
     html += '<div class="mat-item" onclick="showMatForm(\'' + m.id + '\')">'
       + '<div class="mat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>'
-      + '<div class="mat-info"><div class="mat-name">' + esc(m.name) + '</div><div class="mat-sub">' + esc(sub) + '</div></div>'
+      + '<div class="mat-info"><div class="mat-name">' + esc(m.name) + badge + '</div><div class="mat-sub">' + esc(sub) + '</div></div>'
       + '<div style="text-align:right"><div class="mat-price">£' + parseFloat(m.price || 0).toFixed(2) + '</div><div class="mat-unit-lbl">per ' + esc(m.unit || 'unit') + '</div></div>'
       + '</div>';
   });
@@ -2264,6 +2351,7 @@ function showMatForm(id) {
   document.getElementById('mat-supplier-inp').value = m ? (m.supplier || '') : '';
   document.getElementById('mat-unit-inp').value = m ? (m.unit || '') : '';
   document.getElementById('mat-price-inp').value = m ? m.price : '';
+  document.getElementById('mat-cat-inp').value = (m && m.cat) ? m.cat : (matFilter !== 'all' ? matFilter : 'plaster');
   document.getElementById('mat-form-title').textContent = id ? 'Edit Material' : 'Add Material';
   document.getElementById('mat-delete-btn').style.display = id ? 'inline-block' : 'none';
   showScreen('screen-mat-form');
@@ -2274,10 +2362,11 @@ function saveMaterial() {
   var supplier = document.getElementById('mat-supplier-inp').value.trim();
   var unit = document.getElementById('mat-unit-inp').value.trim();
   var price = parseFloat(document.getElementById('mat-price-inp').value) || 0;
+  var cat = document.getElementById('mat-cat-inp').value || 'plaster';
   if (!name) { toast('Enter a material name'); return; }
   if (!price) { toast('Enter a price per unit'); return; }
   var id = editingMatId || ('m_' + Date.now());
-  var mat = { id: id, name: name, supplier: supplier, unit: unit, price: price };
+  var mat = { id: id, name: name, supplier: supplier, unit: unit, price: price, cat: cat };
   var idx = materials.findIndex(function(x){ return x.id === id; });
   if (idx > -1) { materials[idx] = mat; } else { materials.push(mat); }
   lsSaveMaterials();
