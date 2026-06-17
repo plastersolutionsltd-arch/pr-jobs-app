@@ -1582,6 +1582,7 @@ function parseFreetextMessage(raw) {
             }
           });
         }
+        refreshExtraDropdowns();   // EWI vs render changed → update each elevation's material list
         calcMaterials();
       });
       card.querySelector('.elev-rate').addEventListener('input', calcMaterials);
@@ -1615,22 +1616,40 @@ function parseFreetextMessage(raw) {
     // ---- Extra-material picker: pulls the main app's price list (pr_materials), ex-VAT ----
     // Seed list used only if the app's saved list isn't on this device yet.
     const EXTRA_MAT_DEFAULTS = [
-      { name: 'Thistle Bonding Coat Plaster 25kg', unit: '25kg bag', price: 12.92 },
-      { name: 'Siniat Universal Bonding Compound (dab adhesive) 25kg', unit: '25kg bag', price: 9.67 },
-      { name: 'Thistle Multi Finish Plaster 25kg', unit: '25kg bag', price: 9.73 },
-      { name: 'Bond It PVA Contractors 5L', unit: '5L tub', price: 10.36 },
-      { name: 'Thin-Coat Angle Bead galv 2400mm', unit: 'each', price: 1.80 },
-      { name: 'Corner Bead (SS)', unit: '2.5m each', price: 2.50 },
-      { name: 'Stop Bead (SS)', unit: '3m each', price: 4.00 },
-      { name: 'Fibreglass Mesh', unit: '50m roll', price: 18.00 },
-      { name: 'Bond It Monster Scrim Tape 48mm×90m', unit: '90m roll', price: 3.72 },
-      { name: 'Siniat Standard Plasterboard 1800×900×12.5mm', unit: 'sheet', price: 6.96 },
-      { name: 'Siniat Fire Board 1800×900×12.5mm', unit: 'sheet', price: 8.58 },
-      { name: 'Drywall Screws 38mm (box 1000)', unit: 'box', price: 7.70 },
-      { name: 'Drywall Screws 50mm (box 1000)', unit: 'box', price: 8.68 },
-      { name: 'Drywall Screws 75mm (box 500)', unit: 'box', price: 16.04 },
-      { name: 'Drywall Screws 100mm (box 200)', unit: 'box', price: 16.38 },
-      { name: 'Grit Plaster', unit: '25kg bag', price: 8.00 }
+      // Render finish items
+      { name: 'Ecorend X32 One-Coat Base 25kg', unit: '25kg bag', price: 12.90, cat: 'render' },
+      { name: 'Grit Plaster', unit: '25kg bag', price: 8.00, cat: 'render' },
+      { name: 'Fibreglass Mesh', unit: '50m roll', price: 18.00, cat: 'render' },
+      { name: 'Orange Dolphin Tape', unit: 'roll', price: 6.00, cat: 'render' },
+      { name: 'Blue Dolphin Tape', unit: 'roll', price: 4.92, cat: 'render' },
+      // PPG EWI materials (ex-VAT, latest PPG invoice prices to Jun 2026)
+      { name: 'EWI EPS 70E Insulation Board 40mm', unit: 'board', price: 4.36, cat: 'ewi' },
+      { name: 'EWI EPS 70E Insulation Board 50mm', unit: 'board', price: 4.47, cat: 'ewi' },
+      { name: 'EWI EPS 70E Insulation Board 60mm', unit: 'board', price: 5.35, cat: 'ewi' },
+      { name: 'EWI Rockwool Insulation 90mm 1200×600', unit: 'board', price: 14.09, cat: 'ewi' },
+      { name: 'EWI Insulation Panel Adhesive 25kg', unit: '25kg bag', price: 15.02, cat: 'ewi' },
+      { name: 'EWI High Performance Render Basecoat 25kg', unit: '25kg bag', price: 13.87, cat: 'ewi' },
+      { name: 'EWI One Coat Render 25kg', unit: '25kg bag', price: 8.96, cat: 'ewi' },
+      { name: 'EWI 1.5mm Full Silicone Render (white)', unit: 'tub', price: 77.93, cat: 'ewi' },
+      { name: 'EWI Full Silicone Render Primer (white)', unit: 'tub', price: 77.93, cat: 'ewi' },
+      { name: 'JS Silicone Enhanced Render 1.5mm', unit: 'tub', price: 52.00, cat: 'ewi' },
+      { name: 'JS Silicone Enhanced Primer 15L', unit: '15L tub', price: 59.02, cat: 'ewi' },
+      { name: 'EWI Reinforcing Mesh Roll R122 50m×10cm', unit: 'roll', price: 49.80, cat: 'ewi' },
+      { name: 'EWI Render Reinforcing Mesh Cloth R122', unit: 'roll', price: 43.91, cat: 'ewi' },
+      { name: 'EWI Aluminium Base Track 2.5m 40mm', unit: 'each', price: 7.00, cat: 'ewi' },
+      { name: 'EWI Aluminium Base Track 2.5m 60mm', unit: 'each', price: 7.47, cat: 'ewi' },
+      { name: 'EWI Aluminium Base Track 2.5m 100mm', unit: 'each', price: 9.81, cat: 'ewi' },
+      { name: 'EWI Aluminium Base Track 2.5m 150mm', unit: 'each', price: 12.73, cat: 'ewi' },
+      { name: 'EWI Box Base Clip Nose 2.5m 6mm', unit: 'each', price: 6.09, cat: 'ewi' },
+      { name: 'EWI 1.2mm Aluminium White Verge Trim', unit: 'each', price: 23.59, cat: 'ewi' },
+      { name: 'EWI Verge Trim Joint Clip 100mm', unit: 'each', price: 6.23, cat: 'ewi' },
+      { name: 'EWI White Plastic Expansion Bead 2.5m', unit: 'each', price: 6.06, cat: 'ewi' },
+      { name: 'EWI White Plastic Stop Bead 2.5m 10mm', unit: 'each', price: 2.69, cat: 'ewi' },
+      { name: 'EWI White Plastic Angle Bead 2.5m', unit: 'each', price: 3.15, cat: 'ewi' },
+      { name: 'EWI Compression Seal Tape 10m 25×6', unit: 'roll', price: 8.07, cat: 'ewi' },
+      { name: 'EWI Star Plug Fixings (box 500)', unit: 'box', price: 9.60, cat: 'ewi' },
+      { name: 'EWI R-FX-N Insulation Fixings (pack 100)', unit: 'pack', price: 4.43, cat: 'ewi' },
+      { name: 'EWI IDK-N 8/60 75mm Fixings (box 200)', unit: 'box', price: 33.77, cat: 'ewi' }
     ];
     let _extraMats = null;
     function extraMaterialsList() {
@@ -1641,9 +1660,24 @@ function parseFreetextMessage(raw) {
       return _extraMats;
     }
     function extraMatByName(name) { return extraMaterialsList().find(m => m.name === name); }
-    function extraMatOptions(selected) {
+    // An elevation set to EWI shows EWI materials; any other render system shows Render materials.
+    // Untagged items (old/custom) always show, so nothing the user added ever disappears.
+    function matInCat(m, ctx) {
+      const c = (m.cat || '').toLowerCase();
+      if (!c) return true;
+      if (ctx === 'ewi') return c === 'ewi';
+      return c === 'render';
+    }
+    // Which material list an elevation card should offer, based on its chosen render system.
+    function cardMatCat(card) {
+      const tpl = card && card.querySelector('.method-walls') ? card.querySelector('.method-walls').value : '';
+      return templateSystem(tpl) === 'EWI' ? 'ewi' : 'render';
+    }
+    function extraMatOptions(selected, ctx) {
+      ctx = ctx || 'render';
       const opts = ['<option value="">— pick material —</option>'];
       extraMaterialsList().forEach(m => {
+        if (!matInCat(m, ctx) && m.name !== selected) return;   // hide other categories, but keep an already-picked item
         const lbl = m.name + (m.price != null ? '  (£' + Number(m.price).toFixed(2) + (m.unit ? ' / ' + m.unit : '') + ')' : '');
         const sel = (m.name === selected) ? ' selected' : '';
         opts.push('<option value="' + String(m.name).replace(/"/g, '&quot;') + '"' + sel + '>' + lbl + '</option>');
@@ -1653,10 +1687,12 @@ function parseFreetextMessage(raw) {
     }
 
     // Rebuild every existing extra-line dropdown against the current materials list, keeping selections.
+    // Each dropdown follows its own elevation's system (EWI vs render).
     function refreshExtraDropdowns() {
       document.querySelectorAll('.extra-line .ex-mat').forEach(sel => {
         const cur = sel.value;
-        sel.innerHTML = extraMatOptions(cur);
+        const card = sel.closest('.room-card');
+        sel.innerHTML = extraMatOptions(cur, cardMatCat(card));
         // if the previously-picked material is no longer in the list, fall back to "Other" keeping its text
         if (cur && cur !== '__other__' && sel.value !== cur) {
           sel.value = '__other__';
@@ -1697,7 +1733,7 @@ function parseFreetextMessage(raw) {
       line.className = 'extra-line';
       line.innerHTML =
         '<div class="ex-row1">' +
-          '<select class="ex-mat">' + extraMatOptions(selVal) + '</select>' +
+          '<select class="ex-mat">' + extraMatOptions(selVal, cardMatCat(card)) + '</select>' +
           '<input type="number" class="ex-qty" step="1" min="0" placeholder="1" value="' + (d.qty != null ? d.qty : '') + '">' +
           '<input type="number" class="ex-price" step="0.01" min="0" placeholder="0.00" value="' + (d.price != null ? d.price : '') + '">' +
           '<button type="button" class="ex-del" title="Remove">&times;</button>' +
