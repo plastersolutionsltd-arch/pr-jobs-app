@@ -382,7 +382,7 @@
         <div class="upload-title" id="upload-area-title">Take or Choose Photo</div>
         <div class="upload-sub" id="upload-area-sub">Tap to open camera or gallery</div>
       </div>
-      <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="onPhotoChosen(this)">
+      <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="onPhotoChosen(this)">
 
       <!-- Reference selector -->
       <div class="sec-lbl">Set scale using a reference in the photo</div>
@@ -865,6 +865,7 @@ async function saveToJob() {
   function _compact(j) {
     const c = Object.assign({}, j);
     if (c.siteVisit && c.siteVisit.photos) c.siteVisit = Object.assign({}, c.siteVisit, { photos: c.siteVisit.photos.map(p => ({ caption: p.caption||'' })) });
+    if (c.renderVisit && c.renderVisit.photos) c.renderVisit = Object.assign({}, c.renderVisit, { photos: c.renderVisit.photos.map(p => ({ caption: p.caption||'', room: p.room||'' })) });
     if (c.renderPreviews) c.renderPreviews = c.renderPreviews.map(r => { const rc=Object.assign({},r); delete rc.imageDataUrl; return rc; });
     return c;
   }
@@ -1062,9 +1063,21 @@ function startPhoto() {
   setTimeout(buildSVPhotoPicker, 2000);
 }
 
+// Photos to measure on come from the render visit (primary) and the plaster site
+// visit, de-duped. Only photos that still carry image data are usable here.
+function jobPhotos() {
+  const out = [], seen = new Set();
+  const add = arr => (arr || []).forEach(p => {
+    if (p && p.dataUrl && !seen.has(p.dataUrl)) { seen.add(p.dataUrl); out.push(p); }
+  });
+  add(job?.renderVisit?.photos);
+  add(job?.siteVisit?.photos);
+  return out;
+}
+
 function buildSVPhotoPicker() {
   const loadingEl = document.getElementById('sv-photos-loading');
-  const svPhotos = job?.siteVisit?.photos;
+  const svPhotos = jobPhotos();
   const section = document.getElementById('sv-photos-section');
   const grid    = document.getElementById('sv-photo-grid');
   if (!svPhotos || !svPhotos.length) {
@@ -1083,7 +1096,7 @@ function buildSVPhotoPicker() {
 }
 
 function selectSVPhoto(i) {
-  const svPhotos = job?.siteVisit?.photos;
+  const svPhotos = jobPhotos();
   if (!svPhotos || !svPhotos[i]) return;
   // Deselect all
   document.querySelectorAll('.sv-photo-thumb').forEach(el => el.classList.remove('sel'));
@@ -1884,7 +1897,7 @@ function buildCountSVStrip() {
   const section  = document.getElementById('count-sv-section');
   const strip    = document.getElementById('count-sv-strip');
   const bigimg   = document.getElementById('count-sv-bigimg');
-  const svPhotos = job?.siteVisit?.photos;
+  const svPhotos = jobPhotos();
   _countRefPhotoIdx = null;
   csvDetachPointers();
   bigimg.style.display = 'none';
@@ -1898,7 +1911,7 @@ function buildCountSVStrip() {
 }
 
 function toggleCountPhoto(i) {
-  const svPhotos = job?.siteVisit?.photos;
+  const svPhotos = jobPhotos();
   if (!svPhotos || !svPhotos[i]) return;
   const bigimg = document.getElementById('count-sv-bigimg');
   document.querySelectorAll('.count-sv-thumb').forEach(el => el.classList.remove('active'));
