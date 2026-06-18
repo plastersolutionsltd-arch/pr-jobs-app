@@ -713,6 +713,10 @@
         </div>
         <div id="fees-rows"></div>
         <button class="btn-add" onclick="addRow('fees')">+ Add fee</button>
+        <label id="hide-skip-wrap" style="display:none;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:#333;cursor:pointer">
+          <input type="checkbox" id="hide-skip" onchange="update()" style="width:16px;height:16px;accent-color:var(--green)">
+          Include skip hire in the render price (don't show it as a separate line)
+        </label>
       </div>
 
       <div class="form-section">
@@ -1330,6 +1334,8 @@
       if (qd.notes)        document.getElementById('notes').value         = qd.notes;
       if (qd.vatRate)      document.getElementById('vat-rate').value      = qd.vatRate;
       if (qd.photoCaption) document.getElementById('photo-caption').value = qd.photoCaption;
+      const hideSkipEl = document.getElementById('hide-skip');
+      if (hideSkipEl) hideSkipEl.checked = !!qd.hideSkip;
       (qd.labourRows || []).forEach(r => {
         addRow('labour');
         const id = rows.labour[rows.labour.length - 1];
@@ -1686,13 +1692,17 @@
       if (el) el.textContent = text;
     }
 
-    function buildRows(type, tbodyId) {
+    function buildRows(type, tbodyId, opts = {}) {
       const tbody = document.getElementById(tbodyId);
       tbody.innerHTML = '';
       let total = 0;
       let hasRows = false;
+      let folded = false; // skip-hire amount folded into the first labour line only
 
       rows[type].forEach(id => {
+        // When hiding the skip line, drop it from the fees list entirely (its £ is
+        // folded into the render line instead, so the total stays the same).
+        if (opts.excludeId && id === opts.excludeId) return;
         const desc = document.querySelector(`[data-id="${id}"][data-field="desc"]`)?.value?.trim();
         let amount = 0;
 
@@ -1702,6 +1712,7 @@
           const manualTotal = parseFloat(document.getElementById('row-total-' + id)?.value) || 0;
           amount = (qty > 0 && unit > 0) ? qty * unit : manualTotal;
           if (desc || amount > 0) {
+            if (opts.addAmount && !folded) { amount += opts.addAmount; folded = true; }
             hasRows = true;
             total += amount;
             const tr = document.createElement('tr');
@@ -1795,6 +1806,7 @@
         startDate: v('start-date'), endDate: v('end-date'), notes: v('notes'),
         vatRate: v('vat-rate'), photoCaption: v('photo-caption'),
         labourRows, feesRows,
+        hideSkip: document.getElementById('hide-skip')?.checked || false,
         savedAt: new Date().toISOString(),
       };
       job.quote = {
@@ -2143,9 +2155,33 @@ All works carried out in full accordance with manufacturer's specification. Full
       document.getElementById('p-notes').textContent = notes;
       document.getElementById('p-scope-wrap').style.display = notes ? 'block' : 'none';
 
-      const labourTotal = buildRows('labour', 'p-labour-rows');
+      // Skip hire: optionally fold it into the render price instead of showing a line.
+      let skipRowId = null, skipAmount = 0;
+      for (const id of rows.fees) {
+        const d = document.querySelector(`[data-id="${id}"][data-field="desc"]`)?.value || '';
+        if (/skip hire/i.test(d)) {
+          skipRowId = id;
+          skipAmount = parseFloat(document.querySelector(`[data-id="${id}"][data-field="cost"]`)?.value) || 0;
+          break;
+        }
+      }
+      // Only offer the toggle when there's actually a skip line on the quote.
+      const skipWrap = document.getElementById('hide-skip-wrap');
+      if (skipWrap) skipWrap.style.display = (skipRowId && skipAmount > 0) ? 'flex' : 'none';
+      // Need at least one render/labour line to absorb the skip; otherwise keep it visible.
+      const canFold = rows.labour.some(id => {
+        const desc = document.querySelector(`[data-id="${id}"][data-field="desc"]`)?.value?.trim();
+        const qty  = parseFloat(document.querySelector(`[data-id="${id}"][data-field="qty"]`)?.value) || 0;
+        const unit = parseFloat(document.querySelector(`[data-id="${id}"][data-field="unit"]`)?.value) || 0;
+        const mt   = parseFloat(document.getElementById('row-total-' + id)?.value) || 0;
+        const amt  = (qty > 0 && unit > 0) ? qty * unit : mt;
+        return desc || amt > 0;
+      });
+      const hideSkip = document.getElementById('hide-skip')?.checked && skipRowId && skipAmount > 0 && canFold;
+
+      const labourTotal = buildRows('labour', 'p-labour-rows', { addAmount: hideSkip ? skipAmount : 0 });
       const matTotal = 0;
-      const feesTotal = buildRows('fees', 'p-fees-rows');
+      const feesTotal = buildRows('fees', 'p-fees-rows', { excludeId: hideSkip ? skipRowId : null });
 
       const subtotal = labourTotal + matTotal + feesTotal;
       const vatRate = parseFloat(v('vat-rate')) || 0;
