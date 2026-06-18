@@ -709,7 +709,7 @@
         <div class="f"><label>M160 mesh m²/roll</label><input type="number" id="cov-mesh" value="50" step="1" min="0.1" oninput="calcMaterials()"></div>
         <div class="f"><label>SFP15 primer m²/tub</label><input type="number" id="cov-primer" value="80" step="0.5" min="0.1" oninput="calcMaterials()"></div>
         <div class="f"><label>SR15 topcoat m²/tub</label><input type="number" id="cov-top" value="9" step="0.5" min="0.1" oninput="calcMaterials()"></div>
-        <div class="f"><label>Monocouche m²/bag</label><input type="number" id="cov-mono" value="4" step="0.5" min="0.1" oninput="calcMaterials()"></div>
+        <div class="f"><label>Monocouche m²/bag</label><input type="number" id="cov-mono" value="1" step="0.5" min="0.1" oninput="calcMaterials()"></div>
         <div class="f"><label>EWI EPS m²/board</label><input type="number" id="cov-eps" value="0.72" step="0.01" min="0.1" oninput="calcMaterials()"></div>
         <div class="f"><label>EWI fixings m²/box</label><input type="number" id="cov-fixings" value="10" step="1" min="0.1" oninput="calcMaterials()"></div>
       </div>
@@ -1599,7 +1599,7 @@ function parseFreetextMessage(raw) {
       // Render finish items
       { name: 'Ecorend X32 One-Coat Base 25kg', unit: '25kg bag', price: 12.90, cat: 'render' },
       { name: 'Grit Plaster', unit: '25kg bag', price: 8.00, cat: 'render' },
-      { name: 'Fibreglass Mesh', unit: '50m roll', price: 18.00, cat: 'render' },
+      { name: 'EcoRend M160 Mesh', unit: '50m² roll', price: 64.19, cat: 'render' },
       { name: 'Orange Dolphin Tape', unit: 'roll', price: 6.00, cat: 'render' },
       { name: 'Blue Dolphin Tape', unit: 'roll', price: 4.92, cat: 'render' },
       // PPG EWI materials (ex-VAT, latest PPG invoice prices to Jun 2026)
@@ -1793,7 +1793,7 @@ function parseFreetextMessage(raw) {
     function templateSystem(key) { return (TEMPLATE_BY_KEY[key] || {}).system || ''; }
     function templateRate(key)   { return (TEMPLATE_BY_KEY[key] || {}).rate || 0; }
     let _matCopyText = '';
-    let _jobPrice = 0;                                  // sum of per-elevation customer price (rate × area)
+    let _jobPrice = 0;                                  // customer render price (Σ rate × area) + per-elevation labour
     let _matCost = { subtotal: 0, vat: 0, total: 0 };   // ex-VAT subtotal, VAT, inc-VAT total (materials, incl. extras)
     let _jobLabour = 0;                                 // sum of per-elevation labour (on-site estimate only, NOT sent to invoice)
     const MAT_VAT = 0.20;
@@ -1838,7 +1838,7 @@ function parseFreetextMessage(raw) {
         mesh:    rate('cov-mesh', 50),
         primer:  rate('cov-primer', 80),
         top:     rate('cov-top', 9),
-        mono:    rate('cov-mono', 4),
+        mono:    rate('cov-mono', 1),
         eps:     rate('cov-eps', 0.72),
         fixings: rate('cov-fixings', 10)
       };
@@ -1973,7 +1973,9 @@ function parseFreetextMessage(raw) {
       const subtotal = grandCostEx;
       _matCost = { subtotal: subtotal, vat: subtotal * MAT_VAT, total: subtotal * (1 + MAT_VAT) };
       _jobLabour = grandLabour;
-      _jobPrice = grandPrice;
+      // Per-elevation Labour £ is for extra services on top of the £/m² rate — it adds
+      // to what the customer pays, folded into the render line (no separate quote line).
+      _jobPrice = grandPrice + grandLabour;
       document.getElementById('mat-cost-ex').textContent  = '\u00a3' + _matCost.subtotal.toFixed(2);
       document.getElementById('mat-cost-inc').textContent = '\u00a3' + _matCost.total.toFixed(2);
       // Labour + grand-total rows (on-site estimate only \u2014 not sent to the invoice)
@@ -1991,7 +1993,7 @@ function parseFreetextMessage(raw) {
       const skipVal  = document.getElementById('skip-size')?.value || '';
       const skipCost = skipVal ? (parseFloat(skipVal.split('|')[1]) || 0) : 0;
       const scaffoldCost = parseFloat(document.getElementById('scaffold-cost')?.value) || 0;
-      const quoteTotal = grandPrice + extraAmt + skipCost + scaffoldCost;
+      const quoteTotal = _jobPrice + extraAmt + skipCost + scaffoldCost;
       const quoteRow = document.getElementById('mat-quote-row');
       const quoteBd  = document.getElementById('mat-quote-breakdown');
       if (quoteTotal > 0) {
@@ -1999,7 +2001,7 @@ function parseFreetextMessage(raw) {
         quoteRow.style.display = '';
         // Show a small breakdown only when there's more than just the render price
         if (grandPrice > 0 && (extraAmt > 0 || skipCost > 0 || scaffoldCost > 0)) {
-          const parts = ['Render \u00a3' + grandPrice.toFixed(2)];
+          const parts = ['Render \u00a3' + _jobPrice.toFixed(2)];
           if (extraAmt > 0) parts.push('Extra \u00a3' + extraAmt.toFixed(2));
           if (scaffoldCost > 0) parts.push('Scaffold \u00a3' + scaffoldCost.toFixed(2));
           if (skipCost > 0) parts.push('Skip \u00a3' + skipCost.toFixed(2));
