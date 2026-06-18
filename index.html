@@ -2147,7 +2147,7 @@ var DEFAULT_MATERIALS = [
   { id: 'm_bonding',           name: 'Siniat Universal Bonding Compound (dab adhesive) 25kg', supplier: 'MKM', unit: '25kg bag', price: 9.67, cat: 'plaster' },
   { id: 'm_grit',              name: 'Grit Plaster',                                supplier: 'ProTec', unit: '25kg bag',   price: 8.00 , cat: 'render' },
   { id: 'm_pva',               name: 'Bond It PVA Contractors 5L',                  supplier: 'MKM',    unit: '5L tub',     price: 10.36, cat: 'plaster' },
-  { id: 'm_mesh',              name: 'Fibreglass Mesh',                             supplier: 'SIG',    unit: '50m roll',   price: 18.00, cat: 'render' },
+  { id: 'm_mesh',              name: 'EcoRend M160 Mesh',                           supplier: 'ProTec', unit: '50m² roll',  price: 64.19, cat: 'render' },
   { id: 'm_scrim_tape',        name: 'Bond It Monster Scrim Tape 48mm×90m',         supplier: 'MKM',    unit: '90m roll',   price: 3.72 , cat: 'plaster' },
   { id: 'm_corner_bead',       name: 'Corner Bead (SS)',                            supplier: 'SIG',    unit: '2.5m each',  price: 2.50 , cat: 'plaster' },
   { id: 'm_stop_bead',         name: 'Stop Bead (SS)',                              supplier: 'SIG',    unit: '3m each',    price: 4.00 , cat: 'plaster' },
@@ -2242,6 +2242,32 @@ function applyPpgEwiSync() {
   return changed;
 }
 
+// One-time (Jun 2026): correct render items that had wrong defaults — the old "Fibreglass Mesh
+// (SIG £18)" is really the EcoRend M160 mesh (ProTec £64.19). Re-syncs name/supplier/unit/price
+// for the listed ids from DEFAULT_MATERIALS. Separate flag so it doesn't touch other edits.
+var RENDER_FIX_SYNC_VERSION = 'render-fix-2026-06';
+var RENDER_FIX_SYNC = ['m_mesh'];
+function applyRenderFixSync() {
+  try { if (localStorage.getItem('pr_render_fix_sync') === RENDER_FIX_SYNC_VERSION) return false; } catch(e) {}
+  var defById = {}; DEFAULT_MATERIALS.forEach(function(d){ defById[d.id] = d; });
+  var curById = {}; materials.forEach(function(m){ curById[m.id] = m; });
+  var changed = false;
+  RENDER_FIX_SYNC.forEach(function(id) {
+    var d = defById[id]; if (!d) return;
+    var m = curById[id];
+    if (m) {
+      if (m.price !== d.price || m.name !== d.name || m.unit !== d.unit || m.supplier !== d.supplier) {
+        m.price = d.price; m.name = d.name; m.unit = d.unit; m.supplier = d.supplier; if (d.cat) m.cat = d.cat; changed = true;
+      }
+    } else {
+      materials.push({ id: d.id, name: d.name, supplier: d.supplier, unit: d.unit, price: d.price, cat: d.cat });
+      changed = true;
+    }
+  });
+  try { localStorage.setItem('pr_render_fix_sync', RENDER_FIX_SYNC_VERSION); } catch(e) {}
+  return changed;
+}
+
 // Write the materials list locally with a given edit timestamp (ts is only bumped on real edits)
 function persistMaterialsLocal(ts) {
   try {
@@ -2313,6 +2339,13 @@ async function loadMaterials() {
 
   // One-time category tagging + PPG EWI materials (after cloud reconcile so it wins + propagates).
   if (applyPpgEwiSync()) {
+    persistMaterialsLocal(Date.now());
+    renderMaterials();
+    try { sbSaveMaterials(); } catch(e) {}
+  }
+
+  // One-time render-item corrections (mesh £18→£64.19 EcoRend M160).
+  if (applyRenderFixSync()) {
     persistMaterialsLocal(Date.now());
     renderMaterials();
     try { sbSaveMaterials(); } catch(e) {}
