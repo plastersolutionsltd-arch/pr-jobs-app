@@ -2154,6 +2154,11 @@ var DEFAULT_MATERIALS = [
   { id: 'm_angle_bead',        name: 'Thin-Coat Angle Bead galv 2400mm',            supplier: 'MKM',    unit: 'each',       price: 1.80 , cat: 'plaster' },
   { id: 'm_orange_tape',       name: 'Orange Dolphin Tape',                         supplier: 'ProTec', unit: 'roll',       price: 6.00 , cat: 'render' },
   { id: 'm_blue_tape',         name: 'Blue Dolphin Tape',                           supplier: 'ProTec', unit: 'roll',       price: 4.92 , cat: 'render' },
+  // ProTec April-2025 price list + 10% (list prices likely outdated — adjust when re-quoted by ProTec)
+  { id: 'm_silancolor_topcoat',  name: 'Silancolor Tonachino 1.5mm (silicone topcoat)', supplier: 'ProTec', unit: 'tub',      price: 67.41, cat: 'render' },
+  { id: 'm_silancolor_basecoat', name: 'Silancolor Basecoat 20kg (silicone basecoat)',  supplier: 'ProTec', unit: '20kg tub', price: 59.71, cat: 'render' },
+  { id: 'm_eco_prim',            name: 'Eco Prim 10kg (bonding primer)',               supplier: 'ProTec', unit: '10kg tub', price: 57.77, cat: 'render' },
+  { id: 'm_grip_all',            name: 'Grip All bead adhesive (box of 12)',           supplier: 'ProTec', unit: 'box of 12', price: 24.81, cat: 'render' },
   { id: 'm_ecotherm_pir',      name: 'Ecotherm Eco-Liner PIR Board 2440×1200',      supplier: 'MKM',    unit: 'board',      price: 33.50, cat: 'plaster' },
   { id: 'm_plasterboard',      name: 'Siniat Standard Plasterboard 1800×900×12.5mm', supplier: 'MKM',   unit: 'sheet',      price: 6.96 , cat: 'plaster' },
   { id: 'm_fireboard',         name: 'Siniat Fire Board 1800×900×12.5mm',           supplier: 'MKM',    unit: 'sheet',      price: 8.58 , cat: 'plaster' },
@@ -2246,7 +2251,7 @@ function applyPpgEwiSync() {
 // (SIG £18)" is really the EcoRend M160 mesh (ProTec £64.19). Re-syncs name/supplier/unit/price
 // for the listed ids from DEFAULT_MATERIALS. Separate flag so it doesn't touch other edits.
 var RENDER_FIX_SYNC_VERSION = 'render-fix-2026-06';
-var RENDER_FIX_SYNC = ['m_mesh'];
+var RENDER_FIX_SYNC = ['m_mesh', 'm_silancolor_topcoat', 'm_silancolor_basecoat', 'm_eco_prim', 'm_grip_all'];
 function applyRenderFixSync() {
   try { if (localStorage.getItem('pr_render_fix_sync') === RENDER_FIX_SYNC_VERSION) return false; } catch(e) {}
   var defById = {}; DEFAULT_MATERIALS.forEach(function(d){ defById[d.id] = d; });
