@@ -931,6 +931,17 @@
             <option value="ewi_brick_block">EWI — Brick &amp; Block</option>
           </optgroup>
         </select>
+        <select onchange="if(this.value){addWorksNote(this.value);this.value=''}" style="font-size:11px;padding:4px 8px;background:#111;color:#66FF33;border:1px solid #333;border-radius:2px;cursor:pointer;font-family:'Lato',sans-serif">
+          <option value="">+ Add works item</option>
+          <option value="bay_window">Bay window — remove old + render boards</option>
+          <option value="hack_off_render">Hack off failed render</option>
+          <option value="crack_repair">Crack repair</option>
+          <option value="new_openings">New / altered openings</option>
+          <option value="beading">Beads to corners &amp; reveals</option>
+          <option value="bellcast">Bellcast / drip bead to sills</option>
+          <option value="biocide_wash">Clean down (biocide wash)</option>
+          <option value="making_good">Make good after others</option>
+        </select>
       </label>
       <textarea id="scope-of-works" placeholder="Describe exactly what's being done — this will pre-fill the quote and invoice..." style="min-height:100px"></textarea>
     </div>
@@ -2432,6 +2443,25 @@ All works carried out in full accordance with manufacturer's specification. Full
       const ta = document.getElementById('scope-of-works');
       if (!ta) return;
       ta.value = SCOPE_TEMPLATES[key] || '';
+    }
+
+    // Professionally-worded individual render works items — appended to the scope so they
+    // stack and flow onto the quote. Pick-and-tweak; edit the wording after if needed.
+    const WORKS_SNIPPETS = {
+      bay_window:     '• Remove all existing render from the bay window, fix new render carrier boards to the bay framework as required, and apply the full render system over the boards to a consistent texture and finish to match the surrounding elevations.',
+      hack_off_render:'• Hack off all blown, hollow and failed render from the affected areas, prepare the exposed substrate and re-render with the matching system to a consistent finish.',
+      crack_repair:   '• Cut out, reinforce and make good all cracked areas of render, re-mesh and re-coat to a consistent texture and finish.',
+      new_openings:   '• Form, bead and make good all reveals, heads and sills to the new/altered openings, and render to match the surrounding elevations.',
+      beading:        '• Supply and fix all stop beads and angle beads to corners, reveals and termination points, levelled and plumbed for clean, true and straight arrises throughout.',
+      bellcast:       '• Supply and fix bellcast / drip beads beneath all sills and at base/termination points to throw water clear of the render.',
+      biocide_wash:   '• Apply a biocidal wash to the existing surface to remove all organic growth, moss and algae, leaving a clean, stable base prior to overcoating.',
+      making_good:    '• Make good all render disturbed by others, blended to match the existing texture and finish.'
+    };
+    function addWorksNote(key) {
+      const ta = document.getElementById('scope-of-works');
+      const txt = WORKS_SNIPPETS[key];
+      if (!ta || !txt) return;
+      ta.value = ta.value.trim() ? (ta.value.replace(/\s+$/, '') + '\n' + txt) : txt;
     }
 
     function removePhoto(pc) {
