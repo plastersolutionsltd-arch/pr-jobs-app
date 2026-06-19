@@ -687,7 +687,7 @@
     <div class="sec">Type of Work</div>
     <div class="f">
         <label>Plaster Type</label>
-        <select id="wt-plastering" onchange="filterFinish()">
+        <select id="wt-plastering">
           <option value="">— None —</option>
           <option>Smooth Skim</option>
           <option>Board &amp; Skim</option>
@@ -799,36 +799,6 @@
       <textarea id="surface-notes" placeholder="Describe any issues, cracks, damp, staining, structural concerns..."></textarea>
     </div>
 
-    <!-- Materials & Finish -->
-    <div class="sec">Materials &amp; Finish</div>
-    <div class="grid-3">
-      <div class="f">
-        <label>Finish Type</label>
-        <select id="finish-type-sel">
-          <option value="">— select —</option>
-          <optgroup label="── Plastering ──" id="finish-plaster-group">
-            <option data-cat="plaster">Smooth Skim</option>
-            <option data-cat="plaster">Dot &amp; Dab</option>
-            <option data-cat="plaster">Bonding Coat</option>
-            <option data-cat="plaster">Sand &amp; Cement (internal)</option>
-            <option data-cat="plaster">Patching &amp; Repair</option>
-            <option data-cat="plaster">Artex Removal</option>
-            <option data-cat="plaster">Coving</option>
-          </optgroup>
-          <option value="">Other</option>
-        </select>
-      </div>
-      <div class="f">
-        <label>Coats Required</label>
-        <select id="coats-required">
-          <option value="">—</option>
-          <option>1 coat</option>
-          <option>2 coats</option>
-          <option>3 coats</option>
-        </select>
-      </div>
-    </div>
-
     <!-- Site Conditions -->
     <div class="sec">Site Conditions</div>
     <div class="grid-2">
@@ -901,13 +871,6 @@
     <div class="f" style="margin-top:6px"><label>Extra charge description</label><input type="text" id="extra-charge-desc" placeholder="e.g. Remove &amp; dispose old plaster"></div>
     <div style="font-size:7pt;color:#bbb;margin-top:4px">Customer quote = labour + materials (per room) + margin % + any extra charge. Skip hire is added automatically.</div>
 
-    <!-- Pricing Notes -->
-    <div class="sec" style="margin-top:6mm">Pricing Notes</div>
-    <div class="f">
-      <label>Notes</label>
-      <input type="text" id="pricing-notes" placeholder="Any cost considerations, difficult access uplift, disposal etc.">
-    </div>
-
     <!-- Scope of Works -->
     <div class="sec">Scope of Works</div>
     <div class="f">
@@ -930,7 +893,7 @@
     <!-- General Notes -->
     <div class="sec">General Notes</div>
     <div class="f">
-      <textarea id="general-notes" placeholder="Any other observations from the visit..." style="min-height:80px"></textarea>
+      <textarea id="general-notes" placeholder="Any other observations — site conditions, cost considerations, access uplift, disposal etc." style="min-height:80px"></textarea>
     </div>
 
     <!-- Footer -->
@@ -1351,13 +1314,6 @@ function parseFreetextMessage(raw) {
         calcMaterials();
       } catch(e) {}
 
-      // ── Work type → finish type & price lookup ──
-      const WORK_PRICE_MAP = {
-        'smooth skim plaster':          { label: 'Smooth Skim Coat',                 finish: 'Smooth Skim', price: 70 },
-        'dry lining / stud walls':      { label: 'Dot & Dab Dry Lining',             finish: 'Dot & Dab',   price: 70 },
-        'patching & repair':            { label: 'Patching & Repair',                finish: 'Patching & Repair', price: 70 },
-      };
-
       // Property type auto-fill
       const _pt = (_p.get('propertyType') || '').toLowerCase();
       if (_pt) {
@@ -1371,27 +1327,6 @@ function parseFreetextMessage(raw) {
         }
       }
 
-      // Pre-fill finish type + pricing row from workType param
-      const _wt = (_p.get('workType') || '').toLowerCase();
-      if (_wt) {
-        let preset = null;
-        for (const [key, val] of Object.entries(WORK_PRICE_MAP)) {
-          if (_wt.includes(key) || key.includes(_wt)) { preset = val; break; }
-        }
-        if (preset) {
-          // Set Finish Type select
-          const finSel = document.getElementById('finish-type-sel');
-          if (finSel) {
-            for (const opt of finSel.options) {
-              if (opt.text.toLowerCase().includes(preset.finish.toLowerCase())) {
-                finSel.value = opt.value; break;
-              }
-            }
-          }
-          // (Customer £/m² is now set per room on the cards above — auto-filled from the
-          // chosen method, editable. No pricing-row prefill needed here.)
-        }
-      }
 
       // ── Restore saved site visit fields (scope, finish, colour, work types, skip, surface) ──
       if (isRestore) {
@@ -1403,12 +1338,10 @@ function parseFreetextMessage(raw) {
         if (sv.existingSurface) { const el = document.getElementById('existing-surface'); if (el) el.value = sv.existingSurface; }
         if (sv.prepRequired)    { const el = document.getElementById('prep-required');    if (el) el.value = sv.prepRequired; }
         if (sv.surfaceNotes)    { const el = document.getElementById('surface-notes');    if (el) el.value = sv.surfaceNotes; }
-        if (sv.coatsRequired)   { const el = document.getElementById('coats-required');   if (el) el.value = sv.coatsRequired; }
         if (sv.access)          { const r = document.querySelector('input[name="access"][value="'   + sv.access   + '"]'); if (r) r.checked = true; }
         if (sv.parking)         { const r = document.querySelector('input[name="parking"][value="'  + sv.parking  + '"]'); if (r) r.checked = true; }
         if (sv.scaffold)        { const r = document.querySelector('input[name="scaffold"][value="' + sv.scaffold + '"]'); if (r) r.checked = true; }
         if (sv.accessNotes)     { const el = document.getElementById('access-notes');     if (el) el.value = sv.accessNotes; }
-        if (sv.pricingNotes)    { const el = document.getElementById('pricing-notes');    if (el) el.value = sv.pricingNotes; }
         if (sv.generalNotes)    { const el = document.getElementById('general-notes');    if (el) el.value = sv.generalNotes; }
         // Restore skip hire
         if (sv.skipTons) {
@@ -1425,14 +1358,6 @@ function parseFreetextMessage(raw) {
           const noRadio = document.querySelector('input[name="skip"][value="no"]');
           if (noRadio) noRadio.checked = true;
         }
-        if (sv.finishType) {
-          const finSel = document.getElementById('finish-type-sel');
-          if (finSel) {
-            for (const opt of finSel.options) {
-              if (opt.text === sv.finishType || opt.value === sv.finishType) { finSel.value = opt.value; break; }
-            }
-          }
-        }
         if (sv.workTypes) {
           const types = sv.workTypes.split(',').map(s => s.trim());
           const plasterSel = document.getElementById('wt-plastering');
@@ -1443,7 +1368,6 @@ function parseFreetextMessage(raw) {
               }
             }
           });
-          filterFinish();
         }
       }
 
@@ -2148,8 +2072,6 @@ function parseFreetextMessage(raw) {
         estTotal:      '£' + (_jobPrice || 0).toFixed(2),
         workTypes:     workTypes,
         scopeOfWorks:  document.getElementById('scope-of-works')?.value.trim() || '',
-        finishType:    document.getElementById('finish-type-sel')?.value || '',
-        coatsRequired: document.getElementById('coats-required')?.value || '',
         access:        document.querySelector('input[name="access"]:checked')?.value || '',
         parking:       document.querySelector('input[name="parking"]:checked')?.value || '',
         scaffold:      document.querySelector('input[name="scaffold"]:checked')?.value || '',
@@ -2165,7 +2087,6 @@ function parseFreetextMessage(raw) {
         prepRequired:   document.getElementById('prep-required')?.value || '',
         surfaceNotes:   document.getElementById('surface-notes')?.value || '',
         accessNotes:    document.getElementById('access-notes')?.value || '',
-        pricingNotes:   document.getElementById('pricing-notes')?.value || '',
         generalNotes:   document.getElementById('general-notes')?.value || '',
         savedAt:        new Date().toISOString(),
         photos:         Object.entries(photoData).map(([, v]) => ({ dataUrl: v.dataUrl, caption: v.caption || '', room: v.room || '' })),
@@ -2305,13 +2226,6 @@ function parseFreetextMessage(raw) {
       // and added to the customer quote total + the quote page's "Skip hire" fee line.
       // Just refresh the totals so the quote reflects the current skip choice.
       calcMaterials();
-    }
-
-    // ── Smart finish filter: show render or plaster options based on work type selected ──
-    function filterFinish() {
-      // Plaster-only form: the plastering finish group is always shown.
-      const plasterGrp = document.getElementById('finish-plaster-group');
-      if (plasterGrp) plasterGrp.style.display = '';
     }
 
     /* ===== SCOPE TEMPLATES ===== */
