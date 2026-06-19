@@ -2152,8 +2152,8 @@ var DEFAULT_MATERIALS = [
   { id: 'm_corner_bead',       name: 'Corner Bead (SS)',                            supplier: 'SIG',    unit: '2.5m each',  price: 2.50 , cat: 'plaster' },
   { id: 'm_stop_bead',         name: 'Stop Bead (SS)',                              supplier: 'SIG',    unit: '3m each',    price: 4.00 , cat: 'plaster' },
   { id: 'm_angle_bead',        name: 'Thin-Coat Angle Bead galv 2400mm',            supplier: 'MKM',    unit: 'each',       price: 1.80 , cat: 'plaster' },
-  { id: 'm_orange_tape',       name: 'Orange Dolphin Tape',                         supplier: 'ProTec', unit: 'roll',       price: 6.00 , cat: 'render' },
-  { id: 'm_blue_tape',         name: 'Blue Dolphin Tape',                           supplier: 'ProTec', unit: 'roll',       price: 4.92 , cat: 'render' },
+  { id: 'm_orange_tape',       name: 'Orange Dolphin Tape',                         supplier: 'ProTec', unit: 'roll',       price: 4.17 , cat: 'render' },
+  { id: 'm_blue_tape',         name: 'Blue Dolphin Tape',                           supplier: 'ProTec', unit: 'roll',       price: 3.42 , cat: 'render' },
   // ProTec April-2025 price list + 10% (list prices likely outdated — adjust when re-quoted by ProTec)
   { id: 'm_silancolor_topcoat',  name: 'Silancolor Tonachino 1.5mm (silicone topcoat)', supplier: 'ProTec', unit: 'tub',      price: 67.41, cat: 'render' },
   { id: 'm_silancolor_basecoat', name: 'Silancolor Basecoat 20kg (silicone basecoat)',  supplier: 'ProTec', unit: '20kg tub', price: 59.71, cat: 'render' },
@@ -2253,8 +2253,8 @@ function applyPpgEwiSync() {
 // One-time (Jun 2026): correct render items that had wrong defaults — the old "Fibreglass Mesh
 // (SIG £18)" is really the EcoRend M160 mesh (ProTec £64.19). Re-syncs name/supplier/unit/price
 // for the listed ids from DEFAULT_MATERIALS. Separate flag so it doesn't touch other edits.
-var RENDER_FIX_SYNC_VERSION = 'render-fix-2026-06';
-var RENDER_FIX_SYNC = ['m_mesh', 'm_silancolor_topcoat', 'm_silancolor_basecoat', 'm_eco_prim', 'm_grip_all', 'm_rj_angle_bead', 'm_rj_bellcast_bead'];
+var RENDER_FIX_SYNC_VERSION = 'render-fix-2026-06b';
+var RENDER_FIX_SYNC = ['m_mesh', 'm_silancolor_topcoat', 'm_silancolor_basecoat', 'm_eco_prim', 'm_grip_all', 'm_rj_angle_bead', 'm_rj_bellcast_bead', 'm_orange_tape', 'm_blue_tape'];
 function applyRenderFixSync() {
   try { if (localStorage.getItem('pr_render_fix_sync') === RENDER_FIX_SYNC_VERSION) return false; } catch(e) {}
   var defById = {}; DEFAULT_MATERIALS.forEach(function(d){ defById[d.id] = d; });
