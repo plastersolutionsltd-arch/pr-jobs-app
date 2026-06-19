@@ -886,6 +886,17 @@
             <option value="plaster_repair">Plaster Repair</option>
           </optgroup>
         </select>
+        <select onchange="if(this.value){addWorksNote(this.value);this.value=''}" style="font-size:11px;padding:4px 8px;background:#111;color:#66FF33;border:1px solid #333;border-radius:2px;cursor:pointer;font-family:'Lato',sans-serif">
+          <option value="">+ Add works item</option>
+          <option value="bay_window">Bay window repair</option>
+          <option value="blown_plaster">Blown plaster — hack off &amp; re-skim</option>
+          <option value="ceiling_crack">Ceiling crack repair</option>
+          <option value="dubbing_out">Dub out / level walls</option>
+          <option value="reveals_openings">New / altered openings (reveals)</option>
+          <option value="artex_removal">Artex removal &amp; skim</option>
+          <option value="damp_salt">Damp / salt treatment</option>
+          <option value="making_good">Make good after others</option>
+        </select>
       </label>
       <textarea id="scope-of-works" placeholder="Describe exactly what's being done — this will pre-fill the quote and invoice..." style="min-height:100px"></textarea>
     </div>
@@ -2265,6 +2276,25 @@ All areas protected with dust sheets prior to works commencing. Debris cleared a
       const ta = document.getElementById('scope-of-works');
       if (!ta) return;
       ta.value = SCOPE_TEMPLATES[key] || '';
+    }
+
+    // Professionally-worded individual plaster works items — appended to the scope so they
+    // stack and flow onto the quote. Pick-and-tweak; edit the wording after if needed.
+    const WORKS_SNIPPETS = {
+      bay_window:      '• Cut out and make good all defective plasterwork to the bay window, reveals and head; prepare the background, re-bond where required and skim to a smooth, paint-ready finish.',
+      blown_plaster:   '• Hack off all blown, hollow and defective plaster, prepare and treat the exposed background, apply bonding coat where required and skim to a smooth, paint-ready finish.',
+      ceiling_crack:   '• Rake out, reinforce and fill all cracked areas to the ceiling, tape as required and skim to a uniform, paint-ready finish.',
+      dubbing_out:     '• Dub out and level all uneven areas to provide a true, flat background prior to skimming.',
+      reveals_openings:'• Form and make good all reveals, heads and soffits to the new/altered openings; prepare and skim to a smooth, paint-ready finish.',
+      artex_removal:   '• Remove or encapsulate the existing Artex coating, prepare the surface and skim to a smooth, paint-ready finish.',
+      damp_salt:       '• Treat all areas affected by damp and salt contamination, apply a suitable salt-retardant render/membrane as required prior to finishing.',
+      making_good:     '• Make good all plasterwork disturbed by others, feathered and blended to match the existing surrounding surfaces.'
+    };
+    function addWorksNote(key) {
+      const ta = document.getElementById('scope-of-works');
+      const txt = WORKS_SNIPPETS[key];
+      if (!ta || !txt) return;
+      ta.value = ta.value.trim() ? (ta.value.replace(/\s+$/, '') + '\n' + txt) : txt;
     }
 
     function removePhoto(pc) {
