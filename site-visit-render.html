@@ -673,7 +673,7 @@
     <div class="sec">Type of Work</div>
     <div class="f">
         <label>Render Type</label>
-        <select id="wt-rendering" onchange="filterFinish()">
+        <select id="wt-rendering">
           <option value="">— None —</option>
           <option>Silicone Render</option>
           <option>Monocouche</option>
@@ -816,15 +816,6 @@
         <label>Dark colour?</label>
         <label style="display:flex;align-items:center;gap:6px;height:38px"><input type="checkbox" id="dark-colour" onchange="calcMaterials()" style="width:16px;height:16px;accent-color:var(--green)"><span style="font-size:12px;color:#555">+ surcharge</span></label>
       </div>
-      <div class="f">
-        <label>Coats Required</label>
-        <select id="coats-required">
-          <option value="">—</option>
-          <option>1 coat</option>
-          <option>2 coats</option>
-          <option>3 coats</option>
-        </select>
-      </div>
     </div>
 
     <!-- Render Preview (shown if a render preview has been saved for this job) -->
@@ -918,13 +909,6 @@
       <div class="f"><label>Amount £</label><input type="number" step="1" min="0" id="extra-charge-amt" placeholder="0" oninput="calcMaterials()"></div>
     </div>
 
-    <!-- Pricing Notes -->
-    <div class="sec" style="margin-top:6mm">Pricing Notes</div>
-    <div class="f">
-      <label>Notes</label>
-      <input type="text" id="pricing-notes" placeholder="Any cost considerations, difficult access uplift, disposal etc.">
-    </div>
-
     <!-- Scope of Works -->
     <div class="sec">Scope of Works</div>
     <div class="f">
@@ -954,7 +938,7 @@
     <!-- General Notes -->
     <div class="sec">General Notes</div>
     <div class="f">
-      <textarea id="general-notes" placeholder="Any other observations from the visit..." style="min-height:80px"></textarea>
+      <textarea id="general-notes" placeholder="Any other observations — site conditions, cost considerations, access uplift, disposal etc." style="min-height:80px"></textarea>
     </div>
 
     <!-- Footer -->
@@ -1367,20 +1351,6 @@ function parseFreetextMessage(raw) {
         calcMaterials();
       } catch(e) {}
 
-      // ── Work type → finish type & price lookup ──
-      const WORK_PRICE_MAP = {
-        'silicone render':              { label: 'Silicone Render — No Hack Off',   finish: 'Full Silicone Render', price: 90 },
-        'k-rend / monocouche':          { label: 'Monocouche — No Hack Off',      finish: 'Monocouche Render',    price: 80 },
-        'k-rend':                       { label: 'K-Rend — No Hack Off',            finish: 'K-Rend',      price: 80 },
-        'monocouche':                   { label: 'Monocouche — No Hack Off',         finish: 'Monocouche Render', price: 80 },
-        'sand & cement render':         { label: 'Sand & Cement Render',             finish: 'Sand & Cement Render', price: 50 },
-        'sand & cement':                { label: 'Sand & Cement',                    finish: 'Sand & Cement Render', price: 50 },
-        'roughcast / pebbledash':       { label: 'Roughcast / Pebbledash',           finish: 'Roughcast / Pebbledash', price: 55 },
-        'roughcast':                    { label: 'Roughcast',                        finish: 'Roughcast / Pebbledash', price: 55 },
-        'ewi (external wall insulation)':{ label: 'EWI System',                     finish: 'EWI System',  price: 120 },
-        'ewi':                          { label: 'EWI System',                       finish: 'EWI System',  price: 120 },
-      };
-
       // Property type auto-fill
       const _pt = (_p.get('propertyType') || '').toLowerCase();
       if (_pt) {
@@ -1394,25 +1364,6 @@ function parseFreetextMessage(raw) {
         }
       }
 
-      // Pre-fill finish type + pricing row from workType param
-      const _wt = (_p.get('workType') || '').toLowerCase();
-      if (_wt) {
-        let preset = null;
-        for (const [key, val] of Object.entries(WORK_PRICE_MAP)) {
-          if (_wt.includes(key) || key.includes(_wt)) { preset = val; break; }
-        }
-        if (preset) {
-          // Set Finish Type select
-          const finSel = document.getElementById('finish-type-sel');
-          if (finSel) {
-            for (const opt of finSel.options) {
-              if (opt.text.toLowerCase().includes(preset.finish.toLowerCase())) {
-                finSel.value = opt.value; break;
-              }
-            }
-          }
-        }
-      }
 
       // ── Restore saved site visit fields (scope, finish, colour, work types, skip, surface) ──
       if (isRestore) {
@@ -1424,14 +1375,12 @@ function parseFreetextMessage(raw) {
         if (sv.existingSurface) { const el = document.getElementById('existing-surface'); if (el) el.value = sv.existingSurface; }
         if (sv.prepRequired)    { const el = document.getElementById('prep-required');    if (el) el.value = sv.prepRequired; }
         if (sv.surfaceNotes)    { const el = document.getElementById('surface-notes');    if (el) el.value = sv.surfaceNotes; }
-        if (sv.coatsRequired)   { const el = document.getElementById('coats-required');   if (el) el.value = sv.coatsRequired; }
         if (sv.access)          { const r = document.querySelector('input[name="access"][value="'   + sv.access   + '"]'); if (r) r.checked = true; }
         if (sv.parking)         { const r = document.querySelector('input[name="parking"][value="'  + sv.parking  + '"]'); if (r) r.checked = true; }
         if (sv.scaffold)        { const r = document.querySelector('input[name="scaffold"][value="' + sv.scaffold + '"]'); if (r) r.checked = true;
           if (sv.scaffoldCost) { const sc = document.getElementById('scaffold-cost'); if (sc) sc.value = sv.scaffoldCost; }
           if (sv.scaffold === 'yes' || sv.scaffold === 'tower') { const w = document.getElementById('scaffold-cost-wrap'); if (w) w.style.display = 'block'; } }
         if (sv.accessNotes)     { const el = document.getElementById('access-notes');     if (el) el.value = sv.accessNotes; }
-        if (sv.pricingNotes)    { const el = document.getElementById('pricing-notes');    if (el) el.value = sv.pricingNotes; }
         if (sv.generalNotes)    { const el = document.getElementById('general-notes');    if (el) el.value = sv.generalNotes; }
         // Restore skip hire
         if (sv.skipTons) {
@@ -1469,7 +1418,6 @@ function parseFreetextMessage(raw) {
               }
             }
           });
-          filterFinish();
         }
       }
 
@@ -2153,7 +2101,6 @@ function parseFreetextMessage(raw) {
         finishType:    document.getElementById('wt-rendering')?.value || '',
         colour:        document.getElementById('colour-render')?.value || '',
         darkColour:    !!document.getElementById('dark-colour')?.checked,
-        coatsRequired: document.getElementById('coats-required')?.value || '',
         extraCharge: {
           desc:   document.getElementById('extra-charge-desc')?.value.trim() || '',
           amount: parseFloat(document.getElementById('extra-charge-amt')?.value) || 0
@@ -2169,7 +2116,6 @@ function parseFreetextMessage(raw) {
         prepRequired:   document.getElementById('prep-required')?.value || '',
         surfaceNotes:   document.getElementById('surface-notes')?.value || '',
         accessNotes:    document.getElementById('access-notes')?.value || '',
-        pricingNotes:   document.getElementById('pricing-notes')?.value || '',
         generalNotes:   document.getElementById('general-notes')?.value || '',
         savedAt:        new Date().toISOString(),
         photos:         Object.entries(photoData).map(([, v]) => ({ dataUrl: v.dataUrl, caption: v.caption || '', room: v.room || '' })),
@@ -2317,11 +2263,6 @@ function parseFreetextMessage(raw) {
       // and added to the customer quote as its own "Skip hire" fee line. No on-form
       // price table any more — just refresh the totals so the quote total includes it.
       if (typeof calcMaterials === 'function') calcMaterials();
-    }
-
-    // ── Smart finish filter: show render or plaster options based on work type selected ──
-    function filterFinish() {
-      // Render-only form: no finish-type groups to toggle.
     }
 
     /* ===== SCOPE TEMPLATES ===== */
