@@ -788,6 +788,33 @@
       <textarea id="surface-notes" placeholder="Describe any issues, cracks, damp, staining, structural concerns..."></textarea>
     </div>
 
+    <!-- Construction → suggested system -->
+    <div class="sec">Construction</div>
+    <div class="grid-2">
+      <div class="f">
+        <label>Wall construction</label>
+        <select id="wall-construction" onchange="suggestSystem()">
+          <option value="">— select —</option>
+          <option value="solid_stone">Solid stone</option>
+          <option value="solid_brick">Solid brick</option>
+          <option value="cavity">Cavity brick &amp; block</option>
+          <option value="existing_render">Existing render / pebbledash</option>
+          <option value="concrete_block">Concrete / block</option>
+        </select>
+      </div>
+      <div class="f">
+        <label>Age (if known)</label>
+        <select id="build-age" onchange="suggestSystem()">
+          <option value="">— select —</option>
+          <option value="pre1919">Pre-1919</option>
+          <option value="1919_1944">1919–1944</option>
+          <option value="1945_1980">1945–1980</option>
+          <option value="post1980">Post-1980</option>
+        </select>
+      </div>
+    </div>
+    <div id="system-suggestion" style="display:none;background:#0d1a0d;border:1px solid rgba(102,255,51,0.3);border-radius:10px;padding:10px 12px;margin-top:8px;font-size:12.5px;color:#cfe;line-height:1.5"></div>
+
     <!-- Finish & Colour -->
     <div class="sec">Finish &amp; Colour</div>
     <div class="grid-3">
@@ -1395,6 +1422,9 @@ function parseFreetextMessage(raw) {
         if (sv.existingSurface) { const el = document.getElementById('existing-surface'); if (el) el.value = sv.existingSurface; }
         if (sv.prepRequired)    { const el = document.getElementById('prep-required');    if (el) el.value = sv.prepRequired; }
         if (sv.surfaceNotes)    { const el = document.getElementById('surface-notes');    if (el) el.value = sv.surfaceNotes; }
+        if (sv.wallConstruction){ const el = document.getElementById('wall-construction'); if (el) el.value = sv.wallConstruction; }
+        if (sv.buildAge)        { const el = document.getElementById('build-age');         if (el) el.value = sv.buildAge; }
+        suggestSystem();
         if (sv.access)          { const r = document.querySelector('input[name="access"][value="'   + sv.access   + '"]'); if (r) r.checked = true; }
         if (sv.parking)         { const r = document.querySelector('input[name="parking"][value="'  + sv.parking  + '"]'); if (r) r.checked = true; }
         if (sv.scaffold)        { const r = document.querySelector('input[name="scaffold"][value="' + sv.scaffold + '"]'); if (r) r.checked = true;
@@ -2139,6 +2169,8 @@ function parseFreetextMessage(raw) {
         existingSurface: document.getElementById('existing-surface')?.value || '',
         prepRequired:   document.getElementById('prep-required')?.value || '',
         surfaceNotes:   document.getElementById('surface-notes')?.value || '',
+        wallConstruction: document.getElementById('wall-construction')?.value || '',
+        buildAge:       document.getElementById('build-age')?.value || '',
         accessNotes:    document.getElementById('access-notes')?.value || '',
         generalNotes:   document.getElementById('general-notes')?.value || '',
         savedAt:        new Date().toISOString(),
@@ -2475,6 +2507,30 @@ All works carried out in full accordance with manufacturer's specification. Full
       const txt = WORKS_SNIPPETS[key];
       if (!ta || !txt) return;
       ta.value = ta.value.trim() ? (ta.value.replace(/\s+$/, '') + '\n' + txt) : txt;
+    }
+
+    // Suggest an EcoRend system from the wall construction. GUIDANCE only — Chris's on-site
+    // judgement + a damp check decide. Key principle: solid/old walls need a BREATHABLE / lime
+    // system (cement renders trap moisture); cavity/modern walls take cement-based silicone/mono.
+    const SYSTEM_SUGGEST = {
+      solid_stone:     'Solid stone → breathable LIME system: EcoRend LMR1 Lime Monocouche. Avoid cement-based renders (they trap moisture in solid walls). Allow extra material + labour for an uneven substrate.',
+      solid_brick:     'Solid brick → breathable system recommended: EcoRend LMR1 Lime Monocouche, or a breathable silicone finish (X32 base + M160 mesh + SP15 + SR15) only if the wall is sound and dry. No dense cement renders.',
+      cavity:          'Cavity brick & block → standard EcoRend SR15 Silicone system (X32 base ~10mm + M160 mesh + SP15 primer + SR15 1.5mm topcoat), or EcoRend OCR Monocouche.',
+      existing_render: 'Over existing render / pebbledash → check it is sound (tap-test, remove blown areas), then S10 bonding primer + your chosen system. Use the "over existing render" scope template.',
+      concrete_block:  'Concrete / block → standard EcoRend SR15 Silicone or OCR Monocouche over a prepared, primed substrate.'
+    };
+    function suggestSystem() {
+      const c   = document.getElementById('wall-construction')?.value || '';
+      const age = document.getElementById('build-age')?.value || '';
+      const box = document.getElementById('system-suggestion');
+      if (!box) return;
+      let txt = SYSTEM_SUGGEST[c] || '';
+      // Pre-1945 solid brick: nudge towards the lime/breathable route.
+      if (txt && c === 'solid_brick' && (age === 'pre1919' || age === '1919_1944')) {
+        txt += ' (Pre-1945 — lean towards the lime system.)';
+      }
+      if (txt) { box.textContent = '💡 ' + txt; box.style.display = ''; }
+      else { box.style.display = 'none'; box.textContent = ''; }
     }
 
     function removePhoto(pc) {
