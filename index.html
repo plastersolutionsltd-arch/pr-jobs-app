@@ -1355,6 +1355,7 @@ function openJob(id) {
   html += '<div class="tools-grid">';
   html += toolBtn(noteSVG(),    'Plaster Visit' + (hasPlaster ? ' ✓' : ''), "openTemplate('site-visit.html')");
   html += toolBtn(noteSVG(),    'Render Visit'  + (hasRender  ? ' ✓' : ''), "openTemplate('site-visit-render.html')");
+  html += toolBtn(mapsSVG(),    'Building Info', 'buildingInfo()');
   html += toolBtn(quoteSVG(),   'Quote Plaster', "openTemplate('quote-plastering.html')");
   html += toolBtn(quoteSVG(),   'Quote Render',  "openTemplate('quote-rendering.html')");
   if (j.quoteData || j.quote || ['quoted','declined'].indexOf(j.status) >= 0) {
@@ -1959,6 +1960,18 @@ function confirmDatesToCustomer() {
   location.href = 'mailto:' + j.email
     + '?subject=' + encodeURIComponent(subject)
     + '&body='    + encodeURIComponent(body);
+}
+
+// Open the free gov.uk EPC register for this job's postcode — shows the property's
+// construction age band + wall type (e.g. "1900-1929, Sandstone solid") when known.
+function buildingInfo() {
+  var j = jobs.find(function(x){ return x.id === currentJobId; });
+  if (!j) return;
+  var pc = (j.address || '').match(/[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}/i);
+  if (!pc) { toast('No postcode found on this job'); return; }
+  var url = 'https://find-energy-certificate.service.gov.uk/find-a-certificate/search-by-postcode?postcode='
+    + encodeURIComponent(pc[0].toUpperCase().replace(/\s+/g, ' '));
+  window.open(url, '_blank');
 }
 
 // Chase a quote that's gone quiet — opens Mail with a polite "did it reach you / check junk" note.
