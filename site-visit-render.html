@@ -647,6 +647,10 @@
         <input type="text" id="visit-ref" placeholder="RV-…">
       </div>
     </div>
+    <div class="f">
+      <label>Possible Start Date <span style="font-size:10px;font-weight:normal;color:#888">(optional — shows on the quote as an estimate)</span></label>
+      <input type="date" id="poss-start">
+    </div>
 
     <!-- Customer Details -->
     <div class="sec">Customer Details</div>
@@ -880,6 +884,10 @@
             <option value="6|300">6 ton skip — £300</option>
             <option value="8|360">8 ton skip — £360</option>
           </select>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:#555;cursor:pointer">
+            <input type="checkbox" id="skip-hide" style="width:15px;height:15px;accent-color:var(--green)">
+            Include in price — don't show skip as a line on the quote
+          </label>
         </div>
       </div>
       <div class="f">
@@ -1291,6 +1299,7 @@ function parseFreetextMessage(raw) {
 
       // Date — restore or default to today
       document.getElementById('visit-date').value = sv?.date || new Date().toISOString().split('T')[0];
+      { const ps = document.getElementById('poss-start'); if (ps && sv?.startDate) ps.value = sv.startDate; }
 
       // Visit Ref — restore or generate
       if (sv?.ref) {
@@ -1404,6 +1413,8 @@ function parseFreetextMessage(raw) {
             }
             updateSkipCost();
           }
+          const hideEl = document.getElementById('skip-hide');
+          if (hideEl) hideEl.checked = !!sv.hideSkip;
         } else {
           const noRadio = document.querySelector('input[name="skip"][value="no"]');
           if (noRadio) noRadio.checked = true;
@@ -2103,6 +2114,7 @@ function parseFreetextMessage(raw) {
       job.renderVisit = {
         ref:           svRef,
         date:          document.getElementById('visit-date').value,
+        startDate:     document.getElementById('poss-start')?.value || '',
         wallM2:        document.getElementById('total-wall').textContent.replace('—','').trim(),
         ceilM2:        document.getElementById('total-ceil').textContent.replace('—','').trim(),
         combinedM2:    document.getElementById('total-combined').textContent.replace('— combined','').replace('combined','').trim(),
@@ -2122,6 +2134,7 @@ function parseFreetextMessage(raw) {
         scaffoldCost:  parseFloat(document.getElementById('scaffold-cost')?.value) || 0,
         skipTons:       skipTons || '',
         skipCost:       skipCost ? '£' + parseFloat(skipCost).toFixed(2) : '',
+        hideSkip:       !!document.getElementById('skip-hide')?.checked,
         propertyType:   document.getElementById('property-type-sel')?.value || '',
         existingSurface: document.getElementById('existing-surface')?.value || '',
         prepRequired:   document.getElementById('prep-required')?.value || '',
