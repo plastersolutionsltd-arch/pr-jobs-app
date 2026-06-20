@@ -1290,6 +1290,8 @@
         const scost = document.querySelector(`[data-id="${sfid}"][data-field="cost"]`);
         if (sdesc) sdesc.value = 'Skip hire (' + sv.skipTons + ' ton)';
         if (scost) scost.value = parseFloat(sv.skipCost.replace(/[^0-9.]/g, '')) || '';
+        const hk = document.getElementById('hide-skip');
+        if (hk) hk.checked = !!sv.hideSkip;
       }
       update();
       document.getElementById('sv-update-banner').style.display = 'none';
@@ -1474,6 +1476,8 @@
               const scost = document.querySelector(`[data-id="${sfid}"][data-field="cost"]`);
               if (sdesc) sdesc.value = 'Skip hire (' + sv.skipTons + ' ton)';
               if (scost) scost.value = parseFloat(sv.skipCost.replace(/[^0-9.]/g, '')) || '';
+              const hk = document.getElementById('hide-skip');
+              if (hk) hk.checked = !!sv.hideSkip;
             }
           } else {
             // No site visit yet
@@ -1507,6 +1511,12 @@
               if (scopeKey) insertScopeTemplate(scopeKey);
             }
           }
+        }
+
+        // ── Pre-fill the estimated start date from the visit's "possible start date" ──
+        if (_srcVisit && _srcVisit.startDate) {
+          const sd = document.getElementById('start-date');
+          if (sd && !sd.value) { sd.value = _srcVisit.startDate; update(); }
         }
 
         // ── Auto-fill before/after photos from job data ──
