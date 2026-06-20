@@ -1357,6 +1357,9 @@ function openJob(id) {
   html += toolBtn(noteSVG(),    'Render Visit'  + (hasRender  ? ' ✓' : ''), "openTemplate('site-visit-render.html')");
   html += toolBtn(quoteSVG(),   'Quote Plaster', "openTemplate('quote-plastering.html')");
   html += toolBtn(quoteSVG(),   'Quote Render',  "openTemplate('quote-rendering.html')");
+  if (j.quoteData || j.quote || ['quoted','declined'].indexOf(j.status) >= 0) {
+    html += toolBtn(emailSVG(), 'Follow Up',     'followUpQuote()');
+  }
   html += toolBtn(calSVG(),     'Book Date',     'scheduleJob()');
   html += toolBtn(invoiceSVG(), 'Invoice',       "openTemplate('invoice.html')");
   if (j.status === 'invoiced') {
@@ -1953,6 +1956,23 @@ function confirmDatesToCustomer() {
     + 'P&R Solutions\n'
     + '07595 399525';
 
+  location.href = 'mailto:' + j.email
+    + '?subject=' + encodeURIComponent(subject)
+    + '&body='    + encodeURIComponent(body);
+}
+
+// Chase a quote that's gone quiet — opens Mail with a polite "did it reach you / check junk" note.
+function followUpQuote() {
+  var j = jobs.find(function(x){ return x.id === currentJobId; });
+  if (!j) return;
+  if (!j.email) { toast('No email saved for this job'); return; }
+  var firstName = (j.name || '').split(' ')[0] || 'there';
+  var ref = (j.quoteData && j.quoteData.invNumber) || (j.quote && j.quote.number) || '';
+  var subject = 'Following up — your P&R Solutions quotation' + (ref ? ' (' + ref + ')' : '');
+  var body = 'Hi ' + firstName + ',\n\n'
+    + 'Just following up on the quotation we sent over' + (ref ? ' (ref ' + ref + ')' : '') + '. These can occasionally land in a junk or spam folder, so I wanted to make sure it reached you okay.\n\n'
+    + 'If you’ve any questions or would like to talk anything through, just reply here or give me a call on 07595 399525 — no rush.\n\n'
+    + 'Many thanks,\nChris\nP&R Solutions\n07595 399525';
   location.href = 'mailto:' + j.email
     + '?subject=' + encodeURIComponent(subject)
     + '&body='    + encodeURIComponent(body);
